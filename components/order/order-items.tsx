@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { memo, useCallback, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { createSearch, productFields } from '@/domain/search';
 import type { ItemChange } from '@/domain/order-state';
 import { makeItem } from '@/domain/item-entry';
@@ -26,17 +26,17 @@ export function ItemEntry({ onSave, editing, onCancel }: { onSave: (item: OrderI
   const [discount, setDiscount] = useState(((editing?.discountBasisPoints ?? 0) / 100).toFixed(2).replace('.', ','));
   const [error, setError] = useState('');
   const qtyRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (editing) { qtyRef.current?.focus(); qtyRef.current?.select(); } }, [editing]);
+  useLayoutEffect(() => { if (editing) { qtyRef.current?.focus(); qtyRef.current?.select(); } else focusProduct(); }, [editing]);
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!product) { setError('Selecione um produto nas sugestões.'); focusProduct(); return; }
     try {
       const item = makeItem(product, quantity, price, discount, editing?.id ?? crypto.randomUUID());
       onSave(item); setProduct(null); setQuery(''); setQuantity('1'); setPrice('0,00'); setDiscount('0,00'); setError('');
-      requestAnimationFrame(focusProduct);
+      focusProduct();
     } catch (cause) { setError((cause as Error).message); }
   }
-  return <><form className="item-entry" onSubmit={submit} onKeyDown={event => { if (event.key === 'Escape' && editing) { onCancel(); requestAnimationFrame(focusProduct); } }}>
+  return <><form className="item-entry" onSubmit={submit} onKeyDown={event => { if (event.key === 'Escape' && editing) { onCancel(); focusProduct(); } }}>
     <div className="product-field"><LocalAutocomplete id="product-entry" label={editing ? 'Editar produto' : 'Produto'} placeholder="Digite o código, EAN, nome ou marca do produto..." value={query} search={searchProducts}
       onChange={text => { setQuery(text); setProduct(null); setError(''); }}
       onSelect={selected => { setProduct(selected); setQuery(selected.name); setPrice((selected.priceCents / 100).toFixed(2).replace('.', ',')); setError(''); qtyRef.current?.focus(); qtyRef.current?.select(); }}
@@ -46,7 +46,7 @@ export function ItemEntry({ onSave, editing, onCancel }: { onSave: (item: OrderI
     <div className="field"><label htmlFor="item-price">Preço (R$)</label><Input id="item-price" className="form-input" inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} /></div>
     <div className="field"><label htmlFor="item-discount">Desc. (%)</label><Input id="item-discount" className="form-input" inputMode="decimal" value={discount} onChange={e => setDiscount(e.target.value)} /></div>
     <button className="button primary add-button" type="submit"><Plus size={18} />{editing ? 'Aplicar' : 'Adicionar'}</button>
-    {editing && <button type="button" className="text-link" onClick={() => { onCancel(); requestAnimationFrame(focusProduct); }}>Cancelar edição</button>}
+    {editing && <button type="button" className="text-link" onClick={() => { onCancel(); focusProduct(); }}>Cancelar edição</button>}
   </form>{error && <p className="entry-error" role="alert">{error}</p>}</>;
 }
 
@@ -67,7 +67,7 @@ export function OrderItems({ items, onChange, optimized = true, onRowRender }: {
   }
   const edit = useCallback((item: OrderItem) => { setEditing(item); }, []);
   const duplicate = useCallback((item: OrderItem) => { onChange({ type: 'add', item: { ...item, id: crypto.randomUUID() } }); setMessage(`${item.name}: duplicado.`); focusProduct(); }, [onChange]);
-  const remove = useCallback((id: string) => { onChange({ type: 'delete', id }); setEditing(current => current?.id === id ? null : current); setMessage('Item excluído.'); requestAnimationFrame(focusProduct); }, [onChange]);
+  const remove = useCallback((id: string) => { onChange({ type: 'delete', id }); setEditing(current => current?.id === id ? null : current); setMessage('Item excluído.'); focusProduct(); }, [onChange]);
 
   return <Section title="Itens do pedido" icon={<Package />} className="items-card" extra={<span className="catalog-count">{products.length} produtos no catálogo</span>}>
     <ItemEntry key={editing?.id ?? "new"} editing={editing} onSave={save} onCancel={() => setEditing(null)} />
