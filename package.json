@@ -1,6 +1,6 @@
 {
-  "name": "atram-pedidos-etapa-2",
-  "version": "0.2.0",
+  "name": "atram-pedidos",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "node": ">=24.0.0"
@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "check:data": "node scripts/check-mock-data.mjs",
     "mock:export": "node scripts/export-mock-data.mjs",
-    "check:stage2": "node scripts/check-stage-2.mjs"
+    "check:stage2": "node scripts/check-stage-2.mjs",
+    "check:stage3": "node scripts/check-stage-3.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

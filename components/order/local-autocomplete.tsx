@@ -13,7 +13,7 @@ export function LocalAutocomplete<T extends { id: string }>({ id, label, placeho
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
   const results = open ? search(value) : [];
-  useEffect(() => { list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }); }, [active]);
+  useEffect(() => { list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }); }, [active, value, open]);
   function select(item: T) { onSelect(item); setOpen(false); setActive(0); }
   return <div className="field autocomplete-field"><label htmlFor={id}>{label}</label><Input id={id} className="form-input" placeholder={placeholder} value={value} autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={open && !!value.trim()} aria-controls={listId} aria-activedescendant={open && results[active] ? `${listId}-${results[active].id}` : undefined}
     onFocus={event => event.currentTarget.select()}

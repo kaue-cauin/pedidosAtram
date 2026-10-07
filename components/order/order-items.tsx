@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { createSearch, productFields } from '@/domain/search';
+import type { ItemChange } from '@/domain/order-state';
 import { makeItem } from '@/domain/item-entry';
 import { LocalAutocomplete } from './local-autocomplete';
 import type { Product } from '@/types/order';
@@ -49,24 +50,28 @@ export function ItemEntry({ onSave, editing, onCancel }: { onSave: (item: OrderI
   </form>{error && <p className="entry-error" role="alert">{error}</p>}</>;
 }
 
-function ItemRow({ item, index, onEdit, onDuplicate, onDelete }: { item: OrderItem; index: number; onEdit: (item: OrderItem) => void; onDuplicate: (item: OrderItem) => void; onDelete: (id: string) => void }) {
+function ItemRow({ item, index, onEdit, onDuplicate, onDelete, onRowRender }: { onRowRender?: () => void; item: OrderItem; index: number; onEdit: (item: OrderItem) => void; onDuplicate: (item: OrderItem) => void; onDelete: (id: string) => void }) {
+  onRowRender?.();
   return <TableRow><TableCell className="index-cell">{String(index + 1).padStart(2, '0')}</TableCell><TableCell className="code-cell">{item.code}</TableCell><TableCell className="description-cell"><span className="product-name">{item.name}</span></TableCell><TableCell className="unit-cell">{item.unit}</TableCell><TableCell className="numeric quantity-cell">{item.quantity}</TableCell><TableCell className="numeric">{decimalMoney(item.unitPriceCents)}</TableCell><TableCell className="numeric discount-cell">{decimalMoney(item.discountBasisPoints)}</TableCell><TableCell className="numeric line-total">{decimalMoney(itemTotalCents(item))}</TableCell><TableCell><div className="row-actions"><button onClick={() => onEdit(item)} title="Editar" aria-label={`Editar ${item.name}`}><Pencil size={14} /></button><button onClick={() => onDuplicate(item)} title="Duplicar" aria-label={`Duplicar ${item.name}`}><Copy size={14} /></button><button onClick={() => onDelete(item.id)} title="Excluir" aria-label={`Excluir ${item.name}`} className="delete-action"><Trash2 size={14} /></button></div></TableCell></TableRow>;
 }
 
-export function OrderItems({ items, onChange }: { items: readonly OrderItem[]; onChange: (items: readonly OrderItem[]) => void }) {
+const MemoItemRow = memo(ItemRow);
+
+export function OrderItems({ items, onChange, optimized = true, onRowRender }: { items: readonly OrderItem[]; onChange: (change: ItemChange) => void; optimized?: boolean; onRowRender?: () => void }) {
+  const Row = optimized ? MemoItemRow : ItemRow;
   const [editing, setEditing] = useState<OrderItem | null>(null);
   const [message, setMessage] = useState('');
   function save(item: OrderItem) {
-    onChange(editing ? items.map(row => row.id === item.id ? item : row) : [...items, item]);
+    onChange({ type: editing ? 'edit' : 'add', item });
     setMessage(`${item.name}: ${editing ? 'atualizado' : 'adicionado'}.`); setEditing(null);
   }
-  function edit(item: OrderItem) { setEditing(item); }
-  function duplicate(item: OrderItem) { onChange([...items, { ...item, id: crypto.randomUUID() }]); setMessage(`${item.name}: duplicado.`); focusProduct(); }
-  function remove(id: string) { onChange(items.filter(item => item.id !== id)); if (editing?.id === id) setEditing(null); setMessage('Item excluído.'); requestAnimationFrame(focusProduct); }
+  const edit = useCallback((item: OrderItem) => { setEditing(item); }, []);
+  const duplicate = useCallback((item: OrderItem) => { onChange({ type: 'add', item: { ...item, id: crypto.randomUUID() } }); setMessage(`${item.name}: duplicado.`); focusProduct(); }, [onChange]);
+  const remove = useCallback((id: string) => { onChange({ type: 'delete', id }); setEditing(current => current?.id === id ? null : current); setMessage('Item excluído.'); requestAnimationFrame(focusProduct); }, [onChange]);
 
   return <Section title="Itens do pedido" icon={<Package />} className="items-card" extra={<span className="catalog-count">{products.length} produtos no catálogo</span>}>
     <ItemEntry key={editing?.id ?? "new"} editing={editing} onSave={save} onCancel={() => setEditing(null)} />
-    <div className="items-table-wrap"><Table className="items-table" aria-label="Itens do pedido"><TableHeader><TableRow><TableHead>#</TableHead><TableHead>Código</TableHead><TableHead>Descrição do produto</TableHead><TableHead>UN</TableHead><TableHead className="numeric">Qtd.</TableHead><TableHead className="numeric">Preço un. (R$)</TableHead><TableHead className="numeric">Desc. (%)</TableHead><TableHead className="numeric">Total (R$)</TableHead><TableHead className="actions-heading">Ações</TableHead></TableRow></TableHeader><TableBody>{items.map((item, index) => <ItemRow key={item.id} item={item} index={index} onEdit={edit} onDuplicate={duplicate} onDelete={remove} />)}</TableBody></Table></div>
+    <div className="items-table-wrap"><Table className="items-table" aria-label="Itens do pedido"><TableHeader><TableRow><TableHead>#</TableHead><TableHead>Código</TableHead><TableHead>Descrição do produto</TableHead><TableHead>UN</TableHead><TableHead className="numeric">Qtd.</TableHead><TableHead className="numeric">Preço un. (R$)</TableHead><TableHead className="numeric">Desc. (%)</TableHead><TableHead className="numeric">Total (R$)</TableHead><TableHead className="actions-heading">Ações</TableHead></TableRow></TableHeader><TableBody>{items.map((item, index) => <Row key={item.id} item={item} index={index} onEdit={edit} onDuplicate={duplicate} onDelete={remove} onRowRender={onRowRender} />)}</TableBody></Table></div>
     <p className="sr-only" role="status">{message}</p><div className="table-bottom"><span><strong>{items.length} itens</strong></span><span id="entry-help">Produto → Enter → Quantidade → Enter · F4: produto</span></div>
   </Section>;
 }

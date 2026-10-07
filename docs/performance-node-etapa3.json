@@ -1,0 +1,429 @@
+{
+  "recordedAt": "2026-10-07T15:28:05.277Z",
+  "runtime": "v24.19.0",
+  "assertions": 75642,
+  "result": "PASS",
+  "method": "CPU pura em Node, 1000 amostras após 200 aquecimentos. Sem React/DOM/pintura.",
+  "results": [
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.024967000000003736,
+      "p95Ms": 0.08472499999999172
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.0006710000000111904,
+      "p95Ms": 0.0010819999999966967
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.0005009999999856518,
+      "p95Ms": 0.0011119999999777974
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.0005610000000046966,
+      "p95Ms": 0.0010720000000219443
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.0005209999999920001,
+      "p95Ms": 0.0006609999999795946
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.0248269999999593,
+      "p95Ms": 0.0671689999999785
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.00020999999998139174,
+      "p95Ms": 0.0003300000000194814
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.00021000000003823516,
+      "p95Ms": 0.00045099999999820284
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.00027000000000043656,
+      "p95Ms": 0.0005209999999920001
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00011000000000649379,
+      "p95Ms": 0.0002000000000066393
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.019439000000033957,
+      "p95Ms": 0.03471200000001318
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.002123000000040065,
+      "p95Ms": 0.0030750000000239197
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.0017019999999661195,
+      "p95Ms": 0.0020539999999868996
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.002082999999970525,
+      "p95Ms": 0.0024439999999685824
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.0019919999999729043,
+      "p95Ms": 0.002384000000006381
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.019149000000027172,
+      "p95Ms": 0.031836999999995896
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.0005010000000424952,
+      "p95Ms": 0.0009009999999989304
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.0007610000000113359,
+      "p95Ms": 0.001040999999986525
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.0015819999999848733,
+      "p95Ms": 0.00220400000000609
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00020999999998139174,
+      "p95Ms": 0.0003010000000358559
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.01903799999996636,
+      "p95Ms": 0.02697000000000571
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.003424999999992906,
+      "p95Ms": 0.004115999999953601
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.0025439999999434804,
+      "p95Ms": 0.003045000000042819
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.0031650000000809086,
+      "p95Ms": 0.004967999999962558
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.0039460000000417494,
+      "p95Ms": 0.004746999999952095
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.019389000000046508,
+      "p95Ms": 0.02968399999997473
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.0007610000000113359,
+      "p95Ms": 0.0011009999999487263
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.00037099999997280975,
+      "p95Ms": 0.0008310000000619766
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.0005810000000110449,
+      "p95Ms": 0.0010720000000219443
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00012000000003808964,
+      "p95Ms": 0.00022000000001298758
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.033158999999955086,
+      "p95Ms": 0.04960300000004736
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.004366000000004533,
+      "p95Ms": 0.006559000000038395
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.004426000000080421,
+      "p95Ms": 0.006759999999985666
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.0043060000000423315,
+      "p95Ms": 0.0055179999999381835
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.005808000000001812,
+      "p95Ms": 0.006799999999998363
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.01867800000002262,
+      "p95Ms": 0.01950899999997091
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.0009620000000722939,
+      "p95Ms": 0.0012619999999969878
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.000611000000048989,
+      "p95Ms": 0.0008109999999987849
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.0012719999999717402,
+      "p95Ms": 0.0017430000000331347
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00009000000000014552,
+      "p95Ms": 0.00009999999997489795
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.019288999999957923,
+      "p95Ms": 0.020410000000083528
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.005488000000013926,
+      "p95Ms": 0.006950000000074397
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.00495699999999033,
+      "p95Ms": 0.006300000000010186
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.005246999999940272,
+      "p95Ms": 0.0057189999999991414
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.006729999999947722,
+      "p95Ms": 0.008051999999906911
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.01869699999997465,
+      "p95Ms": 0.019849000000021988
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.001192000000060034,
+      "p95Ms": 0.0015019999999594802
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.0004809999999224601,
+      "p95Ms": 0.0006809999999859428
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.0012120000000095388,
+      "p95Ms": 0.0016829999999572465
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00009000000000014552,
+      "p95Ms": 0.00010000000008858478
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Busca",
+      "p50Ms": 0.019008999999982734,
+      "p95Ms": 0.02051999999991949
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "p50Ms": 0.00846200000000863,
+      "p95Ms": 0.010756000000014865
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "p50Ms": 0.008052000000020598,
+      "p95Ms": 0.010125000000016371
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Excluir",
+      "p50Ms": 0.008962999999994281,
+      "p95Ms": 0.01061600000002727
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Totais",
+      "p50Ms": 0.010626000000002023,
+      "p95Ms": 0.012388999999984662
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Busca",
+      "p50Ms": 0.018628000000035172,
+      "p95Ms": 0.019638999999983753
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "p50Ms": 0.0016830000000709333,
+      "p95Ms": 0.002002999999945132
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "p50Ms": 0.0007909999999355932,
+      "p95Ms": 0.0009810000000243235
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "p50Ms": 0.0013719999999466381,
+      "p95Ms": 0.0018420000000105574
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Totais",
+      "p50Ms": 0.00009000000000014552,
+      "p95Ms": 0.00009999999997489795
+    }
+  ]
+}

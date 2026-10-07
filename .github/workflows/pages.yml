@@ -20,6 +20,7 @@ jobs:
       - run: npm ci
       - run: npm run check:data
       - run: npm run check:stage2
+      - run: npm run check:stage3
       - run: npm run typecheck
       - run: npm run build
         env:
