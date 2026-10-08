@@ -114,4 +114,6 @@ No topo de `/diagnostico/`:
 
 Medições independentes: **UI** = modelo + React/DOM até `useLayoutEffect`, sem pintura; **IndexedDB** = transação até `complete`; **Persistência** = abertura + atraso artificial + transação; **Autosave** = última alteração enfileirada até conclusão, incluindo debounce/fila. Um autosave de ~250 ms não significa que Enter esperou 250 ms. Valores de CPU próximos de zero podem estar abaixo da resolução do relógio. O laboratório usa o banco separado `atram-diagnostico-etapa4-v1`.
 
+**Testar digitação contínua (gravação 1 s)** faz 60 inclusões a partir de 300 itens, com intervalo de 50 ms e atraso de armazenamento de 1.000 ms. Registra gravações concluídas durante a entrada e inclusões enquanto o escritor estava ocupado; lê o último snapshot em outra conexão após terminar. **Salvar pendências agora** permite nova tentativa após desligar uma falha simulada.
+
 O comparativo anterior Base × Otimizado continua disponível na seção recolhida da Etapa 3. Consulte `docs/VERIFICACAO-ETAPA-4.md` para evidências e limites dos testes desta etapa.

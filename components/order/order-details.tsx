@@ -29,5 +29,5 @@ export const CustomerDetails = memo(function CustomerDetails({ fields, onChange 
 });
 
 export const OrderDates = memo(function OrderDates({ fields, onChange }: { fields: OrderFields; onChange: (patch: FieldsChange) => void }) {
-  return <Section title="Datas" icon={<CalendarDays />} className="dates-card"><div className="dates-fields"><TextField label="Data da venda *" type="date" value={fields.saleDate} onChange={e => onChange({ saleDate: e.target.value })} /><TextField label="Previsão de entrega" type="date" value={fields.deliveryDate} onChange={e => onChange({ deliveryDate: e.target.value })} /><TextField label="Data de envio" type="date" value={fields.shippingDate} onChange={e => onChange({ shippingDate: e.target.value })} /></div></Section>;
+  return <Section title="Datas" icon={<CalendarDays />} className="dates-card"><div className="dates-fields"><TextField label="Data da venda *" type="date" value={fields.saleDate} onInput={e => onChange({ saleDate: e.currentTarget.value })} /><TextField label="Previsão de entrega" type="date" value={fields.deliveryDate} onInput={e => onChange({ deliveryDate: e.currentTarget.value })} /><TextField label="Data de envio" type="date" value={fields.shippingDate} onInput={e => onChange({ shippingDate: e.currentTarget.value })} /></div></Section>;
 });

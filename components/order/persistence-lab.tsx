@@ -30,6 +30,7 @@ export function PersistenceLab() {
   const forcedSimulation = useRef<PersistenceSimulation | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Pronto. Os rascunhos deste teste usam outro banco e não alteram seu pedido.');
+  const [stress, setStress] = useState<{ initialItems: number; additions: number; uiSamples: number; uiP95: number; storageDelayMs: number; savesDuringInput: number; actionsWhileSaving: number; indexedDbP95: number; persistenceP95: number; autosaveP95: number; recovered: boolean }>();
   const [results, setResults] = useState<Result[]>([]);
   const [queue, setQueue] = useState<AutosaveQueue<Order>>();
   const queueRef = useRef<AutosaveQueue<Order> | null>(null);
@@ -160,8 +161,33 @@ export function PersistenceLab() {
     } catch (error) { setStatus((error as Error).message); }
     finally { forcedSimulation.current = null; setBusy(false); }
   }
+  async function continuousInput() {
+    if (!queueRef.current) return;
+    cancelled.current = false; setBusy(true); setStress(undefined);
+    const original = stateRef.current, originalEnabled = enabledRef.current;
+    try {
+      await queueRef.current.flush(); enabledRef.current = true; setEnabled(true);
+      forcedSimulation.current = { delayMs: 1000 };
+      await commit({ type: 'replace', items: performanceItems(300) }); await settled();
+      const firstMetric = metrics.current.length, start = performance.now();
+      let actionsWhileSaving = 0;
+      const samples: UiSample[] = [];
+      for (let i = 0; i < 60; i++) {
+        setStatus(`Digitação contínua: ${i + 1}/60 inclusões, gravação com atraso de 1.000 ms…`);
+        if (queueRef.current.getSnapshot().phase === 'saving') actionsWhileSaving++;
+        samples.push(await commit({ type: 'add', item: { ...stateRef.current.items[0], id: `continuous-${i}` } }));
+        await new Promise(r => setTimeout(r, 50));
+      }
+      const end = performance.now(); await settled(); const recovered = await checkRecovery();
+      const saves = metrics.current.slice(firstMetric);
+      const result = { initialItems: 300, additions: 60, uiSamples: samples.length, uiP95: percentile(samples.map(s => s.commitMs), .95), storageDelayMs: 1000, savesDuringInput: saves.filter(m => m.completedAtMs >= start && m.completedAtMs <= end).length, actionsWhileSaving, indexedDbP95: percentile(saves.map(m => m.indexedDbMs), .95), persistenceP95: percentile(saves.map(m => m.persistenceMs), .95), autosaveP95: percentile(saves.map(m => m.autosaveMs), .95), recovered };
+      if (!result.savesDuringInput || !actionsWhileSaving) throw new Error('Não houve sobreposição entre digitação e autosave; repita o teste.');
+      setStress(result); setStatus('Digitação contínua passou: inclusão seguiu durante gravações lentas e o último pedido foi recuperado.');
+    } catch (error) { setStatus((error as Error).message); }
+    finally { forcedSimulation.current = null; pending.current = null; enabledRef.current = originalEnabled; setEnabled(originalEnabled); stateRef.current = original; setSnapshot(original); setBusy(false); }
+  }
   function exportResults() {
-    const payload = { recordedAt: new Date().toISOString(), userAgent: navigator.userAgent, viewport: { width: innerWidth, height: innerHeight, pixelRatio: devicePixelRatio }, method: '10 commits após 2 aquecimentos por operação. UI: modelo + React/DOM até useLayoutEffect, sem pintura. IndexedDB: transação até complete. Persistência: atraso artificial + abertura + transação. Autosave: última alteração do snapshot até complete, incluindo fila/debounce de 250 ms (máximo 1000 ms). Gravações coalescidas por lote, contagem separada de amostras UI. Rede simulada independente; Offline simulado não desliga a rede do navegador.', results, saves: metrics.current };
+    const payload = { recordedAt: new Date().toISOString(), userAgent: navigator.userAgent, viewport: { width: innerWidth, height: innerHeight, pixelRatio: devicePixelRatio }, method: '10 commits após 2 aquecimentos por operação. UI: modelo + React/DOM até useLayoutEffect, sem pintura. IndexedDB: transação até complete. Persistência: atraso artificial + abertura + transação. Autosave: última alteração do snapshot até complete, incluindo fila/debounce de 250 ms (máximo 1000 ms). Gravações coalescidas por lote, contagem separada de amostras UI. Rede simulada independente; Offline simulado não desliga a rede do navegador.', results, continuousInput: stress, saves: metrics.current };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = 'atram-performance-etapa4.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -171,9 +197,10 @@ export function PersistenceLab() {
     <label><input type="checkbox" checked={enabled} disabled={busy} onChange={e => { enabledRef.current = e.target.checked; setEnabled(e.target.checked); if (e.target.checked) queueRef.current?.schedule(latestOrder.current); }} /> Autosave ligado</label>
     <label>Atraso de armazenamento <select aria-label="Atraso artificial de persistência" value={delay} disabled={busy} onChange={e => setDelay(Number(e.target.value))}>{[0, 50, 100, 300, 1000].map(n => <option value={n} key={n}>{n} ms</option>)}</select></label>
     <label><input type="checkbox" checked={failure} disabled={busy} onChange={e => setFailure(e.target.checked)} /> Simular falha de gravação</label>
-    <button className="button primary" disabled={busy || !queue} onClick={() => { void run(false); }}>Comparar UI com autosave</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void run(true); }}>Testar rede lenta e offline simulados</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void testFailure(); }}>Testar falha e recuperação</button>{busy && <button className="button secondary" onClick={() => { cancelled.current = true; }}>Interromper</button>}<button className="button secondary" disabled={busy || !results.length} onClick={exportResults}>Exportar Etapa 4 JSON</button></div>
+    <button className="button primary" disabled={busy || !queue} onClick={() => { void run(false); }}>Comparar UI com autosave</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void run(true); }}>Testar rede lenta e offline simulados</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void continuousInput(); }}>Testar digitação contínua (gravação 1 s)</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void queueRef.current?.flush().then(() => checkRecovery()).then(() => setStatus('Pendências gravadas e recuperadas.')).catch(error => setStatus((error as Error).message)); }}>Salvar pendências agora</button><button className="button secondary" disabled={busy || !queue} onClick={() => { void testFailure(); }}>Testar falha e recuperação</button>{busy && <button className="button secondary" onClick={() => { cancelled.current = true; }}>Interromper</button>}<button className="button secondary" disabled={busy || (!results.length && !stress)} onClick={exportResults}>Exportar Etapa 4 JSON</button></div>
     <p role="status">{status}</p><PersistenceStatus queue={queue} />
     <p className="lab-explanation">Rede: operação simulada de 0/50/100/300/1000 ms ou indisponível, sem bloquear digitação e sem conexão com ERP. Atraso de armazenamento: teste independente para tornar uma gravação lenta. Recuperação automática usa uma nova conexão ao banco, não simula fechar o navegador. Para validar recarga offline real, abra o pedido principal após o indicador “Aplicação disponível offline”.</p>
+    {stress && <p className="recovery-card" role="status">Digitação contínua: {stress.additions} inclusões a partir de {stress.initialItems} itens · UI p95 {stress.uiP95.toFixed(2)} ms · {stress.savesDuringInput} gravações concluídas durante a entrada · {stress.actionsWhileSaving} inclusões enquanto o escritor aguardava · Persistência p95 {stress.persistenceP95.toFixed(2)} ms · Recuperação {stress.recovered ? 'OK' : 'Falhou'}</p>}
     {results.length > 0 && <div className="lab-results"><table aria-label="Resultados da Etapa 4"><thead><tr>{['Autosave', 'Rede simulada', 'Itens', 'Operação', 'UI amostras', 'UI p95 ms', 'Gravações', 'IndexedDB p95 ms', 'Persistência p95 ms', 'Autosave p95 ms', 'Recuperação'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{results.map((r, i) => <tr key={i}><td>{r.autosave ? 'Ligado' : 'Desligado'}</td><td>{r.network}</td><td>{r.size}</td><td>{r.operation}</td><td>{r.samples}</td><td>{n(r.uiP95)}</td><td>{r.saveSamples}</td><td>{n(r.indexedDbP95)}</td><td>{n(r.persistenceP95)}</td><td>{n(r.autosaveP95)}</td><td>{r.autosave ? r.recovered ? 'OK' : 'Falhou' : '—'}</td></tr>)}</tbody></table></div>}
     <div className="lab-workspace" inert={busy}><OrderItems items={snapshot.items} onChange={onChange} onRowRender={onRowRender} /><OrderSummary totals={snapshot.totals} /></div>
   </section>;

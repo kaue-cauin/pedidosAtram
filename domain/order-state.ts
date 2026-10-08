@@ -31,7 +31,7 @@ export function changeItems(state: ItemsState, action: ItemChange, incremental =
   if (!incremental) return initialItemsState(items);
   return { items, totals: updateItemTotals(state.totals, previous, next) };
 }
-// Order-level freight/discount are fixed at zero in stages 1–3.
+// Order-level freight/discount are fixed at zero in stages 1–4.
 export function updateItemTotals(totals: OrderTotals, previous?: OrderItem, next?: OrderItem): OrderTotals {
   let result = previous ? contribution(totals, previous, -1) : totals;
   if (next) result = contribution(result, next, 1);

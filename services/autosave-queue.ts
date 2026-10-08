@@ -1,5 +1,5 @@
 export interface SaveReceipt { revision: number; savedAt: string; indexedDbMs: number; persistenceMs: number }
-export interface SaveMetrics extends SaveReceipt { autosaveMs: number; queueMs: number; sequence: number }
+export interface SaveMetrics extends SaveReceipt { autosaveMs: number; queueMs: number; sequence: number; completedAtMs: number }
 export interface AutosaveState { phase: 'idle' | 'queued' | 'saving' | 'saved' | 'error'; dirty: boolean; error?: string; metrics?: SaveMetrics }
 type Pending<T> = { value: T; at: number; sequence: number };
 
@@ -43,7 +43,7 @@ export class AutosaveQueue<T> {
     const start = performance.now();
     // Promise boundary also contains synchronous adapter failures.
     const operation = Promise.resolve().then(() => this.write(entry.value)).then(receipt => {
-      const metric = { ...receipt, sequence: entry.sequence, queueMs: start - entry.at, autosaveMs: performance.now() - entry.at };
+      const metric = { ...receipt, sequence: entry.sequence, completedAtMs: performance.now(), queueMs: start - entry.at, autosaveMs: performance.now() - entry.at };
       this.emit({ phase: this.pending ? 'queued' : 'saved', dirty: !!this.pending, metrics: metric });
       this.options.onMetric?.(metric);
       return metric;

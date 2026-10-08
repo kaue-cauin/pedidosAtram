@@ -8,7 +8,7 @@
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
-    "build": "next build --webpack && node scripts/build-offline.mjs && node scripts/check-offline.mjs",
+    "build": "node scripts/clean-output.mjs && next build --webpack && node scripts/build-offline.mjs && node scripts/check-offline.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "dev:next": "next dev",
