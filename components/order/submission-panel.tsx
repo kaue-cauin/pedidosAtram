@@ -34,7 +34,15 @@ export function SubmissionPanel({ order, getOrder, persist, available, preview=f
  const blocked=!available||busy||uncertain||order.status==='SUBMITTED'||canCorrect(order)||!deadlineReady;
  function openReview(){if(blocked)return;openerRef.current=document.activeElement as HTMLElement;setReview(structuredClone(getOrder()));setMessage('');}
  function closeReview(){dialogRef.current?.close();setReview(null);queueMicrotask(()=>{const opener=openerRef.current;if(opener?.isConnected&&!opener.closest('[inert]')&&!opener.hasAttribute('disabled'))opener.focus();else document.getElementById('submission-result')?.focus();});}
- useEffect(()=>{if(review)dialogRef.current?.showModal();},[review]);
+ useEffect(()=>{if(review){dialogRef.current?.showModal();dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus();}},[review]);
+ function trapFocus(e:React.KeyboardEvent<HTMLDialogElement>){
+  if(e.key!=='Tab')return;
+  const elements=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex="0"]')).filter(el=>el.getClientRects().length>0);
+  const first=elements[0],last=elements.at(-1);if(!first)return;
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+ }
+
  const keyboard=useEffectEvent((e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();if(!review)openReview();}});
  useEffect(()=>{const handler=(e:KeyboardEvent)=>keyboard(e);window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);},[]);
  async function run(work:()=>Promise<void>){setBusy(true);setMessage('');try{await work();closeReview();}catch(e){setMessage(e instanceof Error?e.message:'Operação interrompida. Consulte o resultado.');}finally{setBusy(false);}}
@@ -59,13 +67,13 @@ export function SubmissionPanel({ order, getOrder, persist, available, preview=f
    <p>Simulação local: nenhum pedido é enviado a um ERP real. Os recibos pertencem a este navegador.</p>
   </details>
   <details className="mock-controls"><summary>Simular resultado do ERP</summary><label htmlFor="erp-scenario">Cenário do Mock ERP</label><select aria-label="Cenário do Mock ERP" id="erp-scenario" value={scenario} disabled={busy} onChange={e=>setScenario(e.target.value as MockScenario)}>{scenarios.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select><p>Para simular autenticação resolvida ou ERP recuperado, escolha Sucesso normal. Nada é reenviado automaticamente.</p></details>
-  {review&&<dialog ref={dialogRef} className="review-dialog" aria-labelledby="review-title" aria-describedby="review-warning" onCancel={e=>{e.preventDefault();if(!busy)closeReview();}}>
+  {review&&<dialog ref={dialogRef} className="review-dialog" aria-labelledby="review-title" aria-describedby="review-warning" onKeyDown={trapFocus} onCancel={e=>{e.preventDefault();if(!busy)closeReview();}}>
    <header className="review-header"><h2 id="review-title">Revisar pedido</h2><p id="review-warning">Você está prestes a enviar este pedido ao Mock ERP. Ao confirmar, os dados serão bloqueados.</p></header>
    <dl className="review-summary">{[
     ['Cliente',customers.find(c=>c.id===review.customerId)?.name??'Não selecionado'],['Vendedor',sellers.find(s=>s.id===review.sellerId)?.name??'Não selecionado'],['Data de venda',review.saleDate],['Itens / quantidade',`${review.items.length} itens · ${totals!.quantity} unidades`],['Total da venda',money(totals!.saleCents)],['Pagamento',`${review.payment.method} · ${review.payment.terms}`],['Frete',review.shipping.freightType||'Não informado'],['Transportadora',review.shipping.carrier||'Não informada']
    ].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
    {errors.length>0&&<ul role="alert" className="draft-error">{errors.map(e=><li key={e}>{e}</li>)}</ul>}
-   <div className="review-scroll"><table aria-label="Itens para revisão"><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Desconto</th></tr></thead><tbody>{review.items.map(i=><tr key={i.id}><td>{i.code} · {i.name}</td><td>{i.quantity}</td><td>{money(i.unitPriceCents)}</td><td>{i.discountBasisPoints/100}%</td></tr>)}</tbody></table>
+   <div className="review-scroll" tabIndex={0} aria-label="Produtos e observações para revisão"><table aria-label="Itens para revisão"><thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Desconto</th></tr></thead><tbody>{review.items.map(i=><tr key={i.id}><td>{i.code} · {i.name}</td><td>{i.quantity}</td><td>{money(i.unitPriceCents)}</td><td>{i.discountBasisPoints/100}%</td></tr>)}</tbody></table>
     {(review.notes||review.internalNotes)&&<section><h3>Observações</h3><p>{review.notes}</p><h3>Observações internas</h3><p>{review.internalNotes}</p></section>}
     <details><summary>Conferir todos os dados do pedido</summary><pre>{JSON.stringify(JSON.parse(submissionPayload(review)),null,2)}</pre></details>
    </div>
