@@ -96,6 +96,7 @@ CREATE TABLE "sync_watermarks" (
 	CONSTRAINT "watermark_overlap" CHECK ("sync_watermarks"."overlap_seconds">0)
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX "snapshot_tenant_id" ON "catalog_snapshots" USING btree ("organization_id","id");--> statement-breakpoint
 ALTER TABLE "catalog_entries" ADD CONSTRAINT "catalog_entries_organization_id_snapshot_id_catalog_snapshots_organization_id_id_fk" FOREIGN KEY ("organization_id","snapshot_id") REFERENCES "public"."catalog_snapshots"("organization_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog_heads" ADD CONSTRAINT "catalog_heads_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog_heads" ADD CONSTRAINT "catalog_heads_organization_id_snapshot_id_catalog_snapshots_organization_id_id_fk" FOREIGN KEY ("organization_id","snapshot_id") REFERENCES "public"."catalog_snapshots"("organization_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -105,6 +106,5 @@ ALTER TABLE "sync_jobs" ADD CONSTRAINT "sync_jobs_organization_id_requested_by_o
 ALTER TABLE "sync_jobs" ADD CONSTRAINT "sync_jobs_organization_id_snapshot_id_catalog_snapshots_organization_id_id_fk" FOREIGN KEY ("organization_id","snapshot_id") REFERENCES "public"."catalog_snapshots"("organization_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sync_watermarks" ADD CONSTRAINT "sync_watermarks_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "quarantine_snapshot" ON "catalog_quarantine" USING btree ("organization_id","snapshot_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "snapshot_tenant_id" ON "catalog_snapshots" USING btree ("organization_id","id");--> statement-breakpoint
 CREATE UNIQUE INDEX "one_active_catalog" ON "catalog_snapshots" USING btree ("organization_id","provider") WHERE "catalog_snapshots"."status"='ACTIVE';--> statement-breakpoint
 CREATE UNIQUE INDEX "one_sync_per_organization" ON "sync_jobs" USING btree ("organization_id") WHERE "sync_jobs"."status" IN ('PENDING','RUNNING','PAUSED','RETRY_WAIT');
