@@ -41,7 +41,7 @@ A revisão guarda uma cópia adicional do pedido apenas no momento da confirmaç
 
 ## Evidências da versão publicada
 
-Na versão `89e8376`, a matriz em Chrome 154 passou em 72 verificações com IndexedDB real. Sete cenários terminaram em SUBMITTED com a mesma identidade; os dois casos de falha na persistência também recuperaram corretamente. O relatório está em `verificacao-browser-etapa5.json`. Um teste adicional de concorrência antes do primeiro recibo foi acrescentado depois, para exercitar as transações de criação, além dos replays.
+Na versão `1ddd516`, a matriz em Chrome 154 passou em 76 verificações com IndexedDB real. Sete cenários terminaram em SUBMITTED com a mesma identidade; os dois casos de falha na persistência também recuperaram corretamente. O relatório está em `verificacao-browser-etapa5.json`. A criação concorrente antes de qualquer recibo também passou: 20 chamadas com a mesma identidade retornaram um único recibo; 20 identidades diferentes para o mesmo pedido aceitaram apenas uma, preservando o índice único.
 
 Teste manual pela interface: pedido `ETAPA5-TIMEOUT-APOS`, dez itens. Confirmação com timeout após criação → UNKNOWN; reenvio desabilitado e campos inertes. Refresh e recuperação mantiveram `cbd970a9-de24-493b-9cb9-f262392745b4`. Consulta → SUBMITTED e recibo `MOCK-aae3a4cb-9c59-4921-82cb-7c55de457bc3`; novo refresh preservou ambos. A captura desse resultado foi anexada privadamente, sem publicação no repositório público.
 
@@ -57,3 +57,5 @@ Repetição do laboratório de entrada na versão da Etapa 5, autosave ligado, d
 | 300 | 0,8 | 3,7 | 259,3 | OK |
 
 O relatório completo `performance-browser-etapa5.json` contém inclusão, quantidade, exclusão e carregamento, com autosave ligado/desligado. A UI mede modelo e commit React/DOM até useLayoutEffect; não mede pintura ou a latência física do teclado. O laboratório compartilha os componentes de entrada e o repositório, mas tem sua própria fixture; não mede todos os elementos da página principal. A cópia imutável do envio não é produzida por esse caminho de digitação.
+
+Os novos módulos de envio passam no ESLint. O lint global ainda aponta regras React de referências em renderização e atualização em efeito nos componentes existentes da Etapa 4 (`use-draft-order`, `persistence-lab`, `use-offline`); não é um check do CI e não foi apresentado como aprovado. Typecheck, build e os testes de cada etapa são os checks executados no CI.

@@ -1,8 +1,8 @@
 {
   "result": "PASS",
-  "executedAt": "2026-10-08T02:57:54.812Z",
+  "executedAt": "2026-10-08T03:06:00.885Z",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
-  "checks": 72,
+  "checks": 76,
   "storage": "Real IndexedDB; separate durable ERP ledger; independent connections",
   "results": [
     {
@@ -10,22 +10,22 @@
       "initial": "SUBMITTED",
       "afterReloadAndReconciliation": "SUBMITTED",
       "final": "SUBMITTED",
-      "submissionId": "de6d06b4-56b9-420f-bd7d-e391d8f23c42",
-      "erpOrderId": "MOCK-9b33a06f-d134-4bc7-8dee-d3c39e4984da",
+      "submissionId": "32ebc0f6-0dfa-4899-a18a-02bc3fc196c8",
+      "erpOrderId": "MOCK-eab6cca0-d53b-47dc-82b1-cca305965619",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.598Z",
-          "indexedDbMs": 6.5,
-          "persistenceMs": 14.5
+          "savedAt": "2026-10-08T03:06:00.689Z",
+          "indexedDbMs": 1.900000000372529,
+          "persistenceMs": 12.799999999813735
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.613Z",
-          "indexedDbMs": 3.5,
-          "persistenceMs": 3.5
+          "savedAt": "2026-10-08T03:06:00.694Z",
+          "indexedDbMs": 0.900000000372529,
+          "persistenceMs": 0.900000000372529
         }
       ]
     },
@@ -34,38 +34,38 @@
       "initial": "ERROR",
       "afterReloadAndReconciliation": "ERROR",
       "final": "SUBMITTED",
-      "submissionId": "32914506-e4e9-46c2-9f73-fc770f385b2d",
-      "erpOrderId": "MOCK-a6ffa576-71d7-48ae-97f2-8d1801f4d8ce",
+      "submissionId": "a1460992-b7ed-48be-9c27-750c52462380",
+      "erpOrderId": "MOCK-eb596963-bfed-48ea-999a-07d5876dac5b",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.634Z",
-          "indexedDbMs": 2.2000000001862645,
-          "persistenceMs": 3.2000000001862645
+          "savedAt": "2026-10-08T03:06:00.703Z",
+          "indexedDbMs": 0.7999999998137355,
+          "persistenceMs": 2.1000000005587935
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.638Z",
-          "indexedDbMs": 1.199999999254942,
-          "persistenceMs": 1.199999999254942
+          "savedAt": "2026-10-08T03:06:00.705Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.642Z",
-          "indexedDbMs": 3,
-          "persistenceMs": 3
+          "savedAt": "2026-10-08T03:06:00.708Z",
+          "indexedDbMs": 0.7999999998137355,
+          "persistenceMs": 0.7999999998137355
         },
         {
           "revision": 4,
-          "savedAt": "2026-10-08T02:57:54.649Z",
-          "indexedDbMs": 1.599999999627471,
-          "persistenceMs": 1.599999999627471
+          "savedAt": "2026-10-08T03:06:00.710Z",
+          "indexedDbMs": 0.39999999944120646,
+          "persistenceMs": 0.39999999944120646
         },
         {
           "revision": 5,
-          "savedAt": "2026-10-08T02:57:54.652Z",
+          "savedAt": "2026-10-08T03:06:00.711Z",
           "indexedDbMs": 0.599999999627471,
           "persistenceMs": 0.599999999627471
         }
@@ -76,40 +76,40 @@
       "initial": "ERROR",
       "afterReloadAndReconciliation": "ERROR",
       "final": "SUBMITTED",
-      "submissionId": "32771467-2861-44f3-8cde-dd2233ce91af",
-      "erpOrderId": "MOCK-6928b77e-9072-4c64-881b-6545e7427020",
+      "submissionId": "27855ac2-eb0e-4d80-8534-d783c9d82d70",
+      "erpOrderId": "MOCK-71edd82c-4a2c-45f6-b863-916136626cd0",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.659Z",
-          "indexedDbMs": 0.6999999992549419,
-          "persistenceMs": 1.599999999627471
+          "savedAt": "2026-10-08T03:06:00.719Z",
+          "indexedDbMs": 1.1000000005587935,
+          "persistenceMs": 1.900000000372529
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.663Z",
-          "indexedDbMs": 0.599999999627471,
-          "persistenceMs": 0.599999999627471
+          "savedAt": "2026-10-08T03:06:00.721Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.665Z",
-          "indexedDbMs": 0.7000000001862645,
-          "persistenceMs": 0.7000000001862645
-        },
-        {
-          "revision": 4,
-          "savedAt": "2026-10-08T02:57:54.666Z",
+          "savedAt": "2026-10-08T03:06:00.723Z",
           "indexedDbMs": 0.40000000037252903,
           "persistenceMs": 0.40000000037252903
         },
         {
-          "revision": 5,
-          "savedAt": "2026-10-08T02:57:54.668Z",
+          "revision": 4,
+          "savedAt": "2026-10-08T03:06:00.724Z",
           "indexedDbMs": 0.5,
-          "persistenceMs": 0.6000000005587935
+          "persistenceMs": 0.5
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:06:00.725Z",
+          "indexedDbMs": 1.7000000001862645,
+          "persistenceMs": 1.7000000001862645
         }
       ]
     },
@@ -118,40 +118,40 @@
       "initial": "ERROR",
       "afterReloadAndReconciliation": "ERROR",
       "final": "SUBMITTED",
-      "submissionId": "29832f60-de80-49f2-9097-05e16a3660f2",
-      "erpOrderId": "MOCK-63c16abb-9559-4465-bb33-75d16edf7829",
+      "submissionId": "0dee5a85-b233-4697-bb75-ae8e2784c6c6",
+      "erpOrderId": "MOCK-15bd9bdc-1a83-4293-9fc0-9fa1415de07f",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.693Z",
-          "indexedDbMs": 1.900000000372529,
-          "persistenceMs": 10.900000000372529
+          "savedAt": "2026-10-08T03:06:00.739Z",
+          "indexedDbMs": 0.7999999998137355,
+          "persistenceMs": 3.099999999627471
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.703Z",
-          "indexedDbMs": 2.7999999998137355,
-          "persistenceMs": 2.7999999998137355
+          "savedAt": "2026-10-08T03:06:00.741Z",
+          "indexedDbMs": 1.300000000745058,
+          "persistenceMs": 1.300000000745058
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.708Z",
-          "indexedDbMs": 2.599999999627471,
-          "persistenceMs": 2.599999999627471
+          "savedAt": "2026-10-08T03:06:00.743Z",
+          "indexedDbMs": 0.5,
+          "persistenceMs": 0.5
         },
         {
           "revision": 4,
-          "savedAt": "2026-10-08T02:57:54.727Z",
-          "indexedDbMs": 1.1000000005587935,
-          "persistenceMs": 1.2000000001862645
+          "savedAt": "2026-10-08T03:06:00.760Z",
+          "indexedDbMs": 2,
+          "persistenceMs": 2
         },
         {
           "revision": 5,
-          "savedAt": "2026-10-08T02:57:54.732Z",
-          "indexedDbMs": 2.2000000001862645,
-          "persistenceMs": 2.2000000001862645
+          "savedAt": "2026-10-08T03:06:00.763Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
         }
       ]
     },
@@ -160,40 +160,40 @@
       "initial": "UNKNOWN",
       "afterReloadAndReconciliation": "ERROR",
       "final": "SUBMITTED",
-      "submissionId": "22afa7d4-eeab-4b71-94a8-431f9ed7b484",
-      "erpOrderId": "MOCK-83af2028-8ed1-4db6-b46b-1e7d0ad771cb",
+      "submissionId": "e1e55979-75e8-4c95-8134-e3fbc6056357",
+      "erpOrderId": "MOCK-61d50710-6f58-49b9-815f-b6994cbc86d0",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.745Z",
-          "indexedDbMs": 1.6000000005587935,
-          "persistenceMs": 4.5
+          "savedAt": "2026-10-08T03:06:00.770Z",
+          "indexedDbMs": 0.8999999994412065,
+          "persistenceMs": 1.8999999994412065
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.749Z",
-          "indexedDbMs": 1.199999999254942,
-          "persistenceMs": 1.199999999254942
+          "savedAt": "2026-10-08T03:06:00.774Z",
+          "indexedDbMs": 0.7999999998137355,
+          "persistenceMs": 0.7999999998137355
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.752Z",
-          "indexedDbMs": 1.5,
-          "persistenceMs": 1.5
+          "savedAt": "2026-10-08T03:06:00.775Z",
+          "indexedDbMs": 0.7000000001862645,
+          "persistenceMs": 0.7000000001862645
         },
         {
           "revision": 4,
-          "savedAt": "2026-10-08T02:57:54.757Z",
-          "indexedDbMs": 1.599999999627471,
-          "persistenceMs": 1.599999999627471
+          "savedAt": "2026-10-08T03:06:00.777Z",
+          "indexedDbMs": 0.6000000005587935,
+          "persistenceMs": 0.6000000005587935
         },
         {
           "revision": 5,
-          "savedAt": "2026-10-08T02:57:54.760Z",
-          "indexedDbMs": 0.900000000372529,
-          "persistenceMs": 0.900000000372529
+          "savedAt": "2026-10-08T03:06:00.778Z",
+          "indexedDbMs": 0.7999999998137355,
+          "persistenceMs": 0.7999999998137355
         }
       ]
     },
@@ -202,40 +202,40 @@
       "initial": "UNKNOWN",
       "afterReloadAndReconciliation": "ERROR",
       "final": "SUBMITTED",
-      "submissionId": "03d2797a-20c3-49f8-a7b4-5570dc7773af",
-      "erpOrderId": "MOCK-5e3c0b22-3913-4425-9d2b-563f7e987a60",
+      "submissionId": "59e08249-abf9-46aa-9bf0-99c52993e9c1",
+      "erpOrderId": "MOCK-a485eb42-0862-422e-a314-378c7471589c",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.769Z",
-          "indexedDbMs": 1.8999999994412065,
-          "persistenceMs": 3.5
+          "savedAt": "2026-10-08T03:06:00.795Z",
+          "indexedDbMs": 9.299999999813735,
+          "persistenceMs": 19
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.772Z",
-          "indexedDbMs": 0.599999999627471,
-          "persistenceMs": 0.599999999627471
+          "savedAt": "2026-10-08T03:06:00.806Z",
+          "indexedDbMs": 1.2999999998137355,
+          "persistenceMs": 1.2999999998137355
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.773Z",
-          "indexedDbMs": 0.39999999944120646,
-          "persistenceMs": 0.39999999944120646
+          "savedAt": "2026-10-08T03:06:00.808Z",
+          "indexedDbMs": 0.900000000372529,
+          "persistenceMs": 0.900000000372529
         },
         {
           "revision": 4,
-          "savedAt": "2026-10-08T02:57:54.774Z",
-          "indexedDbMs": 0.40000000037252903,
-          "persistenceMs": 0.40000000037252903
+          "savedAt": "2026-10-08T03:06:00.810Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 0.8000000007450581
         },
         {
           "revision": 5,
-          "savedAt": "2026-10-08T02:57:54.775Z",
-          "indexedDbMs": 0.40000000037252903,
-          "persistenceMs": 0.40000000037252903
+          "savedAt": "2026-10-08T03:06:00.812Z",
+          "indexedDbMs": 2.2000000001862645,
+          "persistenceMs": 2.2999999998137355
         }
       ]
     },
@@ -244,42 +244,49 @@
       "initial": "UNKNOWN",
       "afterReloadAndReconciliation": "SUBMITTED",
       "final": "SUBMITTED",
-      "submissionId": "d8218584-d965-4e23-ad69-c2341bd15938",
-      "erpOrderId": "MOCK-bb528573-96b6-401c-a781-8814910dc54c",
+      "submissionId": "f1fe9d7c-2d9a-400f-a525-1d0abbde6c20",
+      "erpOrderId": "MOCK-3c031152-3d52-4052-b88e-b576a19eff25",
       "concurrentReplayCount": 20,
       "uniqueReceipts": 1,
       "metrics": [
         {
           "revision": 1,
-          "savedAt": "2026-10-08T02:57:54.787Z",
-          "indexedDbMs": 1.5,
-          "persistenceMs": 2.400000000372529
+          "savedAt": "2026-10-08T03:06:00.830Z",
+          "indexedDbMs": 2.900000000372529,
+          "persistenceMs": 4.1000000005587935
         },
         {
           "revision": 2,
-          "savedAt": "2026-10-08T02:57:54.790Z",
-          "indexedDbMs": 0.5,
-          "persistenceMs": 0.5
+          "savedAt": "2026-10-08T03:06:00.835Z",
+          "indexedDbMs": 1.1000000005587935,
+          "persistenceMs": 1.1000000005587935
         },
         {
           "revision": 3,
-          "savedAt": "2026-10-08T02:57:54.791Z",
-          "indexedDbMs": 0.599999999627471,
-          "persistenceMs": 0.599999999627471
+          "savedAt": "2026-10-08T03:06:00.837Z",
+          "indexedDbMs": 2.099999999627471,
+          "persistenceMs": 2.099999999627471
         }
       ]
+    },
+    {
+      "scenario": "cold-concurrent-creation",
+      "sameIdentityCalls": 20,
+      "uniqueReceipts": 1,
+      "differentIdentityCalls": 20,
+      "acceptedIdentities": 1
     },
     {
       "scenario": "local-save-before-send-fails",
       "recovered": "SUBMITTED",
       "createdBeforeRecovery": false,
-      "erpOrderId": "MOCK-ad66a304-ae61-40a8-8ed6-3d7c5f66283e"
+      "erpOrderId": "MOCK-346b2413-a0c8-4e55-8e23-963a380e36b7"
     },
     {
       "scenario": "local-save-after-server-commit-fails",
       "recovered": "SUBMITTED",
       "createdBeforeRecovery": true,
-      "erpOrderId": "MOCK-1bcd4200-f7f0-41ae-9425-01ab6b9fce0d"
+      "erpOrderId": "MOCK-10061faf-60b6-441d-a1f1-9a6eb44a435b"
     }
   ]
 }
