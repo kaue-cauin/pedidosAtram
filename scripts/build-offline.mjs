@@ -13,8 +13,9 @@ const paths = (await files('out')).filter(p => /\.(js|css|woff2?|svg)$/.test(p) 
 const pages = ['out/index.html', 'out/diagnostico/index.html'];
 const hash = createHash('sha256');
 for (const path of [...pages, ...paths]) hash.update(await readFile(path));
+const template = await readFile('scripts/offline-runtime.js', 'utf8');
+hash.update(template);
 const version = hash.digest('hex').slice(0, 16);
 const assets = [`${base}/`, `${base}/diagnostico/`, ...paths.map(p => `${base}/${p.slice(4)}`)];
-const template = await readFile('scripts/offline-runtime.js', 'utf8');
 await writeFile('out/sw.js', template.replace('__ASSETS__', JSON.stringify(assets)).replace('__VERSION__', JSON.stringify(version)));
 console.log(`Offline: ${assets.length} arquivos, versão ${version}, escopo ${base || '/'}`);

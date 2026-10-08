@@ -16,8 +16,27 @@ function result(response, blocked) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 self.addEventListener('install', event => {
-  // If a resource fails, installation fails; never advertise a partial offline shell.
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil((async () => {
+    try {
+      // Refresh HTML across deploys even if the HTTP cache still considers it fresh.
+      const resources = await Promise.all(ASSETS.map(async asset => {
+        const url = new URL(asset, self.location.origin);
+        if (url.pathname.endsWith('/')) url.searchParams.set('__atram_build', VERSION);
+        const response = await fetch(new Request(url, { cache: 'reload' }));
+        if (!response.ok) throw new Error(`Offline resource unavailable: ${asset}`);
+        if (url.pathname.endsWith('/')) {
+          const html = await response.clone().text();
+          for (const match of html.matchAll(/(?:src|href)="([^" ]*\/_next\/static\/[^" ]+)"/g)) {
+            const referenced = new URL(match[1], url).pathname;
+            if (!ASSETS.includes(referenced)) throw new Error('HTML and build assets belong to different deployments.');
+          }
+        }
+        return [asset, response];
+      }));
+      const cache = await caches.open(CACHE);
+      await Promise.all(resources.map(([asset, response]) => cache.put(asset, response)));
+    } catch (error) { await caches.delete(CACHE); throw error; }
+  })());
 });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {

@@ -4,13 +4,14 @@ import vm from 'node:vm';
 const source = await readFile('out/sw.js', 'utf8');
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 const origin = 'https://atram.test';
-let networkDown = false, networkCalls = 0, skipWaiting = 0, checks = 0;
+let networkDown = false, networkCalls = 0, skipWaiting = 0, checks = 0, inconsistentHtml = false;
 const stores = new Map();
 const keyOf = value => new URL(typeof value === 'string' ? value : value.url, `${origin}${base}/`).href;
 const fetchMock = async request => {
   networkCalls++;
   if (networkDown) throw new Error('Network offline');
   const path = new URL(keyOf(request)).pathname.slice(base.length);
+  if (path.endsWith('/')) { assert.equal(request.cache, 'reload'); assert.ok(new URL(request.url).searchParams.has('__atram_build')); checks += 2; if (inconsistentHtml) return new Response('<script src="'+base+'/_next/static/nonexistent-chunk.js"></script>'); }
   const file = 'out' + (path.endsWith('/') ? path + 'index.html' : path);
   return new Response(await readFile(file));
 };
@@ -31,7 +32,7 @@ const caches = {
 function runtime() {
   const handlers = new Map();
   const self = { registration: { scope: `${origin}${base}/` }, location: { origin }, clients: { claim: async () => {}, matchAll: async () => [] }, skipWaiting: async () => { skipWaiting++; }, addEventListener: (event, handler) => handlers.set(event, handler) };
-  vm.runInNewContext(source, { self, caches, fetch: fetchMock, URL, Response, Headers });
+  vm.runInNewContext(source, { self, caches, fetch: fetchMock, URL, Request, Response, Headers });
   return handlers;
 }
 let handlers = runtime();
@@ -57,5 +58,6 @@ assert.equal((await request(`${base}/not-cached`)).status, 503); checks++;
 assert.equal((await request(`${base}/`, true)).headers.get('X-Atram-Offline-Test'), '1'); checks++;
 handlers.get('message')({ data: { type: 'SET_TEST_OFFLINE', offline: false }, ports: [], waitUntil: promise => { install = promise; } }); await install;
 assert.equal((await request(`${base}/`, true)).headers.get('X-Atram-Offline-Test'), null); checks++;
+inconsistentHtml = true; let failedInstall; handlers.get('install')({ waitUntil: promise => { failedInstall = promise; } }); await assert.rejects(failedInstall, /different deployments/); checks++; inconsistentHtml = false;
 handlers.get('message')({ data: { type: 'ACTIVATE_UPDATE' } }); assert.equal(skipWaiting, 1); checks++;
 console.log(JSON.stringify({ result: 'PASS', checks, cachedResources: assets.length, scope: base || '/', method: 'Generated service-worker runtime in VM, actual built resource bytes, network failure and worker restart simulated. Browser integration tested separately.' },null,2));
