@@ -171,15 +171,23 @@ export class TinyService implements TinyReadGateway {
     return {version:row.token_version,accountKey:row.verified_account_identity};
   }
   async readPage(p:Principal,resource:Resource,offset:number,limit:number,version:number){
-    const binding=await this.syncBinding(p);
     if(!Object.hasOwn(paths,resource)||!Number.isSafeInteger(offset)||offset<0||offset>10000||!Number.isInteger(limit)||limit<1||limit>50)fail('INPUT_INVALID');
+    return this.catalogRequest(p,resource,'?'+new URLSearchParams({limit:String(limit),offset:String(offset)}),version);
+  }
+  async readDetail(p:Principal,resource:'products'|'priceLists',id:string,version:number){
+    if(!this.config.sync?.detail)fail('DETAIL_DISABLED',403);
+    if(!['products','priceLists'].includes(resource)||!/^\d{1,30}$/.test(id)||!/[1-9]/.test(id))fail('INPUT_INVALID');
+    return this.catalogRequest(p,resource,'/'+id,version);
+  }
+  private async catalogRequest(p:Principal,resource:Resource,suffix:string,version:number){
+    const binding=await this.syncBinding(p);
     if(binding.version!==version)fail('CONNECTION_CHANGED',409);
     const access=await this.access(p.organizationId);if(access.version!==version)fail('CONNECTION_CHANGED',409);
     const lease=randomUUID();
     const claimed=await this.db.client`UPDATE erp_connections SET read_lease=${lease},read_lease_until=NOW()+interval '30 seconds' WHERE organization_id=${p.organizationId} AND token_version=${version} AND status='CONNECTED' AND account_verified=true AND (read_lease IS NULL OR read_lease_until<=NOW()) AND (pause_until IS NULL OR pause_until<=NOW()) RETURNING id`;
     if(!claimed.length)fail('READ_BUSY',409);
     try {
-      const url=new URL(TINY_API+paths[resource]);url.search=new URLSearchParams({limit:String(limit),offset:String(offset)}).toString();
+      const url=new URL(TINY_API+paths[resource]+suffix);
       const result=await requestJSON(this.fetcher,url.href,{method:'GET',headers:{Authorization:'Bearer '+access.token,Accept:'application/json'}},this.timeout,1048576,losslessJSON);
       const current=await this.db.client`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND token_version=${version} AND read_lease=${lease} AND status='CONNECTED' AND account_verified=true`;
       if(!current.length)fail('CONNECTION_CHANGED',409);

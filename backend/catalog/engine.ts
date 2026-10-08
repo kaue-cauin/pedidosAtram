@@ -4,13 +4,14 @@ import { admin } from '../auth/service.ts';
 import { BackendError, fail } from '../security/errors.ts';
 import type { Quota } from '../../integrations/tiny-poc/transport.ts';
 import { CatalogRepository } from './repository.ts';
-import { resources, type Resource, type Job, type Checkpoint, type Projection } from './model.ts';
+import { resources, type Resource, type Job, type Checkpoint, type DetailRequest, type Projection } from './model.ts';
+import { enrichProduct, mapPriceList } from './mappers.ts';
 import { identity, page } from './pagination.ts';
 import { AccountBudget, BudgetWait } from './budget.ts';
 import { canonical } from '../../domain/catalog-contract.ts';
 import { hash } from '../security/crypto.ts';
-export interface PageSource { mode:'FIXTURE'|'REAL';binding?(p:Principal):Promise<{version:number;accountKey:string}>;read(p:Principal,resource:Resource,offset:number,limit:number,version:number|null):Promise<{data:unknown;status:number;quota:Quota}> }
-export interface SyncOptions { real:boolean;fixture:boolean;pageSize:number;maxPages:number;maxRecords:number;maxAttempts:number;intervalMs:number }
+export interface PageSource { detail?(p:Principal,resource:'products'|'priceLists',id:string,version:number|null):Promise<{data:unknown;status:number;quota:Quota}>;mode:'FIXTURE'|'REAL';binding?(p:Principal):Promise<{version:number;accountKey:string}>;read(p:Principal,resource:Resource,offset:number,limit:number,version:number|null):Promise<{data:unknown;status:number;quota:Quota}> }
+export interface SyncOptions { detail?:boolean;real:boolean;fixture:boolean;pageSize:number;maxPages:number;maxRecords:number;maxAttempts:number;intervalMs:number }
 export type Mapper=(resource:Resource,item:unknown,mode:'FIXTURE'|'REAL')=>Projection;
 const basic:Mapper=(_resource,item)=>({erpId:identity((item as Record<string,unknown>).id),commercial:'PENDING'});
 export class CatalogEngine {
@@ -24,7 +25,7 @@ export class CatalogEngine {
     admin(p);const rows=await this.repository.db.client`SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id JOIN organizations o ON o.id=s.organization_id JOIN organization_memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.id=${p.sessionId} AND s.user_id=${p.userId} AND s.organization_id=${p.organizationId} AND s.revoked_at IS NULL AND s.expires_at>NOW() AND u.status='ACTIVE' AND o.status='ACTIVE' AND m.status='ACTIVE' AND m.role='ADMIN'`;
     if(!rows.length)fail('UNAUTHENTICATED',401);
   }
-  async start(p:Principal){this.gate();await this.authorized(p);const binding=this.source.mode==='REAL'?await this.source.binding!(p):undefined;return this.repository.start(p,this.source.mode,binding);}
+  async start(p:Principal,details:DetailRequest[]=[]){this.gate();await this.authorized(p);if(!Array.isArray(details)||details.length>10||details.some(d=>!['products','priceLists'].includes(d.resource)||identity(d.id)!==d.id)||new Set(details.map(d=>d.resource+':'+d.id)).size!==details.length)fail('INPUT_INVALID');if(details.length&&(!this.options.detail||!this.source.detail))fail('DETAIL_DISABLED',403);const binding=this.source.mode==='REAL'?await this.source.binding!(p):undefined;return this.repository.start(p,this.source.mode,binding,details);}
   async cancel(p:Principal,id:string){
     await this.authorized(p);await this.repository.job(p,id);
     await this.repository.db.client.begin(async sql=>{
@@ -37,12 +38,13 @@ export class CatalogEngine {
     this.gate();await this.authorized(p);await this.repository.job(p,id);
     return this.repository.db.client.begin(async sql=>{
       const [j]=await sql`SELECT * FROM sync_jobs WHERE id=${id} AND organization_id=${p.organizationId} FOR UPDATE`;
+      if(j.mode!==this.source.mode)fail('MODE_MISMATCH',409);
       if(!['RUNNING','RETRY_WAIT','PAUSED'].includes(j.status)||j.lease_until&&j.lease_until>new Date())fail('JOB_NOT_RESUMABLE',409);
       if(j.retry_after&&j.retry_after>new Date())fail('RETRY_NOT_DUE',429);
       // Offset pages may have moved during a crash. Restart staging; never resume into an unproven coverage set.
       await sql`DELETE FROM catalog_entries WHERE snapshot_id=${j.snapshot_id} AND organization_id=${p.organizationId}`;
       await sql`DELETE FROM catalog_quarantine WHERE snapshot_id=${j.snapshot_id} AND organization_id=${p.organizationId}`;
-      const [next]=await sql`UPDATE sync_jobs SET status='PENDING',execution_id=NULL,lease_until=NULL,retry_after=NULL,error_code=NULL,checkpoint=${sql.json({resourceIndex:0,offset:0,totals:{},completed:[]})},pages_processed=0,records_received=0,records_validated=0,records_quarantined=0 WHERE id=${id} AND organization_id=${p.organizationId} RETURNING *`;
+      const [next]=await sql`UPDATE sync_jobs SET status='PENDING',execution_id=NULL,lease_until=NULL,retry_after=NULL,error_code=NULL,checkpoint=${sql.json({resourceIndex:0,offset:0,totals:{},completed:[],enrichment:{queue:j.checkpoint.enrichment?.queue??[],index:0}})},pages_processed=0,records_received=0,records_validated=0,records_quarantined=0 WHERE id=${id} AND organization_id=${p.organizationId} RETURNING *`;
       return next as Job;
     });
   }
@@ -61,6 +63,33 @@ export class CatalogEngine {
     });
     let budgetLease:string|undefined;
     try {
+      const detail=job.checkpoint.resourceIndex===resources.length?job.checkpoint.enrichment?.queue[job.checkpoint.enrichment.index]:undefined;
+      if(detail){
+        if(!this.options.detail||!this.source.detail)fail('DETAIL_DISABLED',403);
+        const [existing]=await db.client`SELECT projection FROM catalog_entries WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id} AND resource=${detail.resource} AND erp_id=${detail.id}`;
+        if(!existing)fail('DETAIL_TARGET_UNAVAILABLE',409);
+        if(job.mode==='REAL'){
+          const binding=await this.source.binding!(p);if(binding.version!==job.connection_version||binding.accountKey!==job.account_key)fail('CONNECTION_CHANGED',409);
+          budgetLease=await this.budget.claim(job.account_key!);
+        }
+        const response=await this.source.detail(p,detail.resource,detail.id,job.connection_version);
+        if(budgetLease){await this.budget.release(job.account_key!,budgetLease,response.quota,response.status);budgetLease=undefined;}
+        if(response.status===429)throw new BudgetWait(new Date(Date.now()+Math.max(1,response.quota.retryAfterSeconds??response.quota.resetSeconds??60)*1000),true);
+        if(response.status!==200)fail(response.status>=500?'ERP_TRANSIENT':response.status===401?'REAUTH_REQUIRED':response.status===403?'PERMISSION_DENIED':'DETAIL_REQUEST_REJECTED',503);
+        const entry=detail.resource==='products'?enrichProduct(existing.projection,response.data):{...existing.projection,...mapPriceList(response.data,job.mode)};
+        if(entry.erpId!==detail.id)fail('DETAIL_ID_CONFLICT');
+        await this.authorized(p);
+        await db.client.begin(async sql=>{
+          const [current]=await sql`SELECT id FROM sync_jobs WHERE id=${id} AND organization_id=${p.organizationId} AND status='RUNNING' AND execution_id=${execution} AND lease_until>NOW() FOR UPDATE`;
+          if(!current)fail('EXECUTION_STALE',409);
+          const permitted=await sql`SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id JOIN organization_memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.id=${p.sessionId} AND s.user_id=${p.userId} AND s.organization_id=${p.organizationId} AND s.revoked_at IS NULL AND s.expires_at>NOW() AND u.status='ACTIVE' AND m.status='ACTIVE' AND m.role='ADMIN' FOR SHARE OF s,u,m`;
+          if(!permitted.length)fail('UNAUTHENTICATED',401);
+          if(job.mode==='REAL'&&!(await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND status='CONNECTED' AND account_verified=true AND token_version=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`).length)fail('CONNECTION_CHANGED',409);
+          await sql`UPDATE catalog_entries SET projection=${sql.json(JSON.parse(JSON.stringify(entry)))},content_hash=${hash(canonical(entry))},commercial=${entry.commercial} WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id} AND resource=${detail.resource} AND erp_id=${detail.id}`;
+          job.checkpoint.enrichment!.index++;
+          await sql`UPDATE sync_jobs SET checkpoint=${sql.json(JSON.parse(JSON.stringify(job.checkpoint)))},execution_id=NULL,lease_until=NULL,resource=${detail.resource},error_code=NULL WHERE id=${id}`;
+        });return {status:'RUNNING',enriched:detail.id};
+      }
       if(job.checkpoint.resourceIndex===resources.length){
         await this.repository.prepare(p,job.snapshot_id,job.checkpoint.completed,this.options.maxRecords);
         const done=await db.client`UPDATE sync_jobs SET status='COMPLETED',finished_at=NOW(),execution_id=NULL,lease_until=NULL,error_code=NULL WHERE id=${id} AND organization_id=${p.organizationId} AND execution_id=${execution} AND lease_until>NOW() AND status='RUNNING' RETURNING id`;

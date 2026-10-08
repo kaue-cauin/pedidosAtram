@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import type { Database } from '../db/client.ts';
 import { admin, uuid, type Principal } from '../auth/service.ts';
 import { fail } from '../security/errors.ts';
-import { resources, type CatalogMode, type Job, type Projection, type Resource } from './model.ts';
+import { resources, type CatalogMode, type DetailRequest, type Job, type Projection, type Resource } from './model.ts';
 import { canonical, type CatalogManifest } from '../../domain/catalog-contract.ts';
 import { hash } from '../security/crypto.ts';
 export class CatalogRepository {
   readonly db:Database;
   constructor(db:Database) { this.db=db; }
-  async start(p:Principal,mode:CatalogMode,connection?:{version:number;accountKey:string}) {
+  async start(p:Principal,mode:CatalogMode,connection?:{version:number;accountKey:string},details:DetailRequest[]=[]) {
     admin(p);
     return this.db.client.begin(async sql=>{
       await sql`SELECT id FROM organizations WHERE id=${p.organizationId} FOR UPDATE`;
@@ -16,7 +16,7 @@ export class CatalogRepository {
       const [head]=await sql`SELECT snapshot_id FROM catalog_heads WHERE organization_id=${p.organizationId}`;
       const [snapshot]=await sql`INSERT INTO catalog_snapshots(organization_id,mode) VALUES (${p.organizationId},${mode}) RETURNING id`;
       const [job]=await sql`INSERT INTO sync_jobs(organization_id,requested_by,snapshot_id,mode,checkpoint,baseline_snapshot_id,connection_version,account_key)
-        VALUES (${p.organizationId},${p.userId},${snapshot.id},${mode},${sql.json({resourceIndex:0,offset:0,totals:{},completed:[]})},${head?.snapshot_id??null},${connection?.version??null},${connection?.accountKey??null}) RETURNING *`;
+        VALUES (${p.organizationId},${p.userId},${snapshot.id},${mode},${sql.json(JSON.parse(JSON.stringify({resourceIndex:0,offset:0,totals:{},completed:[],enrichment:{queue:details,index:0}})))},${head?.snapshot_id??null},${connection?.version??null},${connection?.accountKey??null}) RETURNING *`;
       await sql`INSERT INTO audit_events(organization_id,user_id,action,result,correlation_id) VALUES (${p.organizationId},${p.userId},'SYNC_REQUEST','OK',${randomUUID()})`;
       return job as Job;
     });
@@ -42,8 +42,16 @@ export class CatalogRepository {
       const [s]=await sql`SELECT * FROM catalog_snapshots WHERE organization_id=${p.organizationId} AND id=${snapshot} FOR UPDATE`;
       if(!s||s.status!=='BUILDING')fail('SNAPSHOT_IMMUTABLE',409);
       if(resources.some(r=>!completed.includes(r)))fail('COVERAGE_INCOMPLETE',409);
-      const entries=await sql`SELECT resource,erp_id,projection FROM catalog_entries WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} ORDER BY resource,erp_id LIMIT ${maxRecords+1}`;
+      // Resolve references only after every resource has been collected. Null is not an unknown ID.
+      const unknown=await sql`SELECT e.erp_id FROM catalog_entries e WHERE e.organization_id=${p.organizationId} AND e.snapshot_id=${snapshot} AND e.resource='contacts' AND e.projection->>'sellerId' IS NOT NULL AND NOT EXISTS(SELECT 1 FROM catalog_entries v WHERE v.organization_id=e.organization_id AND v.snapshot_id=e.snapshot_id AND v.resource='sellers' AND v.erp_id=e.projection->>'sellerId')`;
+      for(const c of unknown){
+        await sql`INSERT INTO catalog_quarantine(organization_id,snapshot_id,resource,erp_id,reason,stage) VALUES (${p.organizationId},${snapshot},'contacts',${c.erp_id},'SELLER_REFERENCE_UNKNOWN','REFERENCES')`;
+        await sql`UPDATE catalog_entries SET projection=jsonb_set(jsonb_set(projection,'{sellerLink}','"UNKNOWN_REFERENCE"'::jsonb),'{commercial}','"BLOCKED"'::jsonb),commercial='BLOCKED' WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} AND resource='contacts' AND erp_id=${c.erp_id}`;
+      }
+      await sql`UPDATE catalog_entries SET projection=jsonb_set(projection,'{sellerLink}','"RESOLVED"'::jsonb) WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} AND resource='contacts' AND projection->>'sellerId' IS NOT NULL AND projection->>'sellerLink'='PENDING_REFERENCE'`;
+      const entries=await sql`SELECT resource,erp_id,projection,content_hash FROM catalog_entries WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} ORDER BY resource,erp_id LIMIT ${maxRecords+1}`;
       if(entries.length>maxRecords)fail('RECORD_LIMIT',409);
+      for(const entry of entries){const checksum=hash(canonical(entry.projection));if(checksum!==entry.content_hash)await sql`UPDATE catalog_entries SET content_hash=${checksum} WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} AND resource=${entry.resource} AND erp_id=${entry.erp_id}`;}
       const counts:CatalogManifest['resources']={};
       for(const resource of resources) { const list=entries.filter(e=>e.resource===resource).map(e=>e.projection);counts[resource]={count:list.length,checksum:hash(canonical(list)),complete:true}; }
       const [q]=await sql`SELECT count(*)::int n FROM catalog_quarantine WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot}`;
@@ -52,6 +60,10 @@ export class CatalogRepository {
       const [head]=await sql`SELECT s.manifest FROM catalog_heads h JOIN catalog_snapshots s ON s.id=h.snapshot_id AND s.organization_id=h.organization_id WHERE h.organization_id=${p.organizationId}`;
       const old=head?.manifest?.resources;
       // Every disappearance requires explicit investigation; no arbitrary percentage proves safety.
+      if(old){
+        const changes=await sql`SELECT 1 FROM catalog_entries n JOIN catalog_entries e ON e.organization_id=n.organization_id AND e.resource=n.resource AND e.erp_id=n.erp_id AND e.snapshot_id=(SELECT snapshot_id FROM catalog_heads WHERE organization_id=${p.organizationId}) WHERE n.organization_id=${p.organizationId} AND n.snapshot_id=${snapshot} AND n.resource='products' AND (n.projection->'pricing' IS DISTINCT FROM e.projection->'pricing' OR n.projection->'unitOriginal' IS DISTINCT FROM e.projection->'unitOriginal' OR n.projection->'status' IS DISTINCT FROM e.projection->'status') LIMIT 1`;
+        if(changes.length)anomalies.push('PRODUCT_COMMERCIAL_FIELDS_CHANGED');
+      }
       if(old)for(const resource of resources) {
         if(counts[resource].count<old[resource]?.count)anomalies.push('COUNT_DROP_'+resource.toUpperCase());
         const missing=await sql`SELECT 1 FROM catalog_entries e WHERE e.organization_id=${p.organizationId} AND e.snapshot_id=(SELECT snapshot_id FROM catalog_heads WHERE organization_id=${p.organizationId}) AND e.resource=${resource}
