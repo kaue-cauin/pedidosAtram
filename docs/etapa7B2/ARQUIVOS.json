@@ -1,0 +1,162 @@
+[
+  {
+    "status": "A",
+    "path": ".env.backend.example"
+  },
+  {
+    "status": "A",
+    "path": ".github/workflows/backend.yml"
+  },
+  {
+    "status": "M",
+    "path": ".github/workflows/pages.yml"
+  },
+  {
+    "status": "M",
+    "path": ".gitignore"
+  },
+  {
+    "status": "M",
+    "path": "README.md"
+  },
+  {
+    "status": "A",
+    "path": "backend/auth/service.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/compose.test.yml"
+  },
+  {
+    "status": "A",
+    "path": "backend/config/env.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/client.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/migrate.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/migrations/0000_regular_taskmaster.sql"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/migrations/meta/0000_snapshot.json"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/migrations/meta/_journal.json"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/readiness.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/db/schema.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/drizzle.config.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/integrations/tiny/service.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/security/crypto.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/security/errors.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/server/http.ts"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/auth.test.mjs"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/database.test.mjs"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/fixtures.mjs"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/oauth.test.mjs"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/operation.test.mjs"
+  },
+  {
+    "status": "A",
+    "path": "backend/tests/security.test.mjs"
+  },
+  {
+    "status": "A",
+    "path": "docs/VERIFICACAO-ETAPA-7B2.md"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/ARQUITETURA.md"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/ARQUIVOS.json"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/ENDPOINTS.md"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/OAUTH.md"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/REGRESSAO.json"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/SEGURANCA.md"
+  },
+  {
+    "status": "A",
+    "path": "docs/etapa7B2/WINDOWS.md"
+  },
+  {
+    "status": "M",
+    "path": "package-lock.json"
+  },
+  {
+    "status": "M",
+    "path": "package.json"
+  },
+  {
+    "status": "A",
+    "path": "scripts/backend-admin.mjs"
+  },
+  {
+    "status": "A",
+    "path": "scripts/backend-migrate.mjs"
+  },
+  {
+    "status": "A",
+    "path": "scripts/backend.mjs"
+  },
+  {
+    "status": "A",
+    "path": "scripts/check-backend-boundary.mjs"
+  }
+]

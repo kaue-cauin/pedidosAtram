@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-08",
+  "branch": "etapa-7b2-backend",
+  "baselineCommit": "9687ae785cb191037b6bf4eb7c57b868375b106d",
+  "validatedCodeCommit": "7b06b95d3fa109526ef9bbc3fee40c20c10ba9e9",
+  "ci": {
+    "runId": 37829648536,
+    "url": "https://github.com/kaue-cauin/pedidosAtram/actions/runs/37829648536",
+    "conclusion": "success",
+    "postgres": "16.15 actual temporary service, synthetic per-test databases",
+    "stage7b2": {
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "skipped": 0
+    },
+    "stage7b1": {
+      "tests": 19,
+      "pass": 19
+    },
+    "fullMvpRegression": "PASS",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "staticBuild": "PASS",
+    "offlineChecks": 111,
+    "cachedResources": 37,
+    "backendBrowserBoundary": "PASS"
+  },
+  "localChecks": [
+    {
+      "command": "npm run check:data",
+      "exitCode": 0,
+      "seconds": 0.67
+    },
+    {
+      "command": "npm run check:stage2",
+      "exitCode": 0,
+      "seconds": 0.6
+    },
+    {
+      "command": "npm run check:stage3",
+      "exitCode": 0,
+      "seconds": 1.43
+    },
+    {
+      "command": "npm run check:stage4",
+      "exitCode": 0,
+      "seconds": 0.76
+    },
+    {
+      "command": "npm run check:stage5",
+      "exitCode": 0,
+      "seconds": 0.69
+    },
+    {
+      "command": "npm run check:stage6",
+      "exitCode": 0,
+      "seconds": 0.57
+    },
+    {
+      "command": "npm run check:stage7b1",
+      "exitCode": 0,
+      "seconds": 0.75
+    },
+    {
+      "command": "npm run check:stage7b2:unit",
+      "exitCode": 0,
+      "seconds": 4.42
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "seconds": 4.95
+    },
+    {
+      "command": "npm run lint",
+      "exitCode": 0,
+      "seconds": 17.1
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "seconds": 42.87
+    },
+    {
+      "command": "npm run check:backend-boundary",
+      "exitCode": 0,
+      "seconds": 0.42
+    }
+  ],
+  "localPostgreSQLIntegration": "Not executed in this sandbox; OS prevented non-root PostgreSQL process. Real integration executed successfully in GitHub Actions. No mock substituted for PostgreSQL.",
+  "newBrowserBenchmark": "Not executed; UI source unchanged. Automated 10/50/100/150/200/300 reducer/search/autosave regression executed; historical browser metrics not reclassified.",
+  "newTinyRealOAuthCalls": 0,
+  "newTinyRealGETs": 0,
+  "newTinyRealWrites": 0,
+  "runtimeOrderCreationEndpoint": false,
+  "productionDeployment": "Not performed; GitHub Pages is the mock demo",
+  "realBackendOAuthHomologation": "PENDING"
+}
