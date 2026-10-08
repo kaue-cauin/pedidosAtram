@@ -1,16 +1,29 @@
-name: Publicar GitHub Pages
+name: Backend PostgreSQL
 on:
   push:
+    branches: [main, etapa-7b2-backend]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: github-pages
-  cancel-in-progress: false
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: atram_test_ci
+          POSTGRES_USER: test_runner
+          POSTGRES_PASSWORD: synthetic_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test_runner -d atram_test_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BACKEND_TEST_DATABASE_URL: postgresql://test_runner:synthetic_ci_only@127.0.0.1:5432/atram_test_ci
+      BACKEND_TEST_DATABASE_APPROVED: 'yes'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
@@ -18,6 +31,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm run check:stage7b2
       - run: npm run check:data
       - run: npm run check:stage2
       - run: npm run check:stage3
@@ -25,7 +39,6 @@ jobs:
       - run: npm run check:stage5
       - run: npm run check:stage6
       - run: npm run check:stage7b1
-      - run: npm run check:stage7b2:unit
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
@@ -33,20 +46,3 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /pedidosAtram
           NEXT_TELEMETRY_DISABLED: '1'
       - run: npm run check:backend-boundary
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: out
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/configure-pages@v5
-      - name: Publicar
-        id: deployment
-        uses: actions/deploy-pages@v4

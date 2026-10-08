@@ -1,4 +1,4 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 7B.1
+# Atram Comercial — entrada rápida de pedidos e backend 7B.2
 
 Esta versão inclui as Etapas 1–6: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
@@ -154,3 +154,27 @@ Serviço Node local de OAuth e leitura em `integrations/tiny-poc/`, sem conexão
 `npm run poc:tiny` exige pré-requisitos/configuração segura previamente confirmados. O [roteiro e arquitetura](docs/etapa7B1/ARQUITETURA-POC.md) explica a inicialização; nunca envie Client Secret/tokens pelo chat ou ao GitHub. Sem autorização/configuração, o serviço falha antes de abrir a porta. Não hospedar a POC no Pages.
 
 [Verificação 7B.1](docs/VERIFICACAO-ETAPA-7B1.md): implementação concluída e conexão real de leitura homologada para **info, produtos, contatos, vendedores e listas de preços**, conforme [evidência sanitizada fornecida pelo responsável](docs/etapa7B1/HOMOLOGACAO-REAL.json). OAuth com S256, callback local e verificação da conta funcionaram; cinco GETs da sessão final, três restantes de oito. Nenhuma criação real. Quotas efetivas e validação comercial completa continuam pendentes. As seções de etapas anteriores registram o estado de suas entregas originais; este é o resumo atual da 7B.1. **A 7B.2 não foi iniciada.**
+
+
+## Backend operacional — Etapa 7B.2
+
+Serviço Node.js 24 separado do frontend estático, PostgreSQL/Drizzle com migrations versionadas, autenticação scrypt, sessões revogáveis, ADMIN/OPERADOR/VENDEDOR, isolamento por organização e auditoria. Tokens OAuth/PKCE/documento esperado cifrados com AES-256-GCM; refresh com lease e CAS no PostgreSQL entre instâncias. Allowlist somente de leitura; OAuth/leitura/refresh reais desabilitados por padrão. Nenhuma criação de pedidos Tiny implementada. O Pages continua usando MockERPProvider, catálogo local, IndexedDB e offline, sem depender desse serviço.
+
+```powershell
+Copy-Item .env.backend.example .env.backend.local
+# Preencher configuração local de PostgreSQL e chave, sem publicar o arquivo.
+npm run backend:db:migrate
+npm run backend:admin -- bootstrap
+npm run backend:start
+```
+
+Instalação completa sem exigir Docker: [Windows/PowerShell](docs/etapa7B2/WINDOWS.md). Contratos e RBAC: [Endpoints](docs/etapa7B2/ENDPOINTS.md). [Relatório de verificação](docs/VERIFICACAO-ETAPA-7B2.md), [arquitetura](docs/etapa7B2/ARQUITETURA.md), [segurança](docs/etapa7B2/SEGURANCA.md) e [OAuth](docs/etapa7B2/OAUTH.md).
+
+```powershell
+npm run check:stage7b2:unit
+# Configurar BACKEND_TEST_DATABASE_URL loopback/atram_test* e aprovação sintética explícita.
+npm run check:stage7b2
+npm run check:backend-boundary # após npm run build
+```
+
+A suíte completa exige PostgreSQL real temporário e falha sem configuração, sem skip silencioso. CI backend usa banco sintético separado e também verifica toda regressão do MVP. Homologação 7B.1 permanece histórica; o OAuth persistente novo ainda não foi homologado no Tiny real. Testes técnicos aprovados não representam liberação de produção. 7B.3 e 7B.4 não iniciadas.

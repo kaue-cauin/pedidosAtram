@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: atram_test_local
+      POSTGRES_USER: atram_test_runner
+      POSTGRES_PASSWORD: ${BACKEND_TEST_POSTGRES_PASSWORD:?Set a synthetic local test password}
+    ports:
+      - '127.0.0.1:54329:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U atram_test_runner -d atram_test_local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
