@@ -1,3 +1,4 @@
+import { request } from 'node:http';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -45,7 +46,7 @@ test('7B.2B HTTP authentication, CSRF, Host, Origin, RBAC and sanitized errors',
     assert.equal((await call('/api/admin/users/'+f.userB.id+'/deactivate','POST',{},cookie,data.csrfToken)).status,404);
     assert.equal((await call('/api/auth/me?organizationId='+f.b.id,'GET',undefined,cookie)).status,400);
     assert.equal((await call('/api/auth/me','GET',undefined,cookie,undefined,{'Sec-Fetch-Site':'cross-site'})).status,403);
-    assert.equal((await call('/api/health','GET',undefined,undefined,undefined,{Host:'evil.example'})).status,403);
+    assert.equal(await new Promise((resolve,reject)=>{const req=request(origin+'/api/health',{headers:{Host:'evil.example'}},res=>{res.resume();resolve(res.statusCode);});req.on('error',reject);req.end();}),403);
     assert.equal((await call('/api/auth/logout','POST',{},cookie,data.csrfToken)).status,200);assert.equal((await call('/api/auth/me','GET',undefined,cookie)).status,401);
     assert.ok(!JSON.stringify(logs).includes(f.password));assert.ok(!JSON.stringify(logs).includes(cookie));
   }finally{await new Promise(r=>server.close(r));await f.cleanup();}
