@@ -9,20 +9,22 @@ export async function isolatedDatabase() {
   assert.equal(process.env.BACKEND_TEST_DATABASE_APPROVED, 'yes', 'Explicit synthetic test database approval required');
   assert.match(url.pathname, /^\/atram_test[a-z0-9_-]*$/i, 'Test database must be named atram_test*');
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), 'Only loopback test PostgreSQL');
-  const schema = 'test_' + randomUUID().replaceAll('-', '');
+  const name = 'atram_test_' + randomUUID().replaceAll('-', '');
   const control = postgres(url.href, { max: 1, onnotice: () => {} });
-  await control`CREATE SCHEMA ${control(schema)}`;
-  url.searchParams.set('options', '-c search_path=' + schema + ',public');
+  await control`CREATE DATABASE ${control(name)}`;
+  url.pathname = '/' + name;
   const db = database(url.href);
-  // Drizzle journal is scoped to the isolated schema, never global/shared.
-  db.testSchema = schema;
-  return { db, url: url.href, cleanup: async () => { await db.close(); await control`DROP SCHEMA ${control(schema)} CASCADE`; await control.end(); } };
+  return { db, url: url.href, cleanup: async () => {
+    await db.close();
+    await control`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=${name} AND pid<>pg_backend_pid()`;
+    await control`DROP DATABASE ${control(name)}`; await control.end();
+  } };
 }
 test('7B.2A PostgreSQL: migrations, constraints, transactions, persistence and recovery', async () => {
   const fixture = await isolatedDatabase(); const { db } = fixture;
   try {
-    await applyMigrations(db, db.testSchema);
-    await applyMigrations(db, db.testSchema);
+    await applyMigrations(db);
+    await applyMigrations(db);
     const [a] = await db.client`INSERT INTO organizations(name) VALUES ('Synthetic A') RETURNING id`;
     const [b] = await db.client`INSERT INTO organizations(name) VALUES ('Synthetic B') RETURNING id`;
     const [u] = await db.client`INSERT INTO users(login,password_hash) VALUES ('synthetic','not-a-password') RETURNING id`;

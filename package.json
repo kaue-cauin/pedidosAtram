@@ -21,7 +21,11 @@
     "check:stage5": "node scripts/check-stage-5.mjs",
     "check:stage6": "node scripts/check-stage-6.mjs",
     "check:stage7b1": "node --test scripts/check-stage-7b1.mjs",
-    "poc:tiny": "node scripts/tiny-poc.mjs"
+    "poc:tiny": "node scripts/tiny-poc.mjs",
+    "backend:db:generate": "drizzle-kit generate --config backend/drizzle.config.ts",
+    "backend:db:migrate": "node --env-file=.env.backend.local scripts/backend-migrate.mjs",
+    "check:stage7b2:unit": "node --test backend/tests/security.test.mjs",
+    "check:stage7b2:db": "node --test backend/tests/database.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -37,7 +41,7 @@
     "lucide-react": "^1.31.0",
     "next": "16.3.4",
     "next-themes": "^0.4.6",
-    "postgres": "^3.4.7",
+    "postgres": "3.4.7",
     "radix-ui": "^1.6.7",
     "react": "19.2.6",
     "react-day-picker": "^10.0.1",
