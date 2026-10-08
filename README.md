@@ -1,4 +1,4 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 7A
+# Atram Comercial — entrada rápida de pedidos, Etapa 7B.1
 
 Esta versão inclui as Etapas 1–6: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
@@ -22,6 +22,7 @@ npm run check:stage3
 npm run check:stage4
 npm run check:stage5
 npm run check:stage6
+npm run check:stage7b1
 npm run lint
 npm run build
 ```
@@ -145,3 +146,11 @@ O CI exige todos os checks, typecheck, lint sem warnings e build antes de public
 Investigação da documentação oficial Tiny/Olist V3 concluída, sem conexão autenticada ou escrita no ERP. A aplicação continua usando exclusivamente dados e envios mock. Consulte [verificação e aceite](docs/VERIFICACAO-ETAPA-7A.md) e [mapa de contratos](docs/etapa7A/MAPA-API-V3.md).
 
 As matrizes de produtos/clientes/pedidos, OAuth, rate limit, sincronização e hospedagem estão em [docs/etapa7A](docs/etapa7A). A referência externa do pedido é documentada, mas unicidade e reconciliação autoritativa não foram comprovadas. A futura integração deverá conservar UNKNOWN bloqueado e não herdar automaticamente as certezas do mock. Testes de OAuth/leitura e plano efetivo da conta estão pendentes. A Etapa 7B não foi iniciada.
+
+## POC isolada da Etapa 7B.1
+
+Serviço Node local de OAuth e leitura em `integrations/tiny-poc/`, sem conexão à aplicação de demonstração. `npm run check:stage7b1` usa respostas sintéticas e funciona sem credenciais. O cliente permite somente GETs autorizados, primeira página pequena e até oito chamadas; não tem acesso a pedidos ou escrita de dados ERP.
+
+`npm run poc:tiny` exige pré-requisitos/configuração segura previamente confirmados. O [roteiro e arquitetura](docs/etapa7B1/ARQUITETURA-POC.md) explica a inicialização; nunca envie Client Secret/tokens pelo chat ou ao GitHub. Sem autorização/configuração, o serviço falha antes de abrir a porta. Não hospedar a POC no Pages.
+
+[Verificação 7B.1](docs/VERIFICACAO-ETAPA-7B1.md): implementação e testes locais concluídos; OAuth/GETs na conta Atram e quotas efetivas **pendentes**. A 7B.2 não foi iniciada.

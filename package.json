@@ -19,7 +19,9 @@
     "check:stage3": "node scripts/check-stage-3.mjs",
     "check:stage4": "node scripts/check-stage-4.mjs",
     "check:stage5": "node scripts/check-stage-5.mjs",
-    "check:stage6": "node scripts/check-stage-6.mjs"
+    "check:stage6": "node scripts/check-stage-6.mjs",
+    "check:stage7b1": "node --test scripts/check-stage-7b1.mjs",
+    "poc:tiny": "node scripts/tiny-poc.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-08",
+  "baseCommit": "f5629f449f4b14c6dc66cb5bd9916de98fcc6f30",
+  "runtime": "Node.js v24.19.0",
+  "checks": [
+    {
+      "check": "check:data",
+      "exitCode": 0,
+      "seconds": 0.53
+    },
+    {
+      "check": "check:stage2",
+      "exitCode": 0,
+      "seconds": 0.51
+    },
+    {
+      "check": "check:stage3",
+      "exitCode": 0,
+      "seconds": 2.71
+    },
+    {
+      "check": "check:stage4",
+      "exitCode": 0,
+      "seconds": 0.75
+    },
+    {
+      "check": "check:stage5",
+      "exitCode": 0,
+      "seconds": 0.44
+    },
+    {
+      "check": "check:stage6",
+      "exitCode": 0,
+      "seconds": 0.58
+    },
+    {
+      "check": "check:stage7b1",
+      "exitCode": 0,
+      "seconds": 0.78
+    },
+    {
+      "check": "typecheck",
+      "exitCode": 0,
+      "seconds": 5.1
+    },
+    {
+      "check": "lint",
+      "exitCode": 0,
+      "seconds": 12.76
+    },
+    {
+      "check": "build",
+      "exitCode": 0,
+      "seconds": 33.63
+    }
+  ],
+  "pocTests": 19,
+  "pocTestsNote": "Final test-only addition was rerun successfully after the full regression batch. Final lint also rerun.",
+  "offlineVMChecks": 111,
+  "cachedResources": 37,
+  "bundleIsolation": "PASS: POC identifiers absent from static JavaScript",
+  "startupWithoutPrerequisites": "CONFIG_PENDING, exit 1, before server listen",
+  "realOAuthCalls": 0,
+  "realERPGETs": 0,
+  "erpWrites": 0,
+  "operationalHomologation": "PENDING"
+}

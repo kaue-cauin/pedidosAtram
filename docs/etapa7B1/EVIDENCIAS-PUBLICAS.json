@@ -1,0 +1,13 @@
+{
+  "verifiedAt": "2026-10-08",
+  "source": "https://erp.tiny.com.br/public-api/v3/swagger/swagger.json",
+  "sha256": "4790f92277550d2b5999449f8bfd37cb8648fc9b12f6a1b464a6d135a6a818fd",
+  "unchangedFrom7A": true,
+  "openapiVersion": "3.0.0",
+  "infoVersion": "3.1",
+  "authenticatedCalls": 0,
+  "realERPGETs": 0,
+  "erpWrites": 0,
+  "oidcDiscovery": "timeout; PKCE unconfirmed",
+  "operationalHomologation": "PENDING"
+}
