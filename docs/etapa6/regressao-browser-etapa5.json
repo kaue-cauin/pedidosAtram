@@ -1,0 +1,335 @@
+{
+  "result": "PASS",
+  "executedAt": "2026-10-08T03:50:06.695Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "checks": 76,
+  "storage": "Real IndexedDB; separate durable ERP ledger; independent connections",
+  "results": [
+    {
+      "scenario": "success",
+      "initial": "SUBMITTED",
+      "afterReloadAndReconciliation": "SUBMITTED",
+      "final": "SUBMITTED",
+      "submissionId": "01b57b08-b69a-4c31-a5fe-4752db97f6c7",
+      "erpOrderId": "MOCK-0802b9b7-9338-4e10-a3fe-f88b5717509c",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.525Z",
+          "indexedDbMs": 1.5,
+          "persistenceMs": 13.299999998882413
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.529Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 0.8000000007450581
+        }
+      ]
+    },
+    {
+      "scenario": "400",
+      "initial": "ERROR",
+      "afterReloadAndReconciliation": "ERROR",
+      "final": "SUBMITTED",
+      "submissionId": "d6ab852e-64b3-43f1-af1f-4e5a440beb5a",
+      "previousSubmissionId": "0c491e93-6d74-43dd-bad4-372854ad2535",
+      "erpOrderId": "MOCK-f6e244db-3b95-4ebe-b87e-6b4d68f7ae6a",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.538Z",
+          "indexedDbMs": 1.8999999985098839,
+          "persistenceMs": 3
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.544Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.546Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.547Z",
+          "indexedDbMs": 0.599999999627471,
+          "persistenceMs": 0.599999999627471
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:50:06.548Z",
+          "indexedDbMs": 0.8999999985098839,
+          "persistenceMs": 0.8999999985098839
+        },
+        {
+          "revision": 6,
+          "savedAt": "2026-10-08T03:50:06.549Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
+        },
+        {
+          "revision": 7,
+          "savedAt": "2026-10-08T03:50:06.551Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 0.8000000007450581
+        }
+      ]
+    },
+    {
+      "scenario": "401",
+      "initial": "ERROR",
+      "afterReloadAndReconciliation": "ERROR",
+      "final": "SUBMITTED",
+      "submissionId": "8006518a-fa57-4f92-8cfb-38a69a134e59",
+      "erpOrderId": "MOCK-13408faf-c0d5-48ff-874f-7c7c4f8fc321",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.560Z",
+          "indexedDbMs": 1.900000000372529,
+          "persistenceMs": 3.099999999627471
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.563Z",
+          "indexedDbMs": 0.8999999985098839,
+          "persistenceMs": 0.8999999985098839
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.565Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.566Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:50:06.567Z",
+          "indexedDbMs": 0.599999999627471,
+          "persistenceMs": 0.599999999627471
+        },
+        {
+          "revision": 6,
+          "savedAt": "2026-10-08T03:50:06.568Z",
+          "indexedDbMs": 0.599999999627471,
+          "persistenceMs": 0.599999999627471
+        }
+      ]
+    },
+    {
+      "scenario": "429",
+      "initial": "ERROR",
+      "afterReloadAndReconciliation": "ERROR",
+      "final": "SUBMITTED",
+      "submissionId": "beafddd5-ce1e-4f04-a67a-6fa61ec47a73",
+      "erpOrderId": "MOCK-b080fb8e-70b8-4549-8ec4-ab572d1b6de2",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.578Z",
+          "indexedDbMs": 0.599999999627471,
+          "persistenceMs": 1.5
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.580Z",
+          "indexedDbMs": 0.7000000011175871,
+          "persistenceMs": 0.7000000011175871
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.581Z",
+          "indexedDbMs": 0.5,
+          "persistenceMs": 0.5
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.582Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:50:06.599Z",
+          "indexedDbMs": 0.6999999992549419,
+          "persistenceMs": 0.6999999992549419
+        },
+        {
+          "revision": 6,
+          "savedAt": "2026-10-08T03:50:06.601Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 0.8000000007450581
+        }
+      ]
+    },
+    {
+      "scenario": "500",
+      "initial": "UNKNOWN",
+      "afterReloadAndReconciliation": "ERROR",
+      "final": "SUBMITTED",
+      "submissionId": "700e1d16-f538-45d2-afb4-97d8ccc1c666",
+      "erpOrderId": "MOCK-794692db-b35e-4752-b2d1-5762275d7065",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.609Z",
+          "indexedDbMs": 0.7000000011175871,
+          "persistenceMs": 2
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.617Z",
+          "indexedDbMs": 1.300000000745058,
+          "persistenceMs": 1.300000000745058
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.619Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 0.8000000007450581
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.620Z",
+          "indexedDbMs": 0.7999999988824129,
+          "persistenceMs": 0.7999999988824129
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:50:06.623Z",
+          "indexedDbMs": 0.7999999988824129,
+          "persistenceMs": 0.7999999988824129
+        },
+        {
+          "revision": 6,
+          "savedAt": "2026-10-08T03:50:06.625Z",
+          "indexedDbMs": 0.900000000372529,
+          "persistenceMs": 0.900000000372529
+        }
+      ]
+    },
+    {
+      "scenario": "timeout-before",
+      "initial": "UNKNOWN",
+      "afterReloadAndReconciliation": "ERROR",
+      "final": "SUBMITTED",
+      "submissionId": "c8729df7-18f3-42ef-a599-01a25bea9a98",
+      "erpOrderId": "MOCK-affa6c3a-f63d-461c-a411-f2426e584c0a",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.631Z",
+          "indexedDbMs": 1.699999999254942,
+          "persistenceMs": 2.399999998509884
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.635Z",
+          "indexedDbMs": 0.7000000011175871,
+          "persistenceMs": 0.7000000011175871
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.636Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.638Z",
+          "indexedDbMs": 1.400000000372529,
+          "persistenceMs": 1.400000000372529
+        },
+        {
+          "revision": 5,
+          "savedAt": "2026-10-08T03:50:06.640Z",
+          "indexedDbMs": 0.5,
+          "persistenceMs": 0.5
+        },
+        {
+          "revision": 6,
+          "savedAt": "2026-10-08T03:50:06.641Z",
+          "indexedDbMs": 0.5,
+          "persistenceMs": 0.5
+        }
+      ]
+    },
+    {
+      "scenario": "timeout-after",
+      "initial": "UNKNOWN",
+      "afterReloadAndReconciliation": "SUBMITTED",
+      "final": "SUBMITTED",
+      "submissionId": "d18b4a6e-40c6-439c-bcab-df8acf76d9dd",
+      "erpOrderId": "MOCK-38dad312-3fbf-484f-b0fa-b28939d7b91f",
+      "concurrentReplayCount": 20,
+      "uniqueReceipts": 1,
+      "metrics": [
+        {
+          "revision": 1,
+          "savedAt": "2026-10-08T03:50:06.646Z",
+          "indexedDbMs": 0.8000000007450581,
+          "persistenceMs": 1.599999999627471
+        },
+        {
+          "revision": 2,
+          "savedAt": "2026-10-08T03:50:06.650Z",
+          "indexedDbMs": 0.5,
+          "persistenceMs": 0.5
+        },
+        {
+          "revision": 3,
+          "savedAt": "2026-10-08T03:50:06.651Z",
+          "indexedDbMs": 0.7000000011175871,
+          "persistenceMs": 0.8000000007450581
+        },
+        {
+          "revision": 4,
+          "savedAt": "2026-10-08T03:50:06.652Z",
+          "indexedDbMs": 1,
+          "persistenceMs": 1
+        }
+      ]
+    },
+    {
+      "scenario": "cold-concurrent-creation",
+      "sameIdentityCalls": 20,
+      "uniqueReceipts": 1,
+      "differentIdentityCalls": 20,
+      "acceptedIdentities": 1
+    },
+    {
+      "scenario": "local-save-before-send-fails",
+      "recovered": "SUBMITTED",
+      "createdBeforeRecovery": false,
+      "erpOrderId": "MOCK-28db05ce-7bc4-4aa3-b169-99f2646a75aa"
+    },
+    {
+      "scenario": "local-save-after-server-commit-fails",
+      "recovered": "SUBMITTED",
+      "createdBeforeRecovery": true,
+      "erpOrderId": "MOCK-1b4d29d3-250f-44c8-9ab6-be1b7b0c96a9"
+    }
+  ]
+}
