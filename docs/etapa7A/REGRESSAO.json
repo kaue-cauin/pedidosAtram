@@ -1,0 +1,57 @@
+{
+  "verifiedAt": "2026-10-08",
+  "baseCommit": "66bd55afe1ba91624658dd1e2e762cd057c147da",
+  "runtime": "Node.js 24",
+  "codeChanges": false,
+  "authenticatedApiCalls": 0,
+  "erpWrites": 0,
+  "checks": [
+    {
+      "check": "check:data",
+      "exitCode": 0,
+      "seconds": 0.79
+    },
+    {
+      "check": "check:stage2",
+      "exitCode": 0,
+      "seconds": 0.7
+    },
+    {
+      "check": "check:stage3",
+      "exitCode": 0,
+      "seconds": 1.74
+    },
+    {
+      "check": "check:stage4",
+      "exitCode": 0,
+      "seconds": 0.69
+    },
+    {
+      "check": "check:stage5",
+      "exitCode": 0,
+      "seconds": 0.48
+    },
+    {
+      "check": "check:stage6",
+      "exitCode": 0,
+      "seconds": 0.79
+    },
+    {
+      "check": "typecheck",
+      "exitCode": 0,
+      "seconds": 5.84
+    },
+    {
+      "check": "lint",
+      "exitCode": 0,
+      "seconds": 11.35
+    },
+    {
+      "check": "build",
+      "exitCode": 0,
+      "seconds": 34.92
+    }
+  ],
+  "offlineVMChecks": 111,
+  "note": "Regressão local do código existente. Não é teste de API real nem nova medição visual em navegador."
+}

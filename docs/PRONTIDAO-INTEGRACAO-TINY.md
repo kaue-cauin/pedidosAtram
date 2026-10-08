@@ -53,3 +53,7 @@ O backend guarda Client Secret e tokens; o navegador não recebe secrets. OAuth 
 ## Próxima fase sugerida
 
 Primeiro validar essas capacidades na documentação oficial e em ambiente de testes da API. Depois construir backend e ledger, inicialmente em modo de leitura e sincronização. Só habilitar criação com contas/pedidos de teste, comparação dos dados, testes de resposta perdida e reconciliação comprovada. O ensaio com operadores deve ocorrer antes de uso comercial.
+
+## Atualização documental da Etapa 7A
+
+A [descoberta V3](VERIFICACAO-ETAPA-7A.md) examinou os contratos oficiais, sem conexão autenticada. Consulte as [matrizes e riscos](etapa7A/MAPA-API-V3.md) antes de implementar URLs/DTOs. O tratamento de 400/auth/429 descrito acima pertence ao mock: não equivale a uma prova de rejeição sem efeitos no Tiny. A referência externa e seu filtro existem, mas unicidade, ausência autoritativa e rejeição terminal continuam não comprovadas. Nenhuma operação real de criação está liberada.

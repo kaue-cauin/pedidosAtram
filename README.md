@@ -1,4 +1,4 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 6
+# Atram Comercial — entrada rápida de pedidos, Etapa 7A
 
 Esta versão inclui as Etapas 1–6: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
@@ -139,3 +139,9 @@ HTTP 400 confirmado permite **Corrigir pedido** depois de consultar o recibo e a
 A revisão mostra resumo comercial, tabela com rolagem interna e confirmação explícita. Detalhes técnicos e histórico local ficam recolhidos. `/diagnostico-etapa6/` verifica o protocolo com IndexedDB real e oferece prévias isoladas de layout com 10/100/200/300 itens em três resoluções. Essas prévias não persistem nem enviam pedidos.
 
 O CI exige todos os checks, typecheck, lint sem warnings e build antes de publicar. Consulte `docs/VERIFICACAO-ETAPA-6.md`, `docs/ROTEIRO-OPERADOR-ETAPA-6.md` e `docs/PRONTIDAO-INTEGRACAO-TINY.md`. Nenhuma integração real, OAuth, endpoint ou credencial Tiny foi introduzida.
+
+## Descoberta técnica da Etapa 7A
+
+Investigação da documentação oficial Tiny/Olist V3 concluída, sem conexão autenticada ou escrita no ERP. A aplicação continua usando exclusivamente dados e envios mock. Consulte [verificação e aceite](docs/VERIFICACAO-ETAPA-7A.md) e [mapa de contratos](docs/etapa7A/MAPA-API-V3.md).
+
+As matrizes de produtos/clientes/pedidos, OAuth, rate limit, sincronização e hospedagem estão em [docs/etapa7A](docs/etapa7A). A referência externa do pedido é documentada, mas unicidade e reconciliação autoritativa não foram comprovadas. A futura integração deverá conservar UNKNOWN bloqueado e não herdar automaticamente as certezas do mock. Testes de OAuth/leitura e plano efetivo da conta estão pendentes. A Etapa 7B não foi iniciada.
