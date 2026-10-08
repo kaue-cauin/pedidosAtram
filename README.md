@@ -1,6 +1,6 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 4
+# Atram Comercial — entrada rápida de pedidos, Etapa 5
 
-Esta versão inclui as Etapas 1–4: entrada rápida, tabela grande, autosave em IndexedDB, recuperação e cache offline. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
+Esta versão inclui as Etapas 1–5: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
 ## Executar
 
@@ -20,6 +20,7 @@ npm run check:data
 npm run check:stage2
 npm run check:stage3
 npm run check:stage4
+npm run check:stage5
 npm run build
 ```
 
@@ -53,15 +54,15 @@ Com os primeiros resultados do catálogo Padrão e os 10 itens iniciais, esse ro
 - `OrderWorkspace`: estado dos itens em memória, independente da fila de persistência. A digitação fica dentro de `ItemEntry`; somente confirmar uma alteração atualiza a tabela e o resumo.
 - `domain/order-state.ts`: reducer puro com totais incrementais. Quantidades e pesos são arredondados a milésimos para impedir resíduos acumulados; dinheiro permanece em centavos. Somente os itens alterados ganham nova referência. `domain/totals.ts` permanece como cálculo independente de referência nos testes.
 - `domain/mock-data.ts`: 900 produtos, 100 clientes, 5 vendedores e 3 listas de preço. Gerados deterministicamente ao carregar o módulo. `npm run mock:export` exporta JSON para `outputs/`.
-- `integrations/ERPProvider.ts`: contrato reservado. MockERPProvider/envio na Etapa 5; TinyERPProvider somente em fase futura.
+- `integrations/ERPProvider.ts`: contrato de validação, criação idempotente e consulta. MockERPProvider implementado na Etapa 5; TinyERPProvider somente em fase futura.
 
 Preservada a stack e o lockfile da Etapa 1: React, TypeScript, Next.js, Tailwind e componentes do starter. Nenhuma dependência nova. A infraestrutura opcional de Vinext/hospedagem já existente não é necessária para executar `dev:next`.
 
 ## Limites e sequência
 
-Cliente selecionado, vendedor, campos gerais, datas, pagamento, transporte e observações são editáveis e persistidos com os itens confirmados. Lista de preço não recalcula preços; frete/despesas/desconto geral e impostos permanecem fixos. Pré-visualizar e enviar continuam desativados; Ctrl+Enter fica reservado para a Etapa 5. A entrada ainda não confirmada (produto/quantidade antes de Enter) não integra o rascunho.
+Cliente selecionado, vendedor, campos gerais, datas, pagamento, transporte e observações são editáveis e persistidos com os itens confirmados. Lista de preço não recalcula preços; frete/despesas/desconto geral e impostos permanecem fixos. Ctrl+Enter abre a revisão para o envio simulado. Após confirmar, o pedido fica bloqueado para edição. A entrada ainda não confirmada (produto/quantidade antes de Enter) não integra o rascunho.
 
-Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4 implementada: IndexedDB, fila de autosave, recuperação e offline. Etapa 5: revisão/envio simulado e erros. Etapa 6: refinamento com operadores reais.
+Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4 implementada: IndexedDB, fila de autosave, recuperação e offline. Etapa 5 implementada: revisão, envio simulado, consulta, idempotência e erros. Etapa 6: refinamento com operadores reais.
 
 Consulte `docs/VERIFICACAO-ETAPA-3.md` para resultados e limites de verificação. O benchmark de busca pura não comprova tempo visual abaixo de 50 ms.
 

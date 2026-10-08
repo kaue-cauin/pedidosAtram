@@ -6,7 +6,7 @@ function canonical(value: unknown): string {
   return JSON.stringify(value);
 }
 export function submissionPayload(order: Order): string {
-  const { status: _status, submissionId: _id, submission: _submission, ...business } = order;
+  const business = Object.fromEntries(Object.entries(order).filter(([key]) => !['status', 'submissionId', 'submission'].includes(key)));
   return canonical(business);
 }
 export function validateSubmission(order: Order): string[] {

@@ -11,8 +11,7 @@ const scenarios: [MockScenario, string][] = [['success', 'Sucesso normal'], ['40
 const labels = { DRAFT: 'Rascunho', VALIDATING: 'Validando', READY: 'Pronto para confirmar', SUBMITTING: 'Enviando / confirmação pendente', SUBMITTED: 'Enviado ao Mock ERP', ERROR: 'Envio não confirmado', UNKNOWN: 'Resultado desconhecido' };
 export function SubmissionPanel({ order, getOrder, persist, available }: { order: Order; getOrder: () => Order; persist: (order: Order) => Promise<void>; available: boolean }) {
   const [scenario, setScenario] = useState<MockScenario>('success');
-  const scenarioRef = useRef(scenario); scenarioRef.current = scenario;
-  const coordinator = useMemo(() => new SubmissionCoordinator(getOrder, persist, new MockERPProvider(undefined, () => ({ scenario: scenarioRef.current, online: navigator.onLine }))), [getOrder, persist]);
+  const coordinator = useMemo(() => new SubmissionCoordinator(getOrder, persist, new MockERPProvider(undefined, () => ({ scenario, online: navigator.onLine }))), [getOrder, persist, scenario]);
   const [review, setReview] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
