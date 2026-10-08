@@ -28,22 +28,24 @@ export async function runSubmissionBrowserChecks() {
       check((order.status === 'SUBMITTED') === ['success','timeout-after'].includes(scenario), 'Reconciliação incorreta.');
       check(!!found === ['success','timeout-after'].includes(scenario), 'Recibo inesperado.');
       selected = 'success'; if (scenario === '429') await new Promise(r => setTimeout(r, 15));
-      await make().submit(payload); await make().submit(payload);
-      const receipt = (await ledger.find(id))!;
-      check(order.status === 'SUBMITTED' && order.submissionId === id && receipt.payload === payload, 'Reenvio mudou a identidade.');
+      let finalPayload=payload;
+      if(scenario==='400'){await make().correct();order={...order,payment:{...order.payment,terms:'15 30'}};finalPayload=submissionPayload(order);}
+      await make().submit(finalPayload); await make().submit(finalPayload);
+      const activeId=order.submissionId!; const receipt = (await ledger.find(activeId))!;
+      check(order.status === 'SUBMITTED' && (scenario==='400'?order.submissionHistory?.[0].submissionId===id:order.submissionId===id) && receipt.payload === finalPayload, 'Reenvio mudou a identidade.');
       // Independent connections race on the same durable unique indexes.
       const secondLedger = new IndexedDBERPLedger(name + '-erp');
       const secondProvider = new MockERPProvider(secondLedger, () => ({scenario:'success',delayMs:0}));
-      const duplicates = await Promise.all(Array.from({length:20}, (_,i) => (i % 2 ? provider : secondProvider).createOrder(order,id)));
+      const duplicates = await Promise.all(Array.from({length:20}, (_,i) => (i % 2 ? provider : secondProvider).createOrder(order,activeId)));
       check(duplicates.every(r => r.erpOrderId === receipt.erpOrderId), 'Pedido duplicado.');
-      const rotated = await Promise.allSettled([secondProvider.createOrder(order,crypto.randomUUID()), provider.createOrder({...order,notes:'conteúdo adulterado'},id)]);
+      const rotated = await Promise.allSettled([secondProvider.createOrder(order,crypto.randomUUID()), provider.createOrder({...order,notes:'conteúdo adulterado'},activeId)]);
       check(rotated.every(r => r.status === 'rejected'), 'Conflito foi aceito.');
       await secondLedger.close();
       // A stale tab cannot write over a final receipt or modify the frozen order.
       const stale = await Promise.allSettled([repository.save({...order,status:'DRAFT',submissionId:null,submission:undefined},revision-1),repository.save({...order,notes:'alterado'},revision)]);
       check(stale.every(r => r.status === 'rejected'), 'Gravação conflitante foi aceita.');
       check((await repository.list())[0].order.submission?.erpOrderId === receipt.erpOrderId, 'Recibo local foi perdido.');
-      results.push({scenario,initial,afterReloadAndReconciliation:['success','timeout-after'].includes(scenario)?'SUBMITTED':'ERROR',final:order.status,submissionId:id,erpOrderId:receipt.erpOrderId,concurrentReplayCount:20,uniqueReceipts:1,metrics});
+      results.push({scenario,initial,afterReloadAndReconciliation:['success','timeout-after'].includes(scenario)?'SUBMITTED':'ERROR',final:order.status,submissionId:activeId,previousSubmissionId:scenario==='400'?id:undefined,erpOrderId:receipt.erpOrderId,concurrentReplayCount:20,uniqueReceipts:1,metrics});
     } finally {
       await ledger.close(); await repository.close();
       // Only isolated databases created by this diagnostic are removed.

@@ -1,0 +1,62 @@
+{
+  "result": "PASS",
+  "checks": 143,
+  "results": [
+    {
+      "scenario": "400",
+      "status": "SUBMITTED",
+      "historyCount": 1,
+      "sameIdentity": false
+    },
+    {
+      "scenario": "401",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    },
+    {
+      "scenario": "429",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    },
+    {
+      "scenario": "500",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    },
+    {
+      "scenario": "timeout-before",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    },
+    {
+      "scenario": "timeout-after",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    },
+    {
+      "scenario": "success",
+      "status": "SUBMITTED",
+      "historyCount": 0,
+      "sameIdentity": true
+    }
+  ],
+  "coverage": [
+    "correction",
+    "immutable history and log",
+    "fresh identity after changed review",
+    "auth",
+    "retry-after",
+    "unknown",
+    "recovery",
+    "terminal receipt",
+    "concurrency",
+    "durable rejection",
+    "schemas 1/2/3",
+    "invalid data preserved"
+  ]
+}

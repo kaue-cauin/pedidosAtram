@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "products": 900,
+  "customers": 100,
+  "sellers": 5,
+  "priceLists": 3,
+  "demoTotals": {
+    "itemCount": 10,
+    "quantity": 75,
+    "grossWeightGrams": 39465,
+    "netWeightGrams": 36405,
+    "productsCents": 124790,
+    "discountCents": 0,
+    "saleCents": 124790
+  }
+}

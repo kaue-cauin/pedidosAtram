@@ -324,3 +324,31 @@ textarea { width:100%; min-height:85px; border:1px solid #dce5de; border-radius:
 .review-scroll td, .review-scroll th { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: left; }
 .review-scroll pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 .review-scroll details { margin: 14px 0; }
+
+/* Stage 6: compact operator view; technical detail stays collapsed. */
+.workspace-diagnostics { font-size: 11px; margin: 6px 0; color: #355f4b; }
+.workspace-diagnostics summary, .submission-details summary, .mock-controls summary { cursor: pointer; }
+.submission-panel { padding: 12px 16px; margin: 14px 0 0; }
+.submission-details, .mock-controls { margin-top: 10px; color: #405a4c; font-size: 12px; }
+.submission-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
+.submission-details article { border-top: 1px solid #dce5df; padding-top: 8px; margin-top: 8px; }
+.mock-controls select { display: block; padding: 8px; border: 1px solid #bccfc1; margin: 6px 0; max-width: 100%; }
+.submission-unknown, .submission-error { border-left: 4px solid #b07919; }
+.submission-submitted { border-left: 4px solid #287747; }
+.review-dialog { padding: 0; width: min(880px, 94vw); max-height: 92vh; overflow: auto; }
+.review-header, .review-footer { padding: 14px 20px; background: white; }
+.review-header { border-bottom: 1px solid #dce5df; }
+.review-footer { position: sticky; bottom: 0; border-top: 1px solid #dce5df; }
+.review-header h2 { margin: 0; font-size: 20px; }
+.review-header p { font-size: 13px; margin: 6px 0 0; }
+.review-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; padding: 12px 20px; }
+.review-summary dt { font-size: 11px; color: #45634f; }
+.review-summary dd { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.review-scroll { max-height: 36vh; padding: 0 20px; }
+.review-scroll th { position: sticky; top: 0; background: #f0f5f1; z-index: 1; }
+.review-footer p { margin-top: 0; }
+button:focus-visible, summary:focus-visible, select:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.row-actions button { min-width: 28px; min-height: 28px; }
+.preview-size { display: block; padding: 6px 12px; font-size: 12px; background: #eef5ef; }
+@media(max-width: 1400px) { .order-workspace { padding-top: 14px; } .preview-notice { margin-bottom: 10px; } }
+@media(max-width: 700px) { .review-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }

@@ -1,16 +1,16 @@
-import { assertSubmissionIntegrity } from '../domain/submission.ts';
+import { assertSubmissionIntegrity, assertOrderTransition } from '../domain/submission.ts';
 import type { Order } from '../types/order';
 import type { SaveReceipt } from '../services/autosave-queue';
 
 export const DRAFT_DATABASE = 'atram-pedidos-v1';
 export const DRAFT_STORE = 'drafts';
-export interface DraftRecord { schemaVersion: 1 | 2; orderId: string; revision: number; savedAt: string; order: Order }
+export interface DraftRecord { schemaVersion: 1 | 2 | 3; orderId: string; revision: number; savedAt: string; order: Order }
 export interface PersistenceSimulation { delayMs: number; failWrites?: boolean }
 const text = (v: unknown): v is string => typeof v === 'string';
 const numeric = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 export function validateDraft(value: unknown): DraftRecord {
-  if (!object(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2)) throw new Error('Rascunho de versão desconhecida. Os dados existentes foram preservados.');
+  if (!object(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== 3)) throw new Error('Rascunho de versão desconhecida. Os dados existentes foram preservados.');
   const o = value.order;
   if (!object(o) || !text(value.orderId) || !value.orderId || o.orderId !== value.orderId || !Number.isInteger(value.revision) || Number(value.revision) < 1 || !text(value.savedAt) || !Number.isFinite(Date.parse(value.savedAt))) throw new Error('Rascunho inválido. Os dados existentes foram preservados.');
   const strings = ['orderId', 'sellerId', 'operation', 'number', 'priceListId', 'saleDate', 'deliveryDate', 'shippingDate', 'warehouse', 'intermediary', 'notes', 'internalNotes'];
@@ -26,12 +26,26 @@ export function validateDraft(value: unknown): DraftRecord {
   if (o.status === 'DRAFT') {
     if (o.submissionId !== null || o.submission !== undefined) throw new Error('Identidade de envio inválida no rascunho.');
   } else {
-    if (value.schemaVersion !== 2 || !text(o.submissionId) || !o.submissionId || !object(o.submission) || !text(o.submission.payload) || !text(o.submission.startedAt) || !Number.isFinite(Date.parse(o.submission.startedAt))) throw new Error('Registro de envio inválido.');
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3) || !text(o.submissionId) || !o.submissionId || !object(o.submission) || !text(o.submission.payload) || !text(o.submission.startedAt) || !Number.isFinite(Date.parse(o.submission.startedAt))) throw new Error('Registro de envio inválido.');
     if (o.submission.message !== undefined && !text(o.submission.message)) throw new Error('Mensagem de envio inválida.');
     if (o.submission.retryAt !== undefined && !numeric(o.submission.retryAt)) throw new Error('Prazo de envio inválido.');
     if (o.status === 'SUBMITTED' && (!text(o.submission.erpOrderId) || !o.submission.erpOrderId)) throw new Error('Recibo do ERP ausente.');
     assertSubmissionIntegrity(o as unknown as Order);
   }
+  if (o.submissionHistory !== undefined) {
+    if (value.schemaVersion !== 3 || !Array.isArray(o.submissionHistory)) throw new Error('Histórico de envio inválido.');
+    const submissions=new Set<string>();
+    for(const entry of o.submissionHistory) {
+      if(!object(entry) || !text(entry.submissionId) || !entry.submissionId || submissions.has(entry.submissionId) || entry.submissionId===o.submissionId || entry.status!=='REJECTED_VALIDATION' || entry.failureKind!=='validation' || !text(entry.payload) || !text(entry.startedAt) || !text(entry.finishedAt) || !Number.isFinite(Date.parse(entry.startedAt)) || !Number.isFinite(Date.parse(entry.finishedAt)) || Date.parse(entry.finishedAt)<Date.parse(entry.startedAt)) throw new Error('Tentativa arquivada inválida.');
+      const business=JSON.parse(entry.payload);
+      validateDraft({schemaVersion:2,orderId:o.orderId,revision:1,savedAt:entry.finishedAt,order:{...business,status:'ERROR',submissionId:entry.submissionId,submission:entry}});
+      submissions.add(entry.submissionId);
+    }
+  }
+  if(o.submissionEvents !== undefined) {
+    if(value.schemaVersion!==3 || !Array.isArray(o.submissionEvents) || o.submissionEvents.some(e=>!object(e)||!text(e.at)||!Number.isFinite(Date.parse(e.at))||!text(e.type)||!text(e.submissionId)||!e.submissionId||(e.message!==undefined&&!text(e.message)))) throw new Error('Log de envio inválido.');
+  }
+  if(object(o.submission) && (o.submission.failureKind!==undefined && !['validation','auth','rate-limit','unknown','not-found','legacy-rejected'].includes(String(o.submission.failureKind)) || o.submission.finishedAt!==undefined && (!text(o.submission.finishedAt)||!Number.isFinite(Date.parse(o.submission.finishedAt))))) throw new Error('Classificação de envio inválida.');
   return value as unknown as DraftRecord;
 }
 
@@ -88,11 +102,8 @@ export class DraftRepository {
         try {
           const existing = request.result === undefined ? undefined : validateDraft(request.result);
           if ((existing?.revision ?? 0) !== expectedRevision) throw new Error('Outra aba alterou este pedido. Exporte suas alterações e reabra o rascunho para evitar sobrescrita.');
-          if (existing?.order.submissionId) {
-            if (order.submissionId !== existing.order.submissionId || order.submission?.payload !== existing.order.submission?.payload) throw new Error('A identidade e a cópia confirmada não podem ser alteradas.');
-            if (existing.order.status === 'SUBMITTED' && (order.status !== 'SUBMITTED' || order.submission?.erpOrderId !== existing.order.submission?.erpOrderId)) throw new Error('Um pedido enviado não pode voltar ao rascunho.');
-          }
-          const record: DraftRecord = { schemaVersion: 2, orderId: order.orderId, revision: expectedRevision + 1, savedAt, order };
+          assertOrderTransition(existing?.order, order);
+          const record: DraftRecord = { schemaVersion: 3, orderId: order.orderId, revision: expectedRevision + 1, savedAt, order };
           validateDraft(record); store.put(record);
         } catch (cause) { error = cause as Error; tx.abort(); }
       };

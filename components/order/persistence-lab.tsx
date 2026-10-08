@@ -26,7 +26,7 @@ export function PersistenceLab() {
   const [delay, setDelay] = useState(0);
   const [failure, setFailure] = useState(false);
   const simulationRef = useRef<PersistenceSimulation>({ delayMs: 0 });
-  simulationRef.current = { delayMs: delay, failWrites: failure };
+  useLayoutEffect(() => { simulationRef.current = { delayMs: delay, failWrites: failure }; }, [delay, failure]);
   const forcedSimulation = useRef<PersistenceSimulation | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Pronto. Os rascunhos deste teste usam outro banco e não alteram seu pedido.');

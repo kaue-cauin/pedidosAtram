@@ -2,27 +2,19 @@ import assert from 'node:assert/strict';
 import { demoOrder } from '../domain/mock-data.ts';
 import { submissionPayload } from '../domain/submission.ts';
 import { validateDraft } from '../repositories/draft-repository.ts';
-import { MockERPProvider, sameReceipt } from '../integrations/MockERPProvider.ts';
+import { MockERPProvider } from '../integrations/MockERPProvider.ts';
+import { MemoryERPLedger } from '../integrations/erp-ledger.ts';
 import { ERPFailure } from '../integrations/ERPProvider.ts';
 import { SubmissionCoordinator } from '../services/submission-coordinator.ts';
 let checks = 0;
 const eq = (a,b) => { assert.deepEqual(a,b); checks++; };
-class Ledger {
-  rows = new Map(); creations = 0;
-  async find(id) { return this.rows.get(id) ?? null; }
-  async create(receipt) {
-    const old = this.rows.get(receipt.submissionId) ?? [...this.rows.values()].find(r => r.orderId === receipt.orderId);
-    if (old) return sameReceipt(old, receipt);
-    this.rows.set(receipt.submissionId, structuredClone(receipt)); this.creations++; return receipt;
-  }
-}
 function fixture(scenario = 'success') {
-  const ledger = new Ledger(); let order = {...structuredClone(demoOrder), orderId: crypto.randomUUID()}; let durable;
+  const ledger = new MemoryERPLedger(); let order = {...structuredClone(demoOrder), orderId: crypto.randomUUID()}; let durable;
   const opts = {scenario, delayMs: 0, retryAfterMs: 15, online: true}; let failAt = 0; let writes = 0;
   const persist = async value => {
     order = structuredClone(value); writes++;
     if (writes === failAt) throw new Error('quota');
-    validateDraft({schemaVersion: 2, orderId: order.orderId, revision: writes, savedAt: new Date().toISOString(), order});
+    validateDraft({schemaVersion: 3, orderId: order.orderId, revision: writes, savedAt: new Date().toISOString(), order});
     durable = structuredClone(value);
   };
   const provider = new MockERPProvider(ledger, () => opts);
@@ -44,9 +36,11 @@ for (const scenario of ['success','400','401','429','500','timeout-before','time
   eq(f.ledger.creations, ['success','timeout-after'].includes(scenario) ? 1 : 0);
   eq(f.order.status, ['success','timeout-after'].includes(scenario) ? 'SUBMITTED' : 'ERROR');
   if (scenario==='429') await new Promise(r => setTimeout(r, 20));
-  f.opts.scenario='success'; await recovered.submit(payload); await recovered.submit(payload);
-  eq(f.order.status, 'SUBMITTED'); eq(f.order.submissionId,id); eq(f.ledger.creations,1); eq(f.order.submission.payload,payload);
-  results.push({scenario,initial,final:f.order.status,erpOrders:f.ledger.creations,sameSubmissionId:true});
+  f.opts.scenario='success'; let finalPayload=payload;
+  if(scenario==='400'){await recovered.correct();f.order.payment={...f.order.payment,terms:'15 30'};finalPayload=submissionPayload(f.order);}
+  await recovered.submit(finalPayload); await recovered.submit(finalPayload);
+  eq(f.order.status, 'SUBMITTED'); eq(scenario==='400'?f.order.submissionHistory[0].submissionId:f.order.submissionId,id); eq(f.ledger.creations,1); eq(f.order.submission.payload,finalPayload);
+  results.push({scenario,initial,final:f.order.status,erpOrders:f.ledger.creations,sameSubmissionId:scenario!=='400',correctionArchived:scenario==='400'});
 }
 // Barrier fails: no outbound request or ERP creation. Reload with no record is safe.
 {

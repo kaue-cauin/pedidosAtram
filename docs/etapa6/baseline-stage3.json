@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "assertions": 75642,
+  "sizes": [
+    10,
+    50,
+    100,
+    150,
+    200,
+    300
+  ],
+  "operationsChecked": 10800,
+  "benchmarkRows": 60
+}

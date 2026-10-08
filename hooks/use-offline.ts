@@ -1,14 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+const subscribeOnline = (notify: () => void) => { window.addEventListener('online',notify); window.addEventListener('offline',notify); return () => { window.removeEventListener('online',notify); window.removeEventListener('offline',notify); }; };
 export function useOffline() {
-  const [online, setOnline] = useState(true);
+  const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
   const [cacheState, setCacheState] = useState<'preparing' | 'ready' | 'unavailable'>('preparing');
   const [testOffline, setTestOffline] = useState(false);
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const connection = () => setOnline(navigator.onLine);
-    connection(); window.addEventListener('online', connection); window.addEventListener('offline', connection);
     const testMode = (event: MessageEvent) => { if (event.data?.type === 'TEST_OFFLINE') setTestOffline(!!event.data.offline); };
     navigator.serviceWorker?.addEventListener('message', testMode);
     let registration: ServiceWorkerRegistration | undefined;
@@ -17,7 +16,7 @@ export function useOffline() {
       setWaiting(registration.waiting);
       if (registration.active) setCacheState('ready');
     };
-    if (!('serviceWorker' in navigator) || process.env.NODE_ENV !== 'production') setCacheState('unavailable');
+    if (!('serviceWorker' in navigator) || process.env.NODE_ENV !== 'production') { queueMicrotask(() => { if (!cancelled) setCacheState('unavailable'); }); }
     else {
       const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
       void navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/`, updateViaCache: 'none' }).then(r => {
@@ -28,7 +27,7 @@ export function useOffline() {
       }).catch(() => { if (!cancelled) setCacheState('unavailable'); });
     }
     navigator.serviceWorker?.addEventListener('controllerchange', inspect);
-    return () => { cancelled = true; window.removeEventListener('online', connection); window.removeEventListener('offline', connection); navigator.serviceWorker?.removeEventListener('controllerchange', inspect); navigator.serviceWorker?.removeEventListener('message', testMode); };
+    return () => { cancelled = true; navigator.serviceWorker?.removeEventListener('controllerchange', inspect); navigator.serviceWorker?.removeEventListener('message', testMode); };
   }, []);
   async function applyUpdate(save: () => Promise<unknown>) {
     await save();

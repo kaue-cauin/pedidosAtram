@@ -38,12 +38,18 @@ export interface OrderItem {
   netWeightGrams: number;
 }
 
+export type SubmissionFailureKind = 'validation' | 'auth' | 'rate-limit' | 'unknown' | 'not-found' | 'legacy-rejected';
+export interface SubmissionEvent { at: string; type: string; submissionId: string; message?: string }
+export interface SubmissionHistoryRecord extends SubmissionAttempt { submissionId: string; status: 'REJECTED_VALIDATION'; finishedAt: string }
+
 export interface SubmissionAttempt {
   payload: string;
   startedAt: string;
   erpOrderId?: string;
   message?: string;
   retryAt?: number;
+  failureKind?: SubmissionFailureKind;
+  finishedAt?: string;
 }
 
 export interface Order {
@@ -51,6 +57,8 @@ export interface Order {
   submissionId: string | null;
   status: OrderStatus;
   submission?: SubmissionAttempt;
+  submissionHistory?: readonly SubmissionHistoryRecord[];
+  submissionEvents?: readonly SubmissionEvent[];
   customerId: string | null;
   sellerId: string;
   operation: string;

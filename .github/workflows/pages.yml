@@ -23,7 +23,9 @@ jobs:
       - run: npm run check:stage3
       - run: npm run check:stage4
       - run: npm run check:stage5
+      - run: npm run check:stage6
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: /pedidosAtram

@@ -1,6 +1,6 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 5
+# Atram Comercial — entrada rápida de pedidos, Etapa 6
 
-Esta versão inclui as Etapas 1–5: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
+Esta versão inclui as Etapas 1–6: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
 ## Executar
 
@@ -21,6 +21,8 @@ npm run check:stage2
 npm run check:stage3
 npm run check:stage4
 npm run check:stage5
+npm run check:stage6
+npm run lint
 npm run build
 ```
 
@@ -62,7 +64,7 @@ Preservada a stack e o lockfile da Etapa 1: React, TypeScript, Next.js, Tailwind
 
 Cliente selecionado, vendedor, campos gerais, datas, pagamento, transporte e observações são editáveis e persistidos com os itens confirmados. Lista de preço não recalcula preços; frete/despesas/desconto geral e impostos permanecem fixos. Ctrl+Enter abre a revisão para o envio simulado. Após confirmar, o pedido fica bloqueado para edição. A entrada ainda não confirmada (produto/quantidade antes de Enter) não integra o rascunho.
 
-Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4 implementada: IndexedDB, fila de autosave, recuperação e offline. Etapa 5 implementada: revisão, envio simulado, consulta, idempotência e erros. Etapa 6: refinamento com operadores reais.
+Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4 implementada: IndexedDB, fila de autosave, recuperação e offline. Etapa 5 implementada: revisão, envio simulado, consulta, idempotência e erros. Etapa 6 implementada: correção segura de rejeições, histórico, mensagens amigáveis, revisão compacta, teclado, lint e CI. O roteiro com operadores reais está preparado; sua execução em campo continua pendente.
 
 Consulte `docs/VERIFICACAO-ETAPA-3.md` para resultados e limites de verificação. O benchmark de busca pura não comprova tempo visual abaixo de 50 ms.
 
@@ -91,7 +93,7 @@ A tabela mantém todas as linhas no DOM, com rolagem interna e cabeçalho fixo. 
 
 - A inclusão atualiza o modelo em memória e o DOM antes da gravação. `schedule()` só guarda uma referência ao último snapshot e agenda um timer; não serializa nem acessa IndexedDB na pilha do evento Enter.
 - `services/autosave-queue.ts`: debounce de 250 ms, limite de espera de 1.000 ms durante digitação contínua, um único escritor e substituição dos snapshots pendentes pelo mais recente. Uma gravação lenta não impede alterações em memória; elas entram no próximo snapshot.
-- `repositories/draft-repository.ts`: banco `atram-pedidos-v1`, store `drafts`, schema versão 2 (lê também os rascunhos da versão 1). “Salvo” só é emitido após `transaction.complete`; usa durabilidade estrita quando suportada. A revisão esperada é conferida atomicamente na mesma transação para impedir sobrescrita por outra aba.
+- `repositories/draft-repository.ts`: banco `atram-pedidos-v1`, store `drafts`, schema versão 3 (lê também os rascunhos das versões 1 e 2). “Salvo” só é emitido após `transaction.complete`; usa durabilidade estrita quando suportada. A revisão esperada é conferida atomicamente na mesma transação para impedir sobrescrita por outra aba.
 - Ao reabrir, escolha o rascunho que deseja continuar. Começar outro pedido cria um UUID novo e mantém os anteriores. Os totais são reconstruídos a partir dos itens recuperados.
 - Falha de gravação mantém o último snapshot pendente e apresenta erro, botão de nova tentativa e exportação JSON. Falha de leitura não substitui registros existentes; é possível continuar apenas em memória e exportar uma cópia.
 - Ao ocultar/sair da página, a fila tenta gravar imediatamente. Se houver alterações pendentes, o navegador pode pedir confirmação ao sair. Fechamento forçado, queda de energia ou encerramento antes de “Salvo localmente” podem perder a janela ainda não confirmada: o que se recupera é a última transação concluída. Não prometemos gravação assíncrona garantida no encerramento.
@@ -129,3 +131,11 @@ Use **Revisar e enviar ao Mock ERP** ou Ctrl+Enter. A confirmação salva a iden
 Se aparecer **Resultado desconhecido**, escolha **Consultar resultado no ERP**. Um timeout depois da criação recupera o recibo original. Um resultado não encontrado permite revisar e confirmar de novo com o mesmo `submissionId`; não há repetição automática. O mock mantém índices únicos por tentativa e pedido, em banco separado do rascunho.
 
 `npm run check:stage5` verifica o protocolo. `/diagnostico-etapa5/` testa a matriz com IndexedDB real, conexões independentes, conflitos e falhas de gravação. Consulte `docs/VERIFICACAO-ETAPA-5.md` para resultados e limites. A integração real exigirá idempotência e consulta implementadas no servidor do ERP ou em um intermediário durável.
+
+## Refinamento da Etapa 6
+
+HTTP 400 confirmado permite **Corrigir pedido** depois de consultar o recibo e a rejeição durável do Mock ERP. A tentativa antiga e seu payload ficam arquivados, o pedido volta a rascunho e somente conteúdo alterado, revisado e confirmado recebe uma identidade nova. HTTP 401 mantém o pedido congelado até a autenticação ser resolvida; 429 mantém a identidade e bloqueia nova confirmação até `retryAt`. HTTP 500 e timeouts exigem consulta, sem edição nem reenvio automático. SUBMITTED é terminal.
+
+A revisão mostra resumo comercial, tabela com rolagem interna e confirmação explícita. Detalhes técnicos e histórico local ficam recolhidos. `/diagnostico-etapa6/` verifica o protocolo com IndexedDB real e oferece prévias isoladas de layout com 10/100/200/300 itens em três resoluções. Essas prévias não persistem nem enviam pedidos.
+
+O CI exige todos os checks, typecheck, lint sem warnings e build antes de publicar. Consulte `docs/VERIFICACAO-ETAPA-6.md`, `docs/ROTEIRO-OPERADOR-ETAPA-6.md` e `docs/PRONTIDAO-INTEGRACAO-TINY.md`. Nenhuma integração real, OAuth, endpoint ou credencial Tiny foi introduzida.

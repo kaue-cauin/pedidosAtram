@@ -9,7 +9,7 @@
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
     "build": "node scripts/clean-output.mjs && next build --webpack && node scripts/build-offline.mjs && node scripts/check-offline.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --max-warnings 0",
     "db:generate": "drizzle-kit generate",
     "dev:next": "next dev",
     "typecheck": "tsc --noEmit",
@@ -18,7 +18,8 @@
     "check:stage2": "node scripts/check-stage-2.mjs",
     "check:stage3": "node scripts/check-stage-3.mjs",
     "check:stage4": "node scripts/check-stage-4.mjs",
-    "check:stage5": "node scripts/check-stage-5.mjs"
+    "check:stage5": "node scripts/check-stage-5.mjs",
+    "check:stage6": "node scripts/check-stage-6.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

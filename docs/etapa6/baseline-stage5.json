@@ -1,0 +1,66 @@
+{
+  "result": "PASS",
+  "checks": 93,
+  "results": [
+    {
+      "scenario": "success",
+      "initial": "SUBMITTED",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "400",
+      "initial": "ERROR",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "401",
+      "initial": "ERROR",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "429",
+      "initial": "ERROR",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "500",
+      "initial": "UNKNOWN",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "timeout-before",
+      "initial": "UNKNOWN",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    },
+    {
+      "scenario": "timeout-after",
+      "initial": "UNKNOWN",
+      "final": "SUBMITTED",
+      "erpOrders": 1,
+      "sameSubmissionId": true
+    }
+  ],
+  "additional": [
+    "durability barrier",
+    "crash after receipt before local commit",
+    "double click",
+    "100 idempotent concurrent calls",
+    "payload conflict",
+    "rotated identity conflict",
+    "offline reconciliation",
+    "immutable review",
+    "corrupt frozen draft"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "checks": 26,
+  "guarantees": [
+    "schedule never calls adapter synchronously",
+    "burst coalescing",
+    "one writer",
+    "latest edit wins",
+    "maxWait",
+    "flush drains changes made in flight",
+    "errors retain dirty state",
+    "retry",
+    "schema and item validation"
+  ],
+  "browserChecksRequired": [
+    "real IndexedDB transactions and concurrency",
+    "refresh/close recovery",
+    "service worker offline reload",
+    "UI and persistence timings"
+  ]
+}

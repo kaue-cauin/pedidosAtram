@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "products": 900,
+  "exactLookups": 1800,
+  "searchSamples": 1000,
+  "searchP50Ms": 0.030004999999988513,
+  "searchP95Ms": 0.1044379999999876,
+  "note": "Busca pura em Node; não mede pintura, teclado ou renderização no navegador."
+}
+Roteiro de 4 inclusões: PASS; 14 linhas, 106 unidades, R$ 1.999,80.
