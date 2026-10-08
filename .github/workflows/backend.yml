@@ -1,0 +1,36 @@
+name: Backend PostgreSQL
+on:
+  push:
+    branches: [main, etapa-7b2-backend]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: atram_test_ci
+          POSTGRES_USER: test_runner
+          POSTGRES_PASSWORD: synthetic_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test_runner -d atram_test_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BACKEND_TEST_DATABASE_URL: postgresql://test_runner:synthetic_ci_only@127.0.0.1:5432/atram_test_ci
+      BACKEND_TEST_DATABASE_APPROVED: 'yes'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node --test backend/tests/security.test.mjs backend/tests/database.test.mjs
+      - run: npm run typecheck
+      - run: npm run lint
