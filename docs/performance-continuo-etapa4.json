@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-10-08T02:21:34.964Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": {
+    "width": 1363,
+    "height": 936,
+    "pixelRatio": 1
+  },
+  "method": "10 commits após 2 aquecimentos por operação. UI: modelo + React/DOM até useLayoutEffect, sem pintura. IndexedDB: transação até complete. Persistência: atraso artificial + abertura + transação. Autosave: última alteração do snapshot até complete, incluindo fila/debounce de 250 ms (máximo 1000 ms). Gravações coalescidas por lote, contagem separada de amostras UI. Rede simulada independente; Offline simulado não desliga a rede do navegador.",
+  "results": [],
+  "continuousInput": {
+    "initialItems": 300,
+    "additions": 60,
+    "uiSamples": 60,
+    "uiP95": 3.1000000000931323,
+    "storageDelayMs": 1000,
+    "savesDuringInput": 2,
+    "actionsWhileSaving": 37,
+    "indexedDbP95": 3.3000000002793968,
+    "persistenceP95": 1017.2999999998137,
+    "autosaveP95": 1017.6999999997206,
+    "recovered": true
+  },
+  "saves": [
+    {
+      "revision": 1,
+      "savedAt": "2026-10-08T02:21:17.006Z",
+      "indexedDbMs": 1.1999999997206032,
+      "persistenceMs": 2.6000000000931323,
+      "sequence": 1,
+      "completedAtMs": 535.6999999997206,
+      "queueMs": 251.29999999981374,
+      "autosaveMs": 254.79999999981374
+    },
+    {
+      "revision": 2,
+      "savedAt": "2026-10-08T02:21:24.349Z",
+      "indexedDbMs": 3.1000000000931323,
+      "persistenceMs": 1003.2999999998137,
+      "sequence": 2,
+      "completedAtMs": 7880.199999999721,
+      "queueMs": 250.79999999981374,
+      "autosaveMs": 1254.3999999999069
+    },
+    {
+      "revision": 3,
+      "savedAt": "2026-10-08T02:21:26.380Z",
+      "indexedDbMs": 3.3000000002793968,
+      "persistenceMs": 1003.7000000001863,
+      "sequence": 22,
+      "completedAtMs": 9911.5,
+      "queueMs": 4.2999999998137355,
+      "autosaveMs": 1008.1000000000931
+    },
+    {
+      "revision": 4,
+      "savedAt": "2026-10-08T02:21:27.480Z",
+      "indexedDbMs": 3.2999999998137355,
+      "persistenceMs": 1017.2999999998137,
+      "sequence": 42,
+      "completedAtMs": 11011.099999999627,
+      "queueMs": 0.2999999998137355,
+      "autosaveMs": 1017.6999999997206
+    },
+    {
+      "revision": 5,
+      "savedAt": "2026-10-08T02:21:28.518Z",
+      "indexedDbMs": 3.2000000001862645,
+      "persistenceMs": 1003.3999999999069,
+      "sequence": 62,
+      "completedAtMs": 12048.899999999907,
+      "queueMs": 12.200000000186265,
+      "autosaveMs": 1015.7000000001863
+    },
+    {
+      "revision": 6,
+      "savedAt": "2026-10-08T02:21:28.808Z",
+      "indexedDbMs": 2.1999999997206032,
+      "persistenceMs": 2.1999999997206032,
+      "sequence": 63,
+      "completedAtMs": 12338.099999999627,
+      "queueMs": 250.3000000002794,
+      "autosaveMs": 253
+    }
+  ]
+}

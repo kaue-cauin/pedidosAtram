@@ -73,7 +73,7 @@ O build de publicação define `NEXT_PUBLIC_BASE_PATH=/pedidosAtram`; a execuç�
 
 ## Diagnóstico da Etapa 3 (comparação anterior)
 
-Abra o link **Diagnóstico: testar 10 a 300 itens** acima da tabela, ou `/diagnostico/`. O laboratório usa um pedido separado: não substitui o pedido da tela principal.
+O comparativo anterior está em `/diagnostico-etapa3/`, acessível pelo diagnóstico principal. O laboratório usa um pedido separado: não substitui o pedido da tela principal.
 
 - Escolha 10/50/100/150/200/300 linhas para testar manualmente o teclado.
 - Clique **Executar comparação completa** e mantenha a aba visível. O modo padrão mede CPU e commit. A opção de medir quadros pode levar vários minutos em navegadores remotos. É possível interromper.
@@ -100,6 +100,8 @@ A tabela mantém todas as linhas no DOM, com rolagem interna e cabeçalho fixo. 
 
 O build gera `out/sw.js` com uma lista e versão derivadas dos recursos compilados. Instalação só termina quando HTML, JavaScript, CSS e demais arquivos necessários estiverem no cache. Aguarde **Aplicação disponível offline** antes de testar recarga sem rede. É preciso pelo menos um primeiro acesso online. O cache offline não roda no servidor de desenvolvimento; use o build de produção em HTTPS ou localhost.
 
+A instalação busca HTML com versão na URL e ignora o cache HTTP; confere que os arquivos referenciados pertencem à mesma versão do build antes de armazenar. Assim, uma página antiga não é misturada a arquivos novos durante publicação.
+
 Uma atualização fica aguardando e aparece como **Salvar e atualizar aplicação**. A atualização só é ativada depois de drenar a fila com sucesso, seguida de recarga. O service worker mantém também o cache anterior para arquivos de abas abertas. Nenhuma gravação do pedido depende do estado de conexão. Voltar à rede não envia nada ao ERP nesta etapa.
 
 ## Diagnóstico da Etapa 4
@@ -116,4 +118,4 @@ Medições independentes: **UI** = modelo + React/DOM até `useLayoutEffect`, se
 
 **Testar digitação contínua (gravação 1 s)** faz 60 inclusões a partir de 300 itens, com intervalo de 50 ms e atraso de armazenamento de 1.000 ms. Registra gravações concluídas durante a entrada e inclusões enquanto o escritor estava ocupado; lê o último snapshot em outra conexão após terminar. **Salvar pendências agora** permite nova tentativa após desligar uma falha simulada.
 
-O comparativo anterior Base × Otimizado continua disponível na seção recolhida da Etapa 3. Consulte `docs/VERIFICACAO-ETAPA-4.md` para evidências e limites dos testes desta etapa.
+O comparativo anterior Base × Otimizado continua disponível na página separada `/diagnostico-etapa3/`. Consulte `docs/VERIFICACAO-ETAPA-4.md` para evidências e limites dos testes desta etapa.

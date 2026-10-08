@@ -1,0 +1,118 @@
+{
+  "recordedAt": "2026-10-08T02:30:18.740Z",
+  "sourceCommit": "f75ba313f79033542f3b47e721a212ef6f7cd050",
+  "checks": {
+    "refreshRecoveredItemsAndTotals": true,
+    "reopenedTabWithAppNetworkBlocked": true,
+    "offlineAddedItemRecovered": true,
+    "selectedCustomerAndSellerRecovered": true,
+    "datesRecovered": true,
+    "paymentShippingNotesRecovered": true,
+    "newDraftPreservedPrevious": true,
+    "concurrentWritersOneAcceptedOneRejected": true,
+    "failedWriteRetriedWithoutDataLoss": true,
+    "updatedAppWithoutDraftLoss": true,
+    "realKeyboardWith300ItemsAnd1000msWriterDelay": {
+      "additions": 10,
+      "finalRows": 310,
+      "failures": []
+    }
+  },
+  "finalRecoveredDom": {
+    "dispatchChecked": "true",
+    "fields": [
+      {
+        "label": "Nº do pedido",
+        "value": "ETAPA4-TESTE-FINAL-OK"
+      },
+      {
+        "label": "Cliente *",
+        "value": "Mercado Exemplo 2"
+      },
+      {
+        "label": "Data da venda *",
+        "value": "2026-10-07"
+      },
+      {
+        "label": "Previsão de entrega",
+        "value": "2026-10-12"
+      },
+      {
+        "label": "Data de envio",
+        "value": "2026-10-11"
+      },
+      {
+        "label": "Produto",
+        "value": ""
+      },
+      {
+        "label": "Qtd.",
+        "value": "1"
+      },
+      {
+        "label": "UN",
+        "value": "UN"
+      },
+      {
+        "label": "Preço (R$)",
+        "value": "0,00"
+      },
+      {
+        "label": "Desc. (%)",
+        "value": "0,00"
+      },
+      {
+        "label": "Condição de pagamento",
+        "value": "15 30 45"
+      },
+      {
+        "label": "Transportadora",
+        "value": "Entrega de teste Atram"
+      },
+      {
+        "label": "Código de rastreamento",
+        "value": "TESTE-123"
+      },
+      {
+        "label": "URL de rastreamento",
+        "value": ""
+      },
+      {
+        "label": "Quantidade de volumes",
+        "value": "3"
+      },
+      {
+        "label": "Observações",
+        "value": "Pedido de teste da Etapa 4."
+      },
+      {
+        "label": "Observações internas",
+        "value": "Confirmar recuperação local."
+      },
+      {
+        "label": "Frete pago pelo cliente",
+        "value": "0,00"
+      },
+      {
+        "label": "Frete pago pela empresa",
+        "value": "0,00"
+      },
+      {
+        "label": "Despesas",
+        "value": "0,00"
+      },
+      {
+        "label": "Desconto geral",
+        "value": "0,00"
+      }
+    ],
+    "rows": 12,
+    "totals": "Total da vendaR$ 1.304,5612 itens · 78.234 unidades",
+    "version": "04Ambiente de demonstraçãoEtapa 4 · Rascunhos locais"
+  },
+  "limitations": [
+    "Network blocked for application by service worker; physical browser connection was not disabled.",
+    "Browser tab closed and reopened; browser process was not terminated.",
+    "Only completed transactions are guaranteed to recover."
+  ]
+}

@@ -1,3 +1,3 @@
 import { rm } from 'node:fs/promises';
-// Remove only generated static output, so the offline manifest excludes stale chunks.
-await rm(new URL('../out/', import.meta.url), { recursive: true, force: true });
+// Remove only generated build/output directories, so exports and offline manifests exclude stale routes and chunks.
+await Promise.all(['../out/', '../.next/'].map(path => rm(new URL(path, import.meta.url), { recursive: true, force: true })));
