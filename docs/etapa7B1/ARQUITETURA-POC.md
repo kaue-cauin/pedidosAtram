@@ -1,6 +1,6 @@
 # Arquitetura da POC 7B.1
 
-Data: **08/10/2026**. Implementação e testes locais com dados sintéticos. **Nenhuma autenticação ou consulta de dados reais executada. Homologação operacional PENDENTE.**
+Data: **08/10/2026**. **Estado atual: implementação concluída e prova operacional de OAuth/leitura aprovada para os cinco recursos testados**, com base na evidência fornecida pelo responsável. Validação comercial completa e infraestrutura definitiva continuam pendentes. A entrega inicial precedeu essa homologação; seu histórico está identificado abaixo. Evidência: [HOMOLOGACAO-REAL.json](HOMOLOGACAO-REAL.json).
 
 ## Escopo implementado
 
@@ -17,7 +17,7 @@ Serviço temporário em `integrations/tiny-poc/`, executado por Node 24 no repos
 | scripts/tiny-poc.mjs | Inicialização fail-closed e encerramento do processo |
 | scripts/check-stage-7b1.mjs | Testes Node, fetch externo substituído por mocks e HTTP real apenas em loopback |
 
-Bind exclusivamente `127.0.0.1`. A configuração aceita apenas `http://127.0.0.1:PORT/oauth/callback`, porta 1024–65535, sem query/userinfo/fragmento, correspondente exatamente à URI cadastrada. **Aceitação de callback HTTP loopback pelo aplicativo Tiny ainda não homologada**. Caso o ERP exija HTTPS, não abrir este serviço em 0.0.0.0 nem alterar o gate para publicar; projetar um ambiente HTTPS protegido e rever configuração/testes primeiro.
+Bind exclusivamente `127.0.0.1`. A configuração aceita apenas `http://127.0.0.1:PORT/oauth/callback`, porta 1024–65535, sem query/userinfo/fragmento, correspondente exatamente à URI cadastrada. **O callback específico http://127.0.0.1:8787/oauth/callback foi aceito na sessão real relatada pelo responsável**; isso não homologa outras portas/origens nem hospedagem pública. Caso o ERP exija HTTPS, não abrir este serviço em 0.0.0.0 nem alterar o gate para publicar; projetar um ambiente HTTPS protegido e rever configuração/testes primeiro.
 
 Controle por credencial local própria: Bearer para cliente administrativo local ou Basic (usuário `poc`) para navegação local. A chave de administração não é Client Secret nem token ERP. Ela exige configuração segura, comprimento mínimo de 32 caracteres e nunca aparece em relatórios/URLs. O navegador pode autenticar-se no controle local, mas não recebe Client Secret, access token, refresh token ou DTO real. Basic somente no loopback da máquina confiável; não há deploy público autorizado. Host exato evita DNS rebinding; Origin/Sec-Fetch-Site restringem controles e relatório à origem local. /status é leitura autenticada sem efeitos e aceita a cadeia de redirect OAuth externa; não há CORS para leitura por outra página. Callback requer state + cookie HttpOnly/SameSite=Lax, de cinco minutos; esta exceção recebe o redirect externo legítimo sem abrir diagnósticos públicos.
 
@@ -39,3 +39,9 @@ O exemplo não inclui valores fictícios que pareçam credenciais funcionais; va
 ## Limites da segurança/validação
 
 É uma POC de uma conexão local, não autenticação multiusuário de produção, autorização definitiva por empresa ou garantia distribuída. Client ID/Secret e cadastro de aplicativo são responsabilidade do administrador. A comparação de CPF/CNPJ esperado ocorre apenas no servidor, sem gravar documento em relatório. Autorizar OAuth não prova leitura dos módulos: cada GET é avaliado separadamente. Revisão estrutural parcial não comprova elegibilidade comercial, preço, estoque ou impostos.
+
+## Estado operacional posterior — 08/10/2026
+
+A sessão local relatada pelo responsável comprova OAuth com configuração S256, callback em 127.0.0.1:8787, identidade da empresa verificada e cinco GETs protegidos. A implementação e arquitetura não foram modificadas para essa consolidação. [Evidência sanitizada](HOMOLOGACAO-REAL.json).
+
+Conforme declaração recebida, Client Secret permaneceu em arquivo local protegido, tokens não foram enviados ao chat e nenhuma escrita de dados foi executada. Os dados recebidos são contagens/campos/métricas, sem resposta comercial integral ou segredos. A IA conferiu os documentos recebidos/alterados, mas não realizou auditoria forense do computador, dos arquivos locais ou do armazenamento. Loopback e limite de sessão de 30 minutos permanecem características da POC; desconectar não implica revogação remota. Não iniciar backend operacional nesta consolidação.

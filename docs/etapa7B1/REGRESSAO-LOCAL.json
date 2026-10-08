@@ -70,5 +70,7 @@
     "build": "success",
     "deploy": "success",
     "note": "Final follow-up changes only documentation/evidence."
-  }
+  },
+  "scope": "Registro histórico da investigação/testes iniciais, anteriores à homologação fornecida pelo responsável",
+  "currentHomologationEvidence": "HOMOLOGACAO-REAL.json"
 }

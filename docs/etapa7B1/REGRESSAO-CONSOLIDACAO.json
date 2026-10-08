@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-08",
+  "baseCommit": "952635dd676a5cedb0ac94ed456a00d5f4df8211",
+  "scope": "Consolidação documental posterior à homologação relatada pelo responsável",
+  "productionCodeChanged": false,
+  "checks": [
+    {
+      "check": "check:data",
+      "exitCode": 0,
+      "seconds": 0.46
+    },
+    {
+      "check": "check:stage2",
+      "exitCode": 0,
+      "seconds": 0.53
+    },
+    {
+      "check": "check:stage3",
+      "exitCode": 0,
+      "seconds": 1.51
+    },
+    {
+      "check": "check:stage4",
+      "exitCode": 0,
+      "seconds": 0.59
+    },
+    {
+      "check": "check:stage5",
+      "exitCode": 0,
+      "seconds": 0.42
+    },
+    {
+      "check": "check:stage6",
+      "exitCode": 0,
+      "seconds": 0.55
+    },
+    {
+      "check": "check:stage7b1",
+      "exitCode": 0,
+      "seconds": 0.67
+    },
+    {
+      "check": "typecheck",
+      "exitCode": 0,
+      "seconds": 3.48
+    },
+    {
+      "check": "lint",
+      "exitCode": 0,
+      "seconds": 10.13
+    },
+    {
+      "check": "build",
+      "exitCode": 0,
+      "seconds": 27.09
+    }
+  ],
+  "pocTests": 19,
+  "offlineVMChecks": 111,
+  "cachedResources": 37,
+  "newBrowserBenchmarks": false,
+  "newRealOAuthCallsByAssistant": 0,
+  "newRealERPGETsByAssistant": 0,
+  "erpWritesByAssistant": 0,
+  "ownerProvidedRealSessionEvidence": "HOMOLOGACAO-REAL.json"
+}

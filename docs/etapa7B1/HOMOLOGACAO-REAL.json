@@ -1,0 +1,314 @@
+{
+  "homologationDate": "2026-10-08",
+  "origin": "Resultados fornecidos pelo responsável pela empresa durante sua sessão local autorizada; consolidados a partir do relato sanitizado enviado em 08/10/2026. Não extraídos nem observados independentemente por esta IA na conta Tiny.",
+  "scope": "OAuth e cinco recursos de leitura; compatibilidade parcial dos campos selecionados",
+  "oauth": {
+    "realAuthenticationReported": true,
+    "redirectUri": "http://127.0.0.1:8787/oauth/callback",
+    "pkceMethodsAnnouncedAsReported": [
+      "plain",
+      "S256"
+    ],
+    "pkceUsedAsReported": "S256",
+    "accountVerifiedAsReported": true
+  },
+  "successfulFinalSessionGETs": [
+    {
+      "resource": "info",
+      "endpoint": "/info",
+      "method": "GET",
+      "status": 200,
+      "outcome": "OK",
+      "durationMs": 362.64,
+      "observation": {
+        "compatible": true,
+        "itemCount": 1,
+        "missingIdentity": 0,
+        "fields": [
+          {
+            "field": "razaoSocial",
+            "present": 1,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "cpfCnpj",
+            "present": 1,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "fantasia",
+            "present": 1,
+            "missing": 0,
+            "incompatible": 0
+          }
+        ],
+        "conflicts": []
+      }
+    },
+    {
+      "resource": "products",
+      "endpoint": "/produtos",
+      "method": "GET",
+      "status": 200,
+      "outcome": "OK",
+      "durationMs": 518.98,
+      "observation": {
+        "compatible": true,
+        "itemCount": 10,
+        "missingIdentity": 0,
+        "fields": [
+          {
+            "field": "id",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "sku",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "gtin",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "descricao",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "unidade",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "situacao",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "tipo",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "precos",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "precos.preco",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "precos.precoPromocional",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          }
+        ],
+        "conflicts": [],
+        "unitCounts": {
+          "UN": 0,
+          "other": 10,
+          "missing": 0
+        }
+      }
+    },
+    {
+      "resource": "contacts",
+      "endpoint": "/contatos",
+      "method": "GET",
+      "status": 200,
+      "outcome": "OK",
+      "durationMs": 859.85,
+      "observation": {
+        "compatible": true,
+        "itemCount": 10,
+        "missingIdentity": 0,
+        "fields": [
+          {
+            "field": "id",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "nome",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "codigo",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "situacao",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "tipos",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "endereco",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "endereco.municipio",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "endereco.uf",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "vendedor",
+            "present": 10,
+            "nulls": 7,
+            "incompatible": 0
+          },
+          {
+            "field": "vendedor.id",
+            "present": 3,
+            "missing": 7,
+            "incompatible": 0
+          }
+        ],
+        "conflicts": []
+      }
+    },
+    {
+      "resource": "sellers",
+      "endpoint": "/vendedores",
+      "method": "GET",
+      "status": 200,
+      "outcome": "OK",
+      "durationMs": 458.56,
+      "observation": {
+        "compatible": true,
+        "itemCount": 10,
+        "missingIdentity": 0,
+        "fields": [
+          {
+            "field": "id",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "contato",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "contato.id",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "contato.nome",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "situacao",
+            "present": 10,
+            "missing": 0,
+            "incompatible": 0
+          }
+        ],
+        "conflicts": []
+      }
+    },
+    {
+      "resource": "priceLists",
+      "endpoint": "/listas-precos",
+      "method": "GET",
+      "status": 200,
+      "outcome": "OK",
+      "durationMs": 389.18,
+      "observation": {
+        "compatible": true,
+        "itemCount": 3,
+        "missingIdentity": 0,
+        "fields": [
+          {
+            "field": "id",
+            "present": 3,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "descricao",
+            "present": 3,
+            "missing": 0,
+            "incompatible": 0
+          },
+          {
+            "field": "acrescimoDesconto",
+            "present": 3,
+            "missing": 0,
+            "incompatible": 0
+          }
+        ],
+        "conflicts": []
+      }
+    }
+  ],
+  "finalSessionStatus": {
+    "connected": true,
+    "accountVerified": true,
+    "usedGETs": 5,
+    "remainingGETs": 3,
+    "busy": false
+  },
+  "previousIncident": {
+    "resource": "info",
+    "method": "GET",
+    "status": 403,
+    "outcome": "PERMISSION_DENIED",
+    "reportedResolution": "Habilitar leitura de Informações da Conta, revisar configuração local e autorizar OAuth novamente; /info passou a 200 OK.",
+    "counterRelationship": "A tentativa anterior é registrada separadamente. A correlação de processos/contadores não foi fornecida; não inferir reset por desconexão."
+  },
+  "observations": {
+    "timings": "Cinco observações individuais, não benchmark ou SLA.",
+    "fieldCounts": "Somente contagens explicitamente fornecidas. Nulls não informados não são preenchidos com zero.",
+    "units": "other significa unidade diferente da string literal UN; valores e diversidade entre produtos não determinados.",
+    "contacts": "Sete contatos com vendedor null e três com vendedor.id; elegibilidade comercial não determinada.",
+    "sellerPermission": "Acesso confirmado na configuração atual; associação exata da permissão não isolada.",
+    "priceLists": "Três registros nesta amostra, não total comprovado da conta.",
+    "quota": "Headers de quota e limite efetivo não fornecidos.",
+    "security": "Evidência recebida sem credenciais, documentos reais, nomes, preços ou IDs reais. Proteção do ambiente local relatada pelo responsável, sem auditoria forense.",
+    "erpWrites": "Nenhuma escrita relatada; nenhuma operação real adicional executada nesta consolidação."
+  }
+}

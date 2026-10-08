@@ -9,5 +9,7 @@
   "realERPGETs": 0,
   "erpWrites": 0,
   "oidcDiscovery": "timeout; PKCE unconfirmed",
-  "operationalHomologation": "PENDING"
+  "operationalHomologation": "PENDING",
+  "scope": "Registro histórico da investigação/testes iniciais, anteriores à homologação fornecida pelo responsável",
+  "currentHomologationEvidence": "HOMOLOGACAO-REAL.json"
 }

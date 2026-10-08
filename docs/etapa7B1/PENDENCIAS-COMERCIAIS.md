@@ -1,6 +1,6 @@
 # Pendências comerciais e operacionais
 
-Data: **08/10/2026**. Implementação e testes locais com dados sintéticos. **Nenhuma autenticação ou consulta de dados reais executada. Homologação operacional PENDENTE.**
+Data: **08/10/2026**. **Estado atual: implementação concluída e prova operacional de OAuth/leitura aprovada para os cinco recursos testados**, com base na evidência fornecida pelo responsável. Validação comercial completa e infraestrutura definitiva continuam pendentes. A entrega inicial precedeu essa homologação; seu histórico está identificado abaixo. Evidência: [HOMOLOGACAO-REAL.json](HOMOLOGACAO-REAL.json).
 
 Nenhuma regra comercial foi deduzida dos mocks ou do schema. Não houve mudança de preços ou unidades do MVP.
 
@@ -15,6 +15,14 @@ Nenhuma regra comercial foi deduzida dos mocks ou do schema. Não houve mudança
 | Elegibilidade de contatos como clientes | Tipos da conta e política comercial | Não vender para todo contato ativo |
 | Pagamento, parcelas, banco, categoria, natureza/frete | Financeiro/operação | Resolver IDs e semântica antes de envio |
 | Idempotência, unicidade e reconciliação | Garantia oficial/processo conservador | UNKNOWN bloqueado; sem promessa exactly-once |
-| Conta, plano, usuário, ambiente/callback e autorização | Administrador/técnico | Homologação 7B.1 bloqueada até confirmação |
+| Plano/quotas e permissões mínimas para fases futuras | Administrador/técnico | OAuth/callback e cinco GETs homologados na sessão fornecida; plano e quotas exatos não demonstrados |
 
-Recomendação para 7B.2: após aprovação explícita e homologação de OAuth/GETs reais, reutilizar os módulos de transporte/configuração/validação parcial, evoluir autorização/sessões de produção e planejar catálogo por snapshots. Não promover o servidor local Basic ou gates de ambiente a backend definitivo sem revisão. Cache e sincronização deverão preservar a inclusão em memória e testes 10/50/100/150/200/300 com autosave e rede lenta/offline. PostgreSQL, sincronização completa, pedidos reais e migração não fazem parte da 7B.1. **Parar ao concluir esta subetapa.**
+Recomendação para 7B.2 — backend operacional, autenticação e PostgreSQL: após aprovação explícita, reutilizar a prova de OAuth/GETs relatada e os módulos isolados, evoluir autorização por organização e autenticação de operadores, mantendo tokens somente no backend e nenhuma escrita real no Tiny. A política comercial e mapeamentos completos ficam na 7B.3. Não promover o servidor local Basic ou gates de ambiente a backend definitivo sem revisão. Cache e sincronização deverão preservar a inclusão em memória e testes 10/50/100/150/200/300 com autosave e rede lenta/offline. PostgreSQL, sincronização completa, pedidos reais e migração não fazem parte da 7B.1. **Parar ao concluir esta subetapa.**
+
+## Pendências atualizadas após a prova real
+
+Leitura confirmada não resolve política comercial. Dez produtos classificados como other exigem identificar unidades reais, normalização sem conversões presumidas e preservação da apresentação comercial. Preço promocional presente não demonstra promoção ativa. Três listas da amostra exigem confirmar regra de acréscimo/desconto, associação ao cliente, exceções, combinação com promoções e arredondamento. Sete contatos com vendedor null não são prova de sete clientes sem vendedor: identificar elegibilidade e vínculo por IDs, com regra explícita para cliente sem vendedor.
+
+Mapeamentos de produto/cliente, associação de vendedor e listas estão **parcialmente validados estruturalmente**, sem aprovação comercial completa. Detalhes de produto/lista, pesos e conversões, preço efetivo por cliente, condições de pagamento e regras de desconto continuam pendentes para 7B.3. Nenhum cálculo definitivo adicionado.
+
+7B.1 aprovada para autenticação/leitura dos cinco recursos; infraestrutura definitiva, multiusuário, PostgreSQL, ledger, criação/idempotência/reconciliação reais não homologados. UNKNOWN deve continuar conservador em fases futuras. **7B.2 não iniciada.**
