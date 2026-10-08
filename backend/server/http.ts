@@ -6,6 +6,7 @@ import { hash } from '../security/crypto.ts';
 import { BackendError, fail } from '../security/errors.ts';
 export interface TinyAdministration {
   status(p: Principal): Promise<unknown>;
+  configure(p: Principal, document: string, correlation: string): Promise<void>;
   start(p: Principal, correlation: string): Promise<string>;
   callback(p: Principal, url: URL, correlation: string): Promise<void>;
   disconnect(p: Principal, correlation: string): Promise<void>;
@@ -72,6 +73,7 @@ export function createBackendServer(config: Config, auth: AuthService, tiny?: Ti
       if (method === 'GET' && url.pathname === '/api/admin/audit') return json(await auth.db.client`SELECT id,user_id,action,result,correlation_id,created_at FROM audit_events WHERE organization_id=${p.organizationId} ORDER BY created_at DESC LIMIT 100`);
       if (!tiny) fail('NOT_CONFIGURED', 503);
       if (method === 'GET' && url.pathname === '/api/erp/tiny/status') return json(await tiny.status(p));
+      if (method === 'POST' && url.pathname === '/api/erp/tiny/configure-account') { const data = await body(req, ['expectedDocument']); if (typeof data.expectedDocument !== 'string') fail('INPUT_INVALID'); await tiny.configure(p, data.expectedDocument, correlationId); return json({ configured: true }); }
       if (method === 'POST' && url.pathname === '/api/erp/tiny/oauth/start') { await body(req, []); return json({ authorizationUrl: await tiny.start(p, correlationId) }); }
       if (callback) {
         try { await tiny.callback(p, url, correlationId); } catch { log({ correlationId, code: 'OAUTH_CALLBACK_FAILED' }); }

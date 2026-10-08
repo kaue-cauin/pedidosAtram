@@ -25,8 +25,10 @@
     "backend:db:generate": "drizzle-kit generate --config backend/drizzle.config.ts",
     "backend:db:migrate": "node --env-file=.env.backend.local scripts/backend-migrate.mjs",
     "check:stage7b2:unit": "node --test backend/tests/security.test.mjs",
-    "check:stage7b2:db": "node --test backend/tests/database.test.mjs",
-    "backend:admin": "node --env-file=.env.backend.local scripts/backend-admin.mjs"
+    "check:stage7b2:db": "node --test backend/tests/database.test.mjs backend/tests/auth.test.mjs backend/tests/oauth.test.mjs",
+    "backend:admin": "node --env-file=.env.backend.local scripts/backend-admin.mjs",
+    "backend:start": "node --env-file=.env.backend.local scripts/backend.mjs",
+    "check:stage7b2": "node --test backend/tests/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

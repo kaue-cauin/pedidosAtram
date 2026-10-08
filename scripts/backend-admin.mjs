@@ -9,7 +9,7 @@ async function hidden(label) {
   stdout.write(label);stdin.setRawMode(true);stdin.resume();
   return new Promise((resolve,reject)=>{
     let value='';
-    const finish=(err)=>{stdin.off('data',receive);stdin.setRawMode(false);stdin.pause();stdout.write('\n');err?reject(err):resolve(value);};
+    const finish=(err)=>{stdin.off('data',receive);stdin.setRawMode(false);stdin.pause();stdout.write('\n');if(err)reject(err);else resolve(value);};
     const receive=(bytes)=>{for(const char of bytes.toString('utf8')){
       if(char==='\u0003'){finish(new BackendError('CANCELLED'));return;}
       if(char==='\r'||char==='\n'){finish();return;}
