@@ -35,7 +35,7 @@ export function SubmissionPanel({ order, getOrder, persist, available }: { order
   const totals = review ? calculateTotals(review) : null;
   const uncertain = order.status === 'UNKNOWN' || order.status === 'SUBMITTING';
   return <section className="submission-panel" aria-label="Envio simulado ao ERP">
-    <div className="submission-controls"><label htmlFor="erp-scenario">Cenário do Mock ERP <select id="erp-scenario" value={scenario} disabled={busy} onChange={e => setScenario(e.target.value as MockScenario)}>{scenarios.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <div className="submission-controls"><label htmlFor="erp-scenario">Cenário do Mock ERP <select aria-label="Cenário do Mock ERP" id="erp-scenario" value={scenario} disabled={busy} onChange={e => setScenario(e.target.value as MockScenario)}>{scenarios.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <button className="button primary" disabled={!available || busy || uncertain || order.status === 'SUBMITTED'} onClick={openReview}>{order.status === 'ERROR' ? 'Revisar mesma tentativa' : 'Revisar e enviar ao Mock ERP'}</button>
       {order.submissionId && order.status !== 'SUBMITTED' && <button className="button secondary" disabled={!available || busy} onClick={() => { void run(() => coordinator.reconcile()); }}>Consultar resultado no ERP</button>}
     </div>

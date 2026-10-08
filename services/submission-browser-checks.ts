@@ -50,6 +50,24 @@ export async function runSubmissionBrowserChecks() {
       indexedDB.deleteDatabase(name + '-erp'); indexedDB.deleteDatabase(name + '-draft');
     }
   }
+  {
+    const name='atram-stage5-test-'+crypto.randomUUID();
+    const ledgerA=new IndexedDBERPLedger(name);const ledgerB=new IndexedDBERPLedger(name);
+    const a=new MockERPProvider(ledgerA,()=>({scenario:'success',delayMs:0}));const b=new MockERPProvider(ledgerB,()=>({scenario:'success',delayMs:0}));
+    try {
+      const order={...structuredClone(demoOrder),orderId:crypto.randomUUID()};const id=crypto.randomUUID();
+      const receipts=await Promise.all(Array.from({length:20},(_,i)=>(i%2?a:b).createOrder(order,id)));
+      check(new Set(receipts.map(r=>r.erpOrderId)).size===1,'Criações concorrentes geraram recibos distintos.');
+      check((await ledgerA.find(id))?.erpOrderId===receipts[0].erpOrderId,'Recibo concorrente não ficou durável.');
+      const another={...order,orderId:crypto.randomUUID()};
+      const keys=Array.from({length:20},()=>crypto.randomUUID());
+      const competing=await Promise.allSettled(keys.map((key,i)=>(i%2?a:b).createOrder(another,key)));
+      check(competing.filter(r=>r.status==='fulfilled').length===1,'Identidades diferentes duplicaram o mesmo pedido.');
+      const stored=await Promise.all(keys.map(key=>ledgerB.find(key)));
+      check(stored.filter(Boolean).length===1,'Índice único por pedido não protegeu a transação.');
+      results.push({scenario:'cold-concurrent-creation',sameIdentityCalls:20,uniqueReceipts:1,differentIdentityCalls:20,acceptedIdentities:1});
+    } finally {await ledgerA.close();await ledgerB.close();indexedDB.deleteDatabase(name);}
+  }
   for (const failAt of [1, 2]) {
     const name = 'atram-stage5-test-' + crypto.randomUUID();
     const ledger = new IndexedDBERPLedger(name + '-erp'); const repo = new DraftRepository(name + '-draft');

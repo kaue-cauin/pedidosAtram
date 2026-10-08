@@ -3,6 +3,7 @@ import { demoOrder } from '../domain/mock-data.ts';
 import { submissionPayload } from '../domain/submission.ts';
 import { validateDraft } from '../repositories/draft-repository.ts';
 import { MockERPProvider, sameReceipt } from '../integrations/MockERPProvider.ts';
+import { ERPFailure } from '../integrations/ERPProvider.ts';
 import { SubmissionCoordinator } from '../services/submission-coordinator.ts';
 let checks = 0;
 const eq = (a,b) => { assert.deepEqual(a,b); checks++; };
@@ -74,6 +75,21 @@ for (const scenario of ['success','400','401','429','500','timeout-before','time
  const f=fixture('timeout-after'); await f.make().submit(submissionPayload(f.order)); const id=f.order.submissionId;
  f.opts.online=false; await f.make().reconcile(); eq(f.order.status,'UNKNOWN'); eq(f.ledger.creations,1);
  f.opts.online=true; await f.make().reconcile(); eq(f.order.status,'SUBMITTED'); eq(f.order.submissionId,id);
+}
+// A generic HTTP 500 can occur AFTER the server commit too. It is always ambiguous.
+{
+ const f=fixture(); const original=f.provider.createOrder.bind(f.provider);
+ f.provider.createOrder=async (order,id)=>{await original(order,id);throw new ERPFailure('HTTP 500 após commit','unknown');};
+ await f.make().submit(submissionPayload(f.order));eq(f.order.status,'UNKNOWN');eq(f.ledger.creations,1);
+ f.restore();await f.make().reconcile();eq(f.order.status,'SUBMITTED');eq(f.ledger.creations,1);
+}
+// A missing lookup while the original request is still pending never rotates identity.
+{
+ const f=fixture('timeout-before');await f.make().submit(submissionPayload(f.order));const id=f.order.submissionId;
+ await f.make().reconcile();eq(f.order.status,'ERROR');f.opts.scenario='success';
+ const payload=submissionPayload(f.order);
+ await Promise.all([f.provider.createOrder(f.order,id),f.make().submit(payload)]);
+ eq(f.order.submissionId,id);eq(f.order.status,'SUBMITTED');eq(f.ledger.creations,1);
 }
 // Tampered frozen envelope and changed review rejected; existing data never overwritten.
 {

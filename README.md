@@ -90,7 +90,7 @@ A tabela mantém todas as linhas no DOM, com rolagem interna e cabeçalho fixo. 
 
 - A inclusão atualiza o modelo em memória e o DOM antes da gravação. `schedule()` só guarda uma referência ao último snapshot e agenda um timer; não serializa nem acessa IndexedDB na pilha do evento Enter.
 - `services/autosave-queue.ts`: debounce de 250 ms, limite de espera de 1.000 ms durante digitação contínua, um único escritor e substituição dos snapshots pendentes pelo mais recente. Uma gravação lenta não impede alterações em memória; elas entram no próximo snapshot.
-- `repositories/draft-repository.ts`: banco `atram-pedidos-v1`, store `drafts`, schema versão 1. “Salvo” só é emitido após `transaction.complete`; usa durabilidade estrita quando suportada. A revisão esperada é conferida atomicamente na mesma transação para impedir sobrescrita por outra aba.
+- `repositories/draft-repository.ts`: banco `atram-pedidos-v1`, store `drafts`, schema versão 2 (lê também os rascunhos da versão 1). “Salvo” só é emitido após `transaction.complete`; usa durabilidade estrita quando suportada. A revisão esperada é conferida atomicamente na mesma transação para impedir sobrescrita por outra aba.
 - Ao reabrir, escolha o rascunho que deseja continuar. Começar outro pedido cria um UUID novo e mantém os anteriores. Os totais são reconstruídos a partir dos itens recuperados.
 - Falha de gravação mantém o último snapshot pendente e apresenta erro, botão de nova tentativa e exportação JSON. Falha de leitura não substitui registros existentes; é possível continuar apenas em memória e exportar uma cópia.
 - Ao ocultar/sair da página, a fila tenta gravar imediatamente. Se houver alterações pendentes, o navegador pode pedir confirmação ao sair. Fechamento forçado, queda de energia ou encerramento antes de “Salvo localmente” podem perder a janela ainda não confirmada: o que se recupera é a última transação concluída. Não prometemos gravação assíncrona garantida no encerramento.
@@ -119,3 +119,12 @@ Medições independentes: **UI** = modelo + React/DOM até `useLayoutEffect`, se
 **Testar digitação contínua (gravação 1 s)** faz 60 inclusões a partir de 300 itens, com intervalo de 50 ms e atraso de armazenamento de 1.000 ms. Registra gravações concluídas durante a entrada e inclusões enquanto o escritor estava ocupado; lê o último snapshot em outra conexão após terminar. **Salvar pendências agora** permite nova tentativa após desligar uma falha simulada.
 
 O comparativo anterior Base × Otimizado continua disponível na página separada `/diagnostico-etapa3/`. Consulte `docs/VERIFICACAO-ETAPA-4.md` para evidências e limites dos testes desta etapa.
+
+
+## Envio seguro da Etapa 5
+
+Use **Revisar e enviar ao Mock ERP** ou Ctrl+Enter. A confirmação salva a identidade e a cópia imutável antes da criação; bloqueia alterações a partir desse momento. O seletor de cenário permite testar sucesso, HTTP 400/401/429/500 e os dois timeouts. Trata-se de simulação local, sem envio a um ERP real.
+
+Se aparecer **Resultado desconhecido**, escolha **Consultar resultado no ERP**. Um timeout depois da criação recupera o recibo original. Um resultado não encontrado permite revisar e confirmar de novo com o mesmo `submissionId`; não há repetição automática. O mock mantém índices únicos por tentativa e pedido, em banco separado do rascunho.
+
+`npm run check:stage5` verifica o protocolo. `/diagnostico-etapa5/` testa a matriz com IndexedDB real, conexões independentes, conflitos e falhas de gravação. Consulte `docs/VERIFICACAO-ETAPA-5.md` para resultados e limites. A integração real exigirá idempotência e consulta implementadas no servidor do ERP ou em um intermediário durável.
