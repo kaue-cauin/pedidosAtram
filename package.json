@@ -29,7 +29,8 @@
     "backend:admin": "node --env-file=.env.backend.local scripts/backend-admin.mjs",
     "backend:start": "node --env-file=.env.backend.local scripts/backend.mjs",
     "check:stage7b2": "node --test backend/tests/*.test.mjs",
-    "check:backend-boundary": "node scripts/check-backend-boundary.mjs"
+    "check:backend-boundary": "node scripts/check-backend-boundary.mjs",
+    "check:stage7b3": "node --test backend/tests/stage7b3/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
