@@ -1,25 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import postgres from 'postgres';
 import { database } from '../db/client.ts';
 import { applyMigrations } from '../db/migrate.ts';
-export async function isolatedDatabase() {
-  const url = new URL(process.env.BACKEND_TEST_DATABASE_URL ?? '');
-  assert.equal(process.env.BACKEND_TEST_DATABASE_APPROVED, 'yes', 'Explicit synthetic test database approval required');
-  assert.match(url.pathname, /^\/atram_test[a-z0-9_-]*$/i, 'Test database must be named atram_test*');
-  assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), 'Only loopback test PostgreSQL');
-  const name = 'atram_test_' + randomUUID().replaceAll('-', '');
-  const control = postgres(url.href, { max: 1, onnotice: () => {} });
-  await control`CREATE DATABASE ${control(name)}`;
-  url.pathname = '/' + name;
-  const db = database(url.href);
-  return { db, url: url.href, cleanup: async () => {
-    await db.close();
-    await control`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=${name} AND pid<>pg_backend_pid()`;
-    await control`DROP DATABASE ${control(name)}`; await control.end();
-  } };
-}
+import { isolatedDatabase } from './fixtures.mjs';
 test('7B.2A PostgreSQL: migrations, constraints, transactions, persistence and recovery', async () => {
   const fixture = await isolatedDatabase(); const { db } = fixture;
   try {
