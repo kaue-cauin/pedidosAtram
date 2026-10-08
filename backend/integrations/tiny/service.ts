@@ -18,7 +18,6 @@ interface Connection {
 }
 function safeError(error: unknown): BackendError {
   if (error instanceof BackendError) return error;
-  if (process.env.BACKEND_TEST_DIAGNOSTICS === 'yes' && error instanceof Error) console.error((error.stack ?? '').split('\n').filter(line => /^\s+at /.test(line)).join('\n'));
   return new BackendError(error instanceof POCError ? error.kind : 'ERP_UNAVAILABLE', 503);
 }
 export class TinyService implements TinyReadGateway {
