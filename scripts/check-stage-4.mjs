@@ -7,7 +7,7 @@ let checks = 0;
 const check = (a, b) => { assert.deepEqual(a, b); checks++; };
 const record = { schemaVersion: 1, orderId: demoOrder.orderId, revision: 1, savedAt: new Date().toISOString(), order: demoOrder };
 check(validateDraft(structuredClone(record)), record);
-for (const broken of [ { ...record, schemaVersion: 2 }, { ...record, revision: 0 }, { ...record, order: { ...demoOrder, items: [...demoOrder.items, demoOrder.items[0]] } }, { ...record, order: { ...demoOrder, items: [{ ...demoOrder.items[0], quantity: NaN }] } }, { ...record, order: { ...demoOrder, shipping: {} } }, { ...record, order: { ...demoOrder, payment: {} } } ]) { assert.throws(() => validateDraft(broken)); checks++; }
+for (const broken of [ { ...record, schemaVersion: 99 }, { ...record, revision: 0 }, { ...record, order: { ...demoOrder, items: [...demoOrder.items, demoOrder.items[0]] } }, { ...record, order: { ...demoOrder, items: [{ ...demoOrder.items[0], quantity: NaN }] } }, { ...record, order: { ...demoOrder, shipping: {} } }, { ...record, order: { ...demoOrder, payment: {} } } ]) { assert.throws(() => validateDraft(broken)); checks++; }
 const writes = [];
 let simultaneous = 0, maxSimultaneous = 0;
 const queue = new AutosaveQueue(async value => {

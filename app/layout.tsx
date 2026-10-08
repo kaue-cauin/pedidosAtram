@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Novo Pedido de Venda | Atram Comercial",
-  description: "Etapa 4 da entrada de pedidos Atram: entrada rápida, autosave local, recuperação e offline.",
+  description: "Etapa 5 da entrada de pedidos Atram: revisão, envio simulado, idempotência e recuperação segura.",
   icons: {
     icon: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/favicon.svg`,
     shortcut: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/favicon.svg`,

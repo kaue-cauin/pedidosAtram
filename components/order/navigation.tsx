@@ -14,7 +14,7 @@ export function Navigation() {
   return <Sidebar className="app-sidebar" collapsible="offcanvas">
     <SidebarHeader className="brand-header"><a href="#novo-pedido" className="brand" aria-label="Atram Comercial — Novo Pedido"><span className="brand-symbol"><ShoppingBasket strokeWidth={1.8} /></span><span><strong>atram<span>.</span></strong><small>COMERCIAL</small></span></a></SidebarHeader>
     <SidebarContent><nav aria-label="Navegação principal" className="side-navigation"><div className="navigation-caption">ÁREA COMERCIAL</div><SidebarMenu>{navigation.map(({ label, icon: Icon }, index) => <SidebarMenuItem key={label}><SidebarMenuButton className="navigation-item" isActive={index === 0} disabled={index !== 0} title={index === 0 ? 'Novo Pedido' : 'Módulo fora do escopo desta etapa'} asChild={index === 0}>{index === 0 ? <a href="#novo-pedido" aria-current="page"><Icon /><span>{label}</span><span className="active-mark" /></a> : <><Icon /><span>{label}</span></>}</SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></nav></SidebarContent>
-    <SidebarFooter className="sidebar-bottom"><div className="environment-card"><span className="environment-mark">04</span><div><strong>Ambiente de demonstração</strong><span>Etapa 4 · Rascunhos locais</span></div></div><div className="sidebar-signature">Atram Comercial<span>Pedidos de venda</span></div></SidebarFooter>
+    <SidebarFooter className="sidebar-bottom"><div className="environment-card"><span className="environment-mark">05</span><div><strong>Ambiente de demonstração</strong><span>Etapa 5 · Envio seguro</span></div></div><div className="sidebar-signature">Atram Comercial<span>Pedidos de venda</span></div></SidebarFooter>
   </Sidebar>;
 }
 

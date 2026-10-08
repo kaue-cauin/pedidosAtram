@@ -1,4 +1,4 @@
-export type OrderStatus = 'DRAFT' | 'VALIDATING' | 'READY' | 'SUBMITTING' | 'SUBMITTED' | 'ERROR';
+export type OrderStatus = 'DRAFT' | 'VALIDATING' | 'READY' | 'SUBMITTING' | 'SUBMITTED' | 'ERROR' | 'UNKNOWN';
 
 export interface Product {
   id: string;
@@ -38,10 +38,19 @@ export interface OrderItem {
   netWeightGrams: number;
 }
 
+export interface SubmissionAttempt {
+  payload: string;
+  startedAt: string;
+  erpOrderId?: string;
+  message?: string;
+  retryAt?: number;
+}
+
 export interface Order {
   orderId: string;
   submissionId: string | null;
   status: OrderStatus;
+  submission?: SubmissionAttempt;
   customerId: string | null;
   sellerId: string;
   operation: string;

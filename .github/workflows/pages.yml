@@ -22,6 +22,7 @@ jobs:
       - run: npm run check:stage2
       - run: npm run check:stage3
       - run: npm run check:stage4
+      - run: npm run check:stage5
       - run: npm run typecheck
       - run: npm run build
         env:

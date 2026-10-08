@@ -1,0 +1,2 @@
+import { SubmissionLab } from '@/components/order/submission-lab';
+export default function SubmissionDiagnostics() { return <main className="performance-lab"><header><h1>Diagnóstico da Etapa 5</h1><a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/`}>← Voltar ao pedido</a></header><SubmissionLab /><a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/diagnostico/`}>Repetir teste de desempenho e autosave da Etapa 4 ↗</a></main>; }

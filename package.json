@@ -17,7 +17,8 @@
     "mock:export": "node scripts/export-mock-data.mjs",
     "check:stage2": "node scripts/check-stage-2.mjs",
     "check:stage3": "node scripts/check-stage-3.mjs",
-    "check:stage4": "node scripts/check-stage-4.mjs"
+    "check:stage4": "node scripts/check-stage-4.mjs",
+    "check:stage5": "node scripts/check-stage-5.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
