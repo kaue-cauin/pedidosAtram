@@ -18,7 +18,7 @@ Data: **08/10/2026**. Base revisada: `66bd55afe1ba91624658dd1e2e762cd057c147da`.
 | Documentar idempotência e riscos | Atendido | RISCO CRÍTICO: sem unicidade/ausência autoritativa comprovadas; UNKNOWN bloqueado |
 | Recomendar arquitetura | Atendido | B: frontend/API Node no mesmo domínio, sem executar migração |
 | Nenhuma escrita real | Atendido | Somente GET público de documentação; 0 chamadas autenticadas, 0 escritas ERP |
-| Testes anteriores passando | Atendido localmente | Nove comandos abaixo; CI executará novamente no commit publicado |
+| Testes anteriores passando | Atendido localmente | Nove comandos abaixo; execução remota do commit documental ainda não observada |
 | OAuth/leitura na conta | Pendente, não executado | Sem runtime seguro e credenciais autorizadas |
 | Plano/módulos/quotas da Atram | Pendente | Sem consulta à conta; números públicos não são limites efetivos |
 | Política comercial e contrato idempotente | Pendente | Decisão da empresa e esclarecimento oficial, indispensáveis antes de escrita |
@@ -61,6 +61,8 @@ Node.js 24, mesmo código da Etapa 6. Lint com zero warnings exigido pelo script
 | `npm run build` | PASS | 34.92 |
 
 Etapa 3: 75.642 assertions e 10.800 operações em tamanhos 10/50/100/150/200/300; Etapa 4: 26 verificações da fila; Etapa 5: 93; Etapa 6: 143; build estático e 111 verificações do service worker em VM com 37 recursos. Estes são testes locais de regressão, não novas medições de latência visual, IndexedDB real ou redes em navegador. As evidências browser das etapas anteriores continuam em seus relatórios; nenhuma alteração de código justifica substituí-las nesta entrega.
+
+CI remoto: na consulta após a publicação documental não havia workflow/check-run associado ao novo commit. A [última execução verde](https://github.com/kaue-cauin/pedidosAtram/actions/runs/37766536618) verifica a base `66bd55a`; o código executável é idêntico. **Não declarar CI desta entrega como aprovado.** O workflow existente permanece habilitado no arquivo para push/main e workflow_dispatch, sem modificações. Uma nova execução remota continua pendente.
 
 Não criado `check:stage7a`: não houve código de POC. CI público não recebe nem utiliza credenciais de produção. A verificação de links locais e referências de schemas confirma consistência dos documentos selecionados, não comportamento do servidor ERP.
 
