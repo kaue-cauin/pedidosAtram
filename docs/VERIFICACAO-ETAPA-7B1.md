@@ -39,7 +39,7 @@ Cliente só faz GETs em base/paths fixos e allowlist explícita, até oito por p
 
 Suíte específica final: **19 testes, 19 aprovados**. A adição final de teste de redirect real em loopback foi executada novamente após o lote completo; lint também repetido após esse ajuste de teste. Cobertura: pré-requisitos ausentes, callback inseguro, state/cookie/URI inválidos, replay e concorrência, PKCE condicional, resposta/token inválido, expiração, refresh serializado/expirado/falha, encerramento em voo, ordem de conta, identidade divergente, allowlist/budget, paginação/tipos/conflitos, códigos 401/403/429/500, network/timeout/JSON/corpo, quotas, Host/CSRF/autenticação e privacidade. HTTP real local testa serviço e bloqueio de redirecionamento; toda comunicação OAuth/Tiny nesses testes foi substituída por mocks.
 
-Testes anteriores também passaram. Build estático: 37 recursos e 111 verificações de offline em VM. Busca em bundles estáticos não encontrou identificadores de segredo/admin ou classe OAuth da POC. Smoke do launcher sem pré-requisitos: CONFIG_PENDING, exit 1, antes de abrir servidor. Testes não necessitam credenciais; CI inclui check:stage7b1 e não deve receber credenciais reais. **Execução remota deste commit ainda pendente de confirmação; não confundir PASS local com CI remoto.**
+Testes anteriores também passaram. Build estático: 37 recursos e 111 verificações de offline em VM. Busca em bundles estáticos não encontrou identificadores de segredo/admin ou classe OAuth da POC. Smoke do launcher sem pré-requisitos: CONFIG_PENDING, exit 1, antes de abrir servidor. Testes não necessitam credenciais; CI inclui check:stage7b1 e não deve receber credenciais reais. **CI remoto confirmado:** [run 37805884471](https://github.com/kaue-cauin/pedidosAtram/actions/runs/37805884471), commit de código `d54552c218d160a77b453c2cebd54f4a735e0458`, conclusão success em build e deploy. Executou os dez comandos, incluindo a suíte final de 19 testes. Publicação no Pages permanece a demonstração mock; o serviço Node não é hospedado pelo Pages. O commit posterior deste relatório altera somente documentação/evidência, sem mudar o código verificado.
 
 Não repetido benchmark visual em navegador nesta subetapa porque a POC não é importada pela aplicação e os componentes críticos não foram alterados. As evidências e limites de performance das Etapas 3–6 continuam válidos como histórico; não declarar novas medidas reais de UI/rede/IndexedDB.
 
@@ -74,7 +74,7 @@ Preço efetivo, lista por cliente, descontos, unidades/múltiplos, peso físico 
 | 7. Retornos validados | ATENDIDO em mocks/campos selecionados; resposta real PENDENTE |
 | 8. Conflitos de schema registrados | ATENDIDO documentalmente; confirmação real PENDENTE |
 | 9. Limites efetivos registrados quando disponíveis | PENDENTE: não disponíveis sem conta/autorização |
-| 10. Regressões anteriores | ATENDIDO localmente; CI remoto pendente |
+| 10. Regressões anteriores | ATENDIDO localmente e no CI do commit de código d54552c |
 | 11. Nenhum pedido real | ATENDIDO |
 | 12. MVP mock preservado | ATENDIDO: código do MVP inalterado, regressões/build aprovados |
 

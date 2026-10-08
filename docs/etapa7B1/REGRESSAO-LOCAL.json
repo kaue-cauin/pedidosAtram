@@ -63,5 +63,12 @@
   "realOAuthCalls": 0,
   "realERPGETs": 0,
   "erpWrites": 0,
-  "operationalHomologation": "PENDING"
+  "operationalHomologation": "PENDING",
+  "ci": {
+    "codeCommit": "d54552c218d160a77b453c2cebd54f4a735e0458",
+    "run": "https://github.com/kaue-cauin/pedidosAtram/actions/runs/37805884471",
+    "build": "success",
+    "deploy": "success",
+    "note": "Final follow-up changes only documentation/evidence."
+  }
 }
