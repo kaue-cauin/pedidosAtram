@@ -32,7 +32,7 @@ export class CatalogRepository {
     await this.db.client.begin(async sql=>{
       const [s]=await sql`SELECT status FROM catalog_snapshots WHERE organization_id=${p.organizationId} AND id=${snapshot} FOR UPDATE`;
       if(s?.status!=='BUILDING')fail('SNAPSHOT_IMMUTABLE',409);
-      await sql`INSERT INTO catalog_entries(organization_id,snapshot_id,resource,erp_id,projection,content_hash,commercial) VALUES (${p.organizationId},${snapshot},${resource},${entry.erpId},${JSON.stringify(entry)}::jsonb,${hash(canonical(entry))},${entry.commercial})
+      await sql`INSERT INTO catalog_entries(organization_id,snapshot_id,resource,erp_id,projection,content_hash,commercial) VALUES (${p.organizationId},${snapshot},${resource},${entry.erpId},${sql.json(JSON.parse(JSON.stringify(entry)))},${hash(canonical(entry))},${entry.commercial})
         ON CONFLICT(organization_id,snapshot_id,resource,erp_id) DO UPDATE SET projection=EXCLUDED.projection,content_hash=EXCLUDED.content_hash,commercial=EXCLUDED.commercial`;
     });
   }
@@ -60,7 +60,7 @@ export class CatalogRepository {
       }
       const manifest:CatalogManifest={version:snapshot,organizationId:p.organizationId,mode:s.mode,state:'READY',commercial:s.mode==='FIXTURE'?'SYNTHETIC_ONLY':'PENDING',createdAt:s.created_at.toISOString(),publishedAt:null,
         resources:counts,checksum:hash(canonical(counts)),cache:{maxAgeSeconds:3600,offlineAllowed:s.mode==='FIXTURE'},compatibility:'TECHNICAL_ONLY'};
-      await sql`UPDATE catalog_snapshots SET status='READY',commercial=${manifest.commercial},manifest=${JSON.stringify(manifest)}::jsonb,checksum=${manifest.checksum},anomalies=${sql.json(anomalies)} WHERE id=${snapshot} AND organization_id=${p.organizationId}`;
+      await sql`UPDATE catalog_snapshots SET status='READY',commercial=${manifest.commercial},manifest=${sql.json(JSON.parse(JSON.stringify(manifest)))},checksum=${manifest.checksum},anomalies=${sql.json(anomalies)} WHERE id=${snapshot} AND organization_id=${p.organizationId}`;
       return {manifest,anomalies};
     });
   }
@@ -75,7 +75,7 @@ export class CatalogRepository {
       if((s.anomalies as string[]).length&&!acknowledge)fail('ANOMALY_REVIEW_REQUIRED',409);
       if(expected)await sql`UPDATE catalog_snapshots SET status='SUPERSEDED' WHERE id=${expected} AND organization_id=${p.organizationId}`;
       const manifest={...s.manifest,state:'ACTIVE',publishedAt:new Date().toISOString()};
-      await sql`UPDATE catalog_snapshots SET status='ACTIVE',published_at=NOW(),manifest=${JSON.stringify(manifest)}::jsonb WHERE id=${snapshot} AND organization_id=${p.organizationId}`;
+      await sql`UPDATE catalog_snapshots SET status='ACTIVE',published_at=NOW(),manifest=${sql.json(JSON.parse(JSON.stringify(manifest)))} WHERE id=${snapshot} AND organization_id=${p.organizationId}`;
       await sql`INSERT INTO catalog_heads(organization_id,snapshot_id,revision) VALUES (${p.organizationId},${snapshot},1) ON CONFLICT(organization_id) DO UPDATE SET snapshot_id=EXCLUDED.snapshot_id,revision=catalog_heads.revision+1`;
       await sql`INSERT INTO audit_events(organization_id,user_id,action,result,correlation_id) VALUES (${p.organizationId},${p.userId},${rollback?'CATALOG_ROLLBACK':'CATALOG_ACTIVATE'},${acknowledge?'ANOMALIES_ACKNOWLEDGED':'OK'},${randomUUID()})`;
       return manifest as CatalogManifest;
