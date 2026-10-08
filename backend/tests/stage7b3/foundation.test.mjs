@@ -17,12 +17,13 @@ test('7B.3A migrations, tenant FKs, staging, immutable publication, CAS and roll
   await r.put(a,job.snapshot_id,'products',{erpId:'001',commercial:'PENDING',unitOriginal:'CX'});
   await r.prepare(a,job.snapshot_id,resources);
   await assert.rejects(r.put(a,job.snapshot_id,'products',{erpId:'2',commercial:'PENDING'}),e=>e.code==='SNAPSHOT_IMMUTABLE');
+  await f.db.client`UPDATE sync_jobs SET status='COMPLETED' WHERE id=${job.id}`;
   await r.activate(a,job.snapshot_id,null);
   assert.equal((await r.manifest(a)).resources.products.count,1);assert.equal(await r.manifest(b),null);
   await assert.rejects(r.page(b,job.snapshot_id,'products',0,10),e=>e.code==='SNAPSHOT_UNAVAILABLE');
   await assert.rejects(r.activate(a,randomUUID(),null),e=>e.code==='HEAD_CHANGED');
   await f.db.client`UPDATE sync_jobs SET status='COMPLETED' WHERE id=${job.id}`;
-  const next=await r.start(a,'FIXTURE');await r.prepare(a,next.snapshot_id,resources);
+  const next=await r.start(a,'FIXTURE');await r.prepare(a,next.snapshot_id,resources);await f.db.client`UPDATE sync_jobs SET status='COMPLETED' WHERE id=${next.id}`;
   await assert.rejects(r.activate(a,next.snapshot_id,job.snapshot_id),e=>e.code==='ANOMALY_REVIEW_REQUIRED');
   await r.activate(a,next.snapshot_id,job.snapshot_id,true);
   await r.activate(a,job.snapshot_id,next.snapshot_id,false,true);

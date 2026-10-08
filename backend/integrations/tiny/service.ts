@@ -8,21 +8,24 @@ import { TINY_API, TINY_AUTH, TINY_TOKEN, POCError } from '../../../integrations
 import { parseTokens } from '../../../integrations/tiny-poc/oauth.ts';
 import { object, observe } from '../../../integrations/tiny-poc/contracts.ts';
 import { requestJSON, type Fetcher } from '../../../integrations/tiny-poc/transport.ts';
+import { AccountBudget } from '../../catalog/budget.ts';
+import { losslessJSON } from '../../catalog/pagination.ts';
+import type { Resource } from '../../catalog/model.ts';
 export type ReadResource = 'info' | 'products' | 'contacts' | 'sellers' | 'priceLists';
 export interface TinyReadGateway { read(p: Principal, resource: ReadResource, correlation?: string): Promise<unknown> }
 const paths = { info: '/info', products: '/produtos', contacts: '/contatos', sellers: '/vendedores', priceLists: '/listas-precos' } as const;
 interface Connection {
   id: string; organization_id: string; status: string; account_verified: boolean; expected_identity_encrypted: string | null;
   access_token_encrypted: string | null; refresh_token_encrypted: string | null; access_expires_at: Date | null; refresh_expires_at: Date | null;
-  token_version: number; refresh_lease: string | null; refresh_lease_until: Date | null; pause_until: Date | null;
+  verified_account_identity: string|null; token_version: number; refresh_lease: string | null; refresh_lease_until: Date | null; pause_until: Date | null;
 }
 function safeError(error: unknown): BackendError {
   if (error instanceof BackendError) return error;
   return new BackendError(error instanceof POCError ? error.kind : 'ERP_UNAVAILABLE', 503);
 }
 export class TinyService implements TinyReadGateway {
-  private db: Database; private config: Config; private vault: Vault; private fetcher: Fetcher; private timeout: number;
-  constructor(db: Database, config: Config, fetcher: Fetcher = fetch, timeout = 10000) { this.db = db; this.config = config; this.vault = new Vault(config.keys, config.activeKey); this.fetcher = fetcher; this.timeout = timeout; }
+  private db: Database; private config: Config; private vault: Vault; private fetcher: Fetcher; private timeout: number; private budget?:AccountBudget;
+  constructor(db: Database, config: Config, fetcher: Fetcher = fetch, timeout = 10000, budget?:AccountBudget) { this.budget=budget; this.db = db; this.config = config; this.vault = new Vault(config.keys, config.activeKey); this.fetcher = fetcher; this.timeout = timeout; }
   private async connection(org: string): Promise<Connection> {
     const [row] = await this.db.client<Connection[]>`SELECT * FROM erp_connections WHERE organization_id=${org} AND provider='TINY'`;
     if (!row) fail('NOT_CONFIGURED', 503); return row;
@@ -162,6 +165,28 @@ export class TinyService implements TinyReadGateway {
       throw safeError(error);
     }
   }
+  async syncBinding(p:Principal){
+    admin(p);if(!this.config.sync?.real||!this.config.tiny.enabled||!this.config.tiny.reads)fail('REAL_SYNC_DISABLED',403);
+    const row=await this.connection(p.organizationId);if(row.status!=='CONNECTED'||!row.account_verified||!row.verified_account_identity)fail('ACCOUNT_NOT_VERIFIED',409);
+    return {version:row.token_version,accountKey:row.verified_account_identity};
+  }
+  async readPage(p:Principal,resource:Resource,offset:number,limit:number,version:number){
+    const binding=await this.syncBinding(p);
+    if(!Object.hasOwn(paths,resource)||!Number.isSafeInteger(offset)||offset<0||offset>10000||!Number.isInteger(limit)||limit<1||limit>50)fail('INPUT_INVALID');
+    if(binding.version!==version)fail('CONNECTION_CHANGED',409);
+    const access=await this.access(p.organizationId);if(access.version!==version)fail('CONNECTION_CHANGED',409);
+    const lease=randomUUID();
+    const claimed=await this.db.client`UPDATE erp_connections SET read_lease=${lease},read_lease_until=NOW()+interval '30 seconds' WHERE organization_id=${p.organizationId} AND token_version=${version} AND status='CONNECTED' AND account_verified=true AND (read_lease IS NULL OR read_lease_until<=NOW()) AND (pause_until IS NULL OR pause_until<=NOW()) RETURNING id`;
+    if(!claimed.length)fail('READ_BUSY',409);
+    try {
+      const url=new URL(TINY_API+paths[resource]);url.search=new URLSearchParams({limit:String(limit),offset:String(offset)}).toString();
+      const result=await requestJSON(this.fetcher,url.href,{method:'GET',headers:{Authorization:'Bearer '+access.token,Accept:'application/json'}},this.timeout,1048576,losslessJSON);
+      const current=await this.db.client`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND token_version=${version} AND read_lease=${lease} AND status='CONNECTED' AND account_verified=true`;
+      if(!current.length)fail('CONNECTION_CHANGED',409);
+      if(result.status===401)await this.db.client`UPDATE erp_connections SET status='REAUTH_REQUIRED',account_verified=false,access_token_encrypted=NULL,refresh_token_encrypted=NULL,token_version=token_version+1 WHERE organization_id=${p.organizationId} AND token_version=${version}`;
+      return result;
+    }finally{await this.db.client`UPDATE erp_connections SET read_lease=NULL,read_lease_until=NULL WHERE organization_id=${p.organizationId} AND read_lease=${lease}`;}
+  }
   async verify(p: Principal, correlation = randomUUID()) { return this.read(p, 'info', correlation); }
   async read(p: Principal, resource: ReadResource, correlation = randomUUID()) {
     admin(p); if (!this.config.tiny.enabled || !this.config.tiny.reads) fail('REAL_READ_DISABLED', 403);
@@ -174,9 +199,13 @@ export class TinyService implements TinyReadGateway {
       WHERE organization_id=${p.organizationId} AND token_version=${access.version} AND (read_lease IS NULL OR read_lease_until<=NOW())
       AND (pause_until IS NULL OR pause_until<=NOW()) AND status IN ('CONNECTED','CONNECTING') RETURNING *`;
     if (!claimed.length) fail('READ_BUSY', 409); row = claimed[0] as Connection;
+    const accountKey=row.verified_account_identity??hash(this.vault.open(row.expected_identity_encrypted!,p.organizationId,'document'));
+    let budgetLease:string|undefined;
     try {
+      budgetLease=await this.budget?.claim(accountKey,resource==='info');
       const url = new URL(TINY_API + paths[resource]); if (resource !== 'info') url.search = 'limit=10&offset=0';
       const result = await requestJSON(this.fetcher, url.href, { method: 'GET', headers: { Authorization: 'Bearer ' + access.token, Accept: 'application/json' } }, this.timeout);
+      if(budgetLease){await this.budget!.release(accountKey,budgetLease,result.quota,result.status);budgetLease=undefined;}
       const observation = result.status === 200 ? observe(resource, result.data) : undefined;
       if (resource === 'info' && result.status === 200 && (!observation?.fields.every(f => f.present === 1 && f.missing === 0) || !object(result.data) || typeof result.data.cpfCnpj !== 'string')) fail('CONTRACT_CONFLICT', 503);
       const infoValid = resource === 'info' && result.status === 200 && observation?.compatible && object(result.data) && typeof result.data.cpfCnpj === 'string' &&
@@ -201,6 +230,6 @@ export class TinyService implements TinyReadGateway {
       if (resource === 'info') await this.db.client`UPDATE erp_connections SET status=CASE WHEN status='CONNECTED' THEN 'CONNECTING' ELSE status END,account_verified=false,verified_account_identity=NULL
         WHERE organization_id=${p.organizationId} AND token_version=${access.version} AND read_lease=${lease}`;
       throw safeError(error);
-    } finally { await this.db.client`UPDATE erp_connections SET read_lease=NULL,read_lease_until=NULL,updated_at=NOW() WHERE organization_id=${p.organizationId} AND read_lease=${lease}`; }
+    } finally { if(budgetLease)await this.budget!.release(accountKey,budgetLease); await this.db.client`UPDATE erp_connections SET read_lease=NULL,read_lease_until=NULL,updated_at=NOW() WHERE organization_id=${p.organizationId} AND read_lease=${lease}`; }
   }
 }

@@ -19,7 +19,7 @@ export function quota(headers: Headers, now = Date.now()): Quota {
   return result;
 }
 // The deadline covers response headers AND body. Redirects never forward credentials.
-export async function requestJSON(fetcher: Fetcher, url: string, init: RequestInit, timeoutMs = 10_000, maxBytes = 1_048_576): Promise<{ data: unknown; status: number; quota: Quota }> {
+export async function requestJSON(fetcher: Fetcher, url: string, init: RequestInit, timeoutMs = 10_000, maxBytes = 1_048_576, decode: (text:string)=>unknown = JSON.parse): Promise<{ data: unknown; status: number; quota: Quota }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const aborted = new Promise<never>((_, reject) => controller.signal.addEventListener('abort', () => reject(new POCError('TIMEOUT')), { once: true }));
@@ -39,7 +39,7 @@ export async function requestJSON(fetcher: Fetcher, url: string, init: RequestIn
           bytes += part.value.byteLength; if (bytes > maxBytes) throw new TransportError('BODY_TOO_LARGE', response.status, limits); chunks.push(part.value);
         }
       } catch (error) { void reader.cancel().catch(() => {}); throw error; }
-      try { return { data: JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown, status: response.status, quota: limits }; }
+      try { return { data: decode(Buffer.concat(chunks).toString('utf8')), status: response.status, quota: limits }; }
       catch { throw new TransportError('INVALID_JSON', response.status, limits); }
     } catch (error) { if (error instanceof POCError) throw error; throw new POCError(controller.signal.aborted ? 'TIMEOUT' : 'NETWORK'); }
   };

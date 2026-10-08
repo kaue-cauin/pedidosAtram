@@ -72,6 +72,7 @@ export class CatalogRepository {
       if((head?.snapshot_id??null)!==expected)fail('HEAD_CHANGED',409);
       const [s]=await sql`SELECT * FROM catalog_snapshots WHERE organization_id=${p.organizationId} AND id=${snapshot} FOR UPDATE`;
       if(!s||!(rollback?['SUPERSEDED']:['READY']).includes(s.status))fail('SNAPSHOT_NOT_READY',409);
+      if(!rollback&&!(await sql`SELECT id FROM sync_jobs WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} AND status='COMPLETED'`).length)fail('JOB_NOT_COMPLETED',409);
       if((s.anomalies as string[]).length&&!acknowledge)fail('ANOMALY_REVIEW_REQUIRED',409);
       if(expected)await sql`UPDATE catalog_snapshots SET status='SUPERSEDED' WHERE id=${expected} AND organization_id=${p.organizationId}`;
       const manifest={...s.manifest,state:'ACTIVE',publishedAt:new Date().toISOString()};
