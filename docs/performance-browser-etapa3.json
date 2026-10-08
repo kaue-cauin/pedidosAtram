@@ -1,0 +1,685 @@
+{
+  "recordedAt": "2026-10-08T01:25:29.234Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": {
+    "width": 1363,
+    "height": 936,
+    "pixelRatio": 1
+  },
+  "frameMeasurement": false,
+  "method": "10 amostras após 2 aquecimentos. Commit: atualização até useLayoutEffect. Frame: dois requestAnimationFrame, proxy de oportunidade de pintura, não medição exata de pixels. CPU: performance.now; abaixo da resolução do relógio pode ser zero.",
+  "results": [
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.20000000001164153
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.5,
+      "rows": 11
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 4,
+      "rows": 10
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 2.7000000000116415,
+      "rows": 9
+    },
+    {
+      "size": 10,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.1000000000058208,
+      "rows": 10
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 3.5,
+      "rows": 51
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 3,
+      "rows": 50
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 3.8999999999941792,
+      "rows": 49
+    },
+    {
+      "size": 50,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 3.1000000000058208,
+      "rows": 50
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.09999999997671694,
+      "commitP95": 5.199999999982538,
+      "rows": 101
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 5.2000000000116415,
+      "rows": 100
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 4.899999999994179,
+      "rows": 99
+    },
+    {
+      "size": 100,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 3.7000000000116415,
+      "rows": 100
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.09999999997671694
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 6.600000000005821,
+      "rows": 151
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 5,
+      "rows": 150
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 16.800000000017462,
+      "rows": 149
+    },
+    {
+      "size": 150,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 11,
+      "rows": 150
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.09999999997671694
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 8.60000000000582,
+      "rows": 201
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 7.2000000000116415,
+      "rows": 200
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 10.700000000011642,
+      "rows": 199
+    },
+    {
+      "size": 200,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 7.099999999976717,
+      "rows": 200
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 27.60000000000582,
+      "rows": 301
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 9.89999999999418,
+      "rows": 300
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 18.89999999999418,
+      "rows": 299
+    },
+    {
+      "size": 300,
+      "mode": "Base",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 14,
+      "rows": 300
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.3999999999941792,
+      "rows": 1
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 0.8999999999941792,
+      "rows": 1
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 1.1000000000058208,
+      "rows": 4
+    },
+    {
+      "size": 10,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.09999999997671694,
+      "commitP95": 1.6000000000058208,
+      "rows": 10
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.6999999999825377,
+      "rows": 1
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 0.6999999999825377,
+      "rows": 1
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.8000000000174623,
+      "rows": 24
+    },
+    {
+      "size": 50,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 2.1999999999825377,
+      "rows": 50
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 1.400000000023283,
+      "rows": 1
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 2.2999999999883585,
+      "rows": 1
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.1999999999825377,
+      "commitP95": 2.8000000000174623,
+      "rows": 49
+    },
+    {
+      "size": 100,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 3.3000000000174623,
+      "rows": 100
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1,
+      "rows": 1
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 0.9000000000232831,
+      "rows": 1
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 4.800000000017462,
+      "rows": 74
+    },
+    {
+      "size": 150,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 5.399999999994179,
+      "rows": 150
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1.2000000000116415,
+      "rows": 1
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 1,
+      "rows": 1
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 6.599999999976717,
+      "rows": 99
+    },
+    {
+      "size": 200,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.20000000001164153,
+      "commitP95": 9.799999999988358,
+      "rows": 200
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Busca (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Totais (CPU)",
+      "samples": 200,
+      "cpuP50": 0,
+      "cpuP95": 0
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Adicionar",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 4,
+      "rows": 1
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Quantidade",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0,
+      "commitP95": 2.6000000000058208,
+      "rows": 1
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Excluir",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.09999999997671694,
+      "commitP95": 7,
+      "rows": 149
+    },
+    {
+      "size": 300,
+      "mode": "Otimizado",
+      "operation": "Carregar tabela",
+      "samples": 10,
+      "cpuP50": 0,
+      "cpuP95": 0.10000000000582077,
+      "commitP95": 21.800000000017462,
+      "rows": 300
+    }
+  ]
+}

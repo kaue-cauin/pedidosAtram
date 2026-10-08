@@ -1,6 +1,6 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 2
+# Atram Comercial — entrada rápida de pedidos, Etapa 3
 
-Esta versão continua a Etapa 1 e implementa autocomplete local, navegação por teclado e inclusão/correção dos itens. Os dados são fictícios. **Atualizar a página descarta as alterações desta sessão.** Autosave e recuperação serão implementados na Etapa 4; não há integração com Tiny/Olist.
+Esta versão inclui as Etapas 1–3: autocomplete local, teclado, edição de itens, tabela grande e diagnóstico de desempenho. Os dados são fictícios. **Atualizar a página descarta as alterações desta sessão.** Autosave e recuperação serão implementados na Etapa 4; não há integração com Tiny/Olist.
 
 ## Executar
 
@@ -18,6 +18,7 @@ Abra o endereço indicado no terminal. No Windows, copie `.env.example` para `.e
 npm run typecheck
 npm run check:data
 npm run check:stage2
+npm run check:stage3
 npm run build
 ```
 
@@ -48,7 +49,7 @@ Com os primeiros resultados do catálogo Padrão e os 10 itens iniciais, esse ro
 - `domain/search.ts`: índice normalizado construído uma vez, busca de múltiplos termos em qualquer ordem, sem acentos/maiúsculas e com prioridade para código/EAN exatos. Máximo de 12 sugestões; refine os termos para localizar outras opções.
 - `domain/item-entry.ts`: validação numérica e criação de itens. Dinheiro em centavos; descontos em pontos-base; pesos em gramas.
 - `OrderWorkspace`: estado dos itens em memória. A digitação fica dentro de `ItemEntry`; somente confirmar uma alteração atualiza a tabela e o resumo.
-- `domain/totals.ts`: cálculo local ao alterar itens. A totalização ainda percorre as linhas; medições e eventual estratégia incremental pertencem à Etapa 3.
+- `domain/order-state.ts`: reducer puro com totais incrementais. Quantidades e pesos são arredondados a milésimos para impedir resíduos acumulados; dinheiro permanece em centavos. Somente os itens alterados ganham nova referência. `domain/totals.ts` permanece como cálculo independente de referência nos testes.
 - `domain/mock-data.ts`: 900 produtos, 100 clientes, 5 vendedores e 3 listas de preço. Gerados deterministicamente ao carregar o módulo. `npm run mock:export` exporta JSON para `outputs/`.
 - `integrations/ERPProvider.ts`: contrato reservado. MockERPProvider/envio na Etapa 5; TinyERPProvider somente em fase futura.
 
@@ -58,12 +59,27 @@ Preservada a stack e o lockfile da Etapa 1: React, TypeScript, Next.js, Tailwind
 
 Campos gerais e abas continuam demonstrativos. Lista de preço não recalcula preços; frete/despesas/desconto geral permanecem fixos. Salvar, pré-visualizar pedido e enviar continuam desativados. Ctrl+S e Ctrl+Enter não foram interceptados enquanto essas ações não existem. O autocomplete não usa rede; isso não garante recarga da aplicação offline, que pertence à Etapa 4.
 
-Etapa 3: medir inclusão, edição, exclusão, renderização e totais com 10/50/100/150/200/300 itens. Etapa 4: IndexedDB, fila de autosave, recuperação e offline. Etapa 5: revisão/envio simulado e erros. Etapa 6: refinamento com operadores reais.
+Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4: IndexedDB, fila de autosave, recuperação e offline. Etapa 5: revisão/envio simulado e erros. Etapa 6: refinamento com operadores reais.
 
-Consulte `docs/VERIFICACAO-ETAPA-2.md` para resultados e limites de verificação. O benchmark de busca pura não comprova tempo visual abaixo de 50 ms nem desempenho constante da tabela.
+Consulte `docs/VERIFICACAO-ETAPA-3.md` para resultados e limites de verificação. O benchmark de busca pura não comprova tempo visual abaixo de 50 ms.
 
 ## GitHub Pages
 
 O workflow `.github/workflows/pages.yml` verifica e publica a branch `main`. Em Settings → Pages, a fonte deve ser **GitHub Actions**. Endereço previsto: https://kaue-cauin.github.io/pedidosAtram/
 
 O build de publicação define `NEXT_PUBLIC_BASE_PATH=/pedidosAtram`; a execução local usa a raiz por padrão. Ao renomear o repositório ou usar domínio próprio, ajuste essa variável no workflow. Não há tokens, `.env.local` ou dados reais no processo de publicação.
+
+## Diagnóstico da Etapa 3
+
+Abra o link **Diagnóstico: testar 10 a 300 itens** acima da tabela, ou `/diagnostico/`. O laboratório usa um pedido separado: não substitui o pedido da tela principal.
+
+- Escolha 10/50/100/150/200/300 linhas para testar manualmente o teclado.
+- Clique **Executar comparação completa** e mantenha a aba visível. O modo padrão mede CPU e commit. A opção de medir quadros pode levar vários minutos em navegadores remotos. É possível interromper.
+- Base desativa a memoização das linhas e recalcula os totais; Otimizado usa `React.memo`, callbacks estáveis e atualização incremental. É uma comparação controlada do mesmo componente, não uma reprodução byte a byte do build da Etapa 2.
+- Busca e totais: 200 amostras de CPU. Operações: 10 amostras medidas após 2 aquecimentos. Commit mede do início da atualização ao `useLayoutEffect`; a medição opcional de frame usa dois `requestAnimationFrame`, aproximação de oportunidade de apresentação, não tempo exato de pintura nem latência física de teclado.
+- Exportação JSON inclui amostras agregadas, navegador, data e tamanho da janela; não faz upload.
+- Durante a execução os controles do pedido de teste ficam bloqueados. Ao terminar, seus itens e modo anteriores são restaurados.
+
+A tabela mantém todas as linhas no DOM, com rolagem interna e cabeçalho fixo. Não há virtualização. Adicionar ou alterar quantidade preserva as referências das outras linhas; excluir no meio renumera as posteriores, que voltam a renderizar. O array ainda exige cópia/busca O(n), embora a atualização dos totais use apenas os itens alterados.
+
+`npm run check:stage3 -- --report` regenera `docs/performance-node-etapa3.json`. O teste compara os totais incrementais a um cálculo independente após 10.800 alterações, incluindo quantidades fracionárias, descontos e exclusão de todas as linhas.
