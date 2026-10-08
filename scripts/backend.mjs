@@ -1,5 +1,6 @@
 import { readConfig } from '../backend/config/env.ts';
 import { database } from '../backend/db/client.ts';
+import { ready } from '../backend/db/readiness.ts';
 import { AuthService } from '../backend/auth/service.ts';
 import { TinyService } from '../backend/integrations/tiny/service.ts';
 import { createBackendServer } from '../backend/server/http.ts';
@@ -7,7 +8,7 @@ import { BackendError } from '../backend/security/errors.ts';
 let db,server;
 try {
   const config=readConfig(process.env);db=database(config.databaseUrl);
-  await db.client`SELECT id FROM organizations LIMIT 1`;
+  await ready(db);
   const auth=new AuthService(db,config.sessionSeconds),tiny=new TinyService(db,config);
   server=createBackendServer(config,auth,tiny,e=>console.error(JSON.stringify(e)));
   server.on('error',()=>{console.error('BACKEND_START_FAILED');process.exitCode=1;void db.close();});

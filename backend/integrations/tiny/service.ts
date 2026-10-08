@@ -30,8 +30,9 @@ export class TinyService implements TinyReadGateway {
   async status(p: Principal) {
     admin(p);
     const [row] = await this.db.client<Connection[]>`SELECT * FROM erp_connections WHERE organization_id=${p.organizationId} AND provider='TINY'`;
+    const credentialUsable = !!row?.access_token_encrypted && ((row.access_expires_at?.getTime() ?? 0) > Date.now() || (this.config.tiny.refresh && !!row.refresh_token_encrypted && (row.refresh_expires_at?.getTime() ?? 0) > Date.now()));
     return { status: row?.status ?? 'NOT_CONFIGURED', oauthConnected: !!row?.access_token_encrypted, accountVerified: row?.account_verified ?? false,
-      operationalReady: row?.status === 'CONNECTED' && row.account_verified && this.config.tiny.enabled && this.config.tiny.reads,
+      operationalReady: row?.status === 'CONNECTED' && row.account_verified && credentialUsable && this.config.tiny.enabled && this.config.tiny.reads,
       oauthEnabled: this.config.tiny.enabled, readEnabled: this.config.tiny.reads, refreshEnabled: this.config.tiny.refresh,
       tokenVersion: row?.token_version ?? 0, refreshBusy: !!row?.refresh_lease };
   }

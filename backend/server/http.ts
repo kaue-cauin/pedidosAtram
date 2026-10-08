@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Config } from '../config/env.ts';
+import { ready } from '../db/readiness.ts';
 import { AuthService, admin, uuid, type Principal } from '../auth/service.ts';
 import { hash } from '../security/crypto.ts';
 import { BackendError, fail } from '../security/errors.ts';
@@ -39,7 +40,7 @@ export function createBackendServer(config: Config, auth: AuthService, tiny?: Ti
       if (method === 'OPTIONS') fail('METHOD_DENIED', 405);
       if (method === 'GET' && url.pathname === '/api/health') return json({ healthy: true });
       if (method === 'GET' && url.pathname === '/api/ready') {
-        try { await auth.db.client`SELECT id FROM organizations LIMIT 1`; return json({ ready: true }); } catch { return json({ ready: false }, 503); }
+        try { await ready(auth.db); return json({ ready: true }); } catch { return json({ ready: false }, 503); }
       }
       if (!callback && url.search) fail('INPUT_INVALID');
       if (method === 'POST' && url.pathname === '/api/auth/login') {

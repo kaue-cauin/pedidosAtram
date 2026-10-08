@@ -26,3 +26,10 @@ test('async scrypt passwords, random salt, constant-time digest compare and poli
   const p='synthetic-long-password',h=await passwordHash(p);assert.ok(!h.includes(p));assert.notEqual(h,await passwordHash(p));
   assert.equal(await passwordMatches(p,h),true);assert.equal(await passwordMatches('wrong',h),false);assert.equal(await passwordMatches(p,'invalid'),false);await assert.rejects(passwordHash('short'),/PASSWORD_POLICY/);
 });
+test('startup and migration fail safely without config; no secret in stderr',async()=>{
+  const {spawnSync}=await import('node:child_process');
+  for(const file of ['scripts/backend.mjs','scripts/backend-migrate.mjs']){
+    const result=spawnSync(process.execPath,[file],{env:{PATH:process.env.PATH},encoding:'utf8'});
+    assert.equal(result.status,1);assert.match(result.stderr,/CONFIG_MISSING|MIGRATION_FAILED/);assert.ok(!result.stderr.includes('postgres://'));
+  }
+});

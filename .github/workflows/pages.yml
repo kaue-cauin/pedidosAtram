@@ -25,12 +25,14 @@ jobs:
       - run: npm run check:stage5
       - run: npm run check:stage6
       - run: npm run check:stage7b1
+      - run: npm run check:stage7b2:unit
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: /pedidosAtram
           NEXT_TELEMETRY_DISABLED: '1'
+      - run: npm run check:backend-boundary
       - uses: actions/upload-pages-artifact@v4
         with:
           path: out

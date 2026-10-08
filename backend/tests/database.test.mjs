@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -21,8 +22,10 @@ test('7B.2A PostgreSQL: migrations, constraints, transactions, persistence and r
     const anotherProcess = database(fixture.url);
     assert.equal((await anotherProcess.client`SELECT name FROM organizations WHERE id=${a.id}`)[0].name, 'Synthetic A');
     await anotherProcess.close();
+    const child = execFileSync(process.execPath, ['--input-type=module','-e', `import {database} from './backend/db/client.ts'; const db=database(process.env.RESTART_TEST_URL); try { console.log((await db.client.unsafe('SELECT count(*)::int n FROM organizations'))[0].n); } finally { await db.close(); }`], {env:{...process.env,RESTART_TEST_URL:fixture.url},encoding:'utf8'});
+    assert.equal(child.trim(),'2');
     await db.client`INSERT INTO erp_connections(organization_id) VALUES (${a.id})`;
     await assert.rejects(db.client`INSERT INTO erp_connections(organization_id) VALUES (${a.id})`, { code: '23505' });
-    assert.equal((await db.client`SELECT count(*)::int n FROM organizations`)[0].n, 2);
+    assert.equal((await db.client.unsafe('SELECT count(*)::int n FROM organizations'))[0].n, 2);
   } finally { await fixture.cleanup(); }
 });

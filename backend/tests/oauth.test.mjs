@@ -108,3 +108,21 @@ test('7B.2C read errors 401/403/429/500, malformed JSON, network/timeout and acc
   await assert.rejects(f.service.verify(f.sa.principal),/REAUTH_REQUIRED/);
  }finally{await f.cleanup();}
 });
+test('7B.2D simultaneous callbacks exchange once; logout during exchange blocks persistence',async()=>{
+ let calls=0,gate=deferred(),started=deferred();const f=await fixture(async()=>{calls++;started.resolve();await gate.promise;return json(tokens());});
+ try{
+  let u=new URL(await f.service.start(f.sa.principal)),cb=new URL(f.config.tiny.callback);cb.search=new URLSearchParams({state:u.searchParams.get('state'),code:'code'}).toString();
+  const first=f.service.callback(f.sa.principal,cb);await started.promise;await assert.rejects(f.service.callback(f.sa.principal,cb),/INVALID_STATE/);assert.equal(calls,1);gate.resolve();await first;
+  gate=deferred();started=deferred();u=new URL(await f.service.start(f.sa.principal));cb=new URL(f.config.tiny.callback);cb.search=new URLSearchParams({state:u.searchParams.get('state'),code:'code'}).toString();
+  const second=f.service.callback(f.sa.principal,cb).catch(e=>e);await started.promise;await f.auth.logout(f.sa.principal);gate.resolve();assert.equal((await second).code,'OPERATION_STALE');assert.equal((await f.service.status(f.sa.principal)).oauthConnected,false);
+ }finally{gate.resolve();await f.cleanup();}
+});
+test('7B.2D expired or unknown refresh validity blocks renewal without provider request',async()=>{
+ let calls=0;const f=await fixture(async()=>{calls++;return json(tokens());});
+ try{
+  for(const missing of [false,true]){
+   await authorize(f);await expire(f);await f.db.client`UPDATE erp_connections SET refresh_expires_at=${missing?null:new Date(Date.now()-1000)} WHERE organization_id=${f.a.organizationId}`;
+   const before=calls;await assert.rejects(f.service.verify(f.sa.principal),/REAUTH_REQUIRED/);assert.equal(calls,before);
+  }
+ }finally{await f.cleanup();}
+});
