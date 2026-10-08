@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+import type { OrderFields, FieldsChange } from '@/hooks/use-draft-order';
 import { ChevronDown, Calculator, SlidersHorizontal } from 'lucide-react';
 import { money, weight } from '@/utils/format';
 import { ChoiceField, MoneyField, Section, TextField } from './fields';
@@ -7,9 +9,9 @@ import { ChoiceField, MoneyField, Section, TextField } from './fields';
 import type { OrderTotals } from '@/types/order';
 const taxes = ['IPI', 'ICMS ST + FCP ST', 'ICMS + FCP', 'PIS', 'COFINS', 'DIFAL', 'IBS Estadual', 'IBS Municipal', 'CBS'];
 
-export function AdditionalDetails() {
-  return <Section title="Dados adicionais" icon={<SlidersHorizontal />} className="additional-card"><div className="additional-fields"><ChoiceField label="Depósito" options={['Principal', 'Depósito auxiliar']} defaultValue="Principal" /><ChoiceField label="Intermediador" options={['Sem intermediador', 'Intermediador Exemplo']} defaultValue="Sem intermediador" /><div className="thin-divider" /><MoneyField label="Frete pago pelo cliente" readOnly /><MoneyField label="Frete pago pela empresa" readOnly /><MoneyField label="Despesas" readOnly /><TextField label="Desconto geral" defaultValue="0,00" suffix="%" readOnly /></div><p className="additional-note">Valores fixos nesta prévia.</p></Section>;
-}
+export const AdditionalDetails = memo(function AdditionalDetails({ fields, onChange }: { fields: OrderFields; onChange: (patch: FieldsChange) => void }) {
+  return <Section title="Dados adicionais" icon={<SlidersHorizontal />} className="additional-card"><div className="additional-fields"><ChoiceField label="Depósito" options={['Principal', 'Depósito auxiliar']} value={fields.warehouse} onValueChange={warehouse => onChange({ warehouse })} /><ChoiceField label="Intermediador" options={['Sem intermediador', 'Intermediador Exemplo']} value={fields.intermediary} onValueChange={intermediary => onChange({ intermediary })} /><div className="thin-divider" /><MoneyField label="Frete pago pelo cliente" readOnly /><MoneyField label="Frete pago pela empresa" readOnly /><MoneyField label="Despesas" readOnly /><TextField label="Desconto geral" defaultValue="0,00" suffix="%" readOnly /></div><p className="additional-note">Valores fixos nesta prévia.</p></Section>;
+});
 
 export function OrderSummary({ totals }: { totals: OrderTotals }) {
   return <Section title="Totais do pedido" icon={<Calculator />} className="totals-card">

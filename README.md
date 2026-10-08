@@ -1,6 +1,6 @@
-# Atram Comercial — entrada rápida de pedidos, Etapa 3
+# Atram Comercial — entrada rápida de pedidos, Etapa 4
 
-Esta versão inclui as Etapas 1–3: autocomplete local, teclado, edição de itens, tabela grande e diagnóstico de desempenho. Os dados são fictícios. **Atualizar a página descarta as alterações desta sessão.** Autosave e recuperação serão implementados na Etapa 4; não há integração com Tiny/Olist.
+Esta versão inclui as Etapas 1–4: entrada rápida, tabela grande, autosave em IndexedDB, recuperação e cache offline. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
 ## Executar
 
@@ -19,6 +19,7 @@ npm run typecheck
 npm run check:data
 npm run check:stage2
 npm run check:stage3
+npm run check:stage4
 npm run build
 ```
 
@@ -26,7 +27,7 @@ O build Next.js exporta a aplicação estática para `out/`. Para servir a prév
 
 ## Teste do fluxo
 
-1. Pressione F2, digite `mercado`, navegue com ↑/↓ e pressione Enter. O foco irá para Produto.
+1. Caso apareça a recuperação, continue um rascunho ou comece um novo pedido de exemplo (10 itens). Pressione F2, digite `mercado`, navegue com ↑/↓ e pressione Enter. O foco irá para Produto.
 2. Digite `gran zero`, Enter, `10`, Enter.
 3. Digite `whey choc`, Enter, `4`, Enter.
 4. Digite `acucar coco`, Enter, `12`, Enter.
@@ -36,6 +37,7 @@ O build Next.js exporta a aplicação estática para `out/`. Para servir a prév
 Com os primeiros resultados do catálogo Padrão e os 10 itens iniciais, esse roteiro termina em **14 linhas, 106 unidades e R$ 1.999,80**.
 
 - F4 foca Produto em qualquer parte da tela.
+- Ctrl+S (ou Cmd+S) salva o rascunho imediatamente, sem bloquear a próxima inclusão.
 - ↑/↓ percorrem sugestões; Enter seleciona; Esc fecha a lista. Uma nova busca ou seta reabre a lista.
 - Tab acessa preço, desconto e botão Adicionar. Quantidade aceita vírgula ou ponto e até três casas decimais; preço e desconto, duas. Não use separador de milhar.
 - Editar carrega o item na mesma linha de entrada e foca Quantidade; Enter aplica a alteração. Esc fora da lista de sugestões ou Cancelar edição cancela.
@@ -48,7 +50,7 @@ Com os primeiros resultados do catálogo Padrão e os 10 itens iniciais, esse ro
 - `components/order/order-items.tsx`: uma única linha ativa; tabela simples, sem autocomplete por linha.
 - `domain/search.ts`: índice normalizado construído uma vez, busca de múltiplos termos em qualquer ordem, sem acentos/maiúsculas e com prioridade para código/EAN exatos. Máximo de 12 sugestões; refine os termos para localizar outras opções.
 - `domain/item-entry.ts`: validação numérica e criação de itens. Dinheiro em centavos; descontos em pontos-base; pesos em gramas.
-- `OrderWorkspace`: estado dos itens em memória. A digitação fica dentro de `ItemEntry`; somente confirmar uma alteração atualiza a tabela e o resumo.
+- `OrderWorkspace`: estado dos itens em memória, independente da fila de persistência. A digitação fica dentro de `ItemEntry`; somente confirmar uma alteração atualiza a tabela e o resumo.
 - `domain/order-state.ts`: reducer puro com totais incrementais. Quantidades e pesos são arredondados a milésimos para impedir resíduos acumulados; dinheiro permanece em centavos. Somente os itens alterados ganham nova referência. `domain/totals.ts` permanece como cálculo independente de referência nos testes.
 - `domain/mock-data.ts`: 900 produtos, 100 clientes, 5 vendedores e 3 listas de preço. Gerados deterministicamente ao carregar o módulo. `npm run mock:export` exporta JSON para `outputs/`.
 - `integrations/ERPProvider.ts`: contrato reservado. MockERPProvider/envio na Etapa 5; TinyERPProvider somente em fase futura.
@@ -57,9 +59,9 @@ Preservada a stack e o lockfile da Etapa 1: React, TypeScript, Next.js, Tailwind
 
 ## Limites e sequência
 
-Campos gerais e abas continuam demonstrativos. Lista de preço não recalcula preços; frete/despesas/desconto geral permanecem fixos. Salvar, pré-visualizar pedido e enviar continuam desativados. Ctrl+S e Ctrl+Enter não foram interceptados enquanto essas ações não existem. O autocomplete não usa rede; isso não garante recarga da aplicação offline, que pertence à Etapa 4.
+Cliente selecionado, vendedor, campos gerais, datas, pagamento, transporte e observações são editáveis e persistidos com os itens confirmados. Lista de preço não recalcula preços; frete/despesas/desconto geral e impostos permanecem fixos. Pré-visualizar e enviar continuam desativados; Ctrl+Enter fica reservado para a Etapa 5. A entrada ainda não confirmada (produto/quantidade antes de Enter) não integra o rascunho.
 
-Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4: IndexedDB, fila de autosave, recuperação e offline. Etapa 5: revisão/envio simulado e erros. Etapa 6: refinamento com operadores reais.
+Etapa 3 implementada: comparação Base × Otimizado com 10/50/100/150/200/300 itens. Etapa 4 implementada: IndexedDB, fila de autosave, recuperação e offline. Etapa 5: revisão/envio simulado e erros. Etapa 6: refinamento com operadores reais.
 
 Consulte `docs/VERIFICACAO-ETAPA-3.md` para resultados e limites de verificação. O benchmark de busca pura não comprova tempo visual abaixo de 50 ms.
 
@@ -69,7 +71,7 @@ O workflow `.github/workflows/pages.yml` verifica e publica a branch `main`. Em 
 
 O build de publicação define `NEXT_PUBLIC_BASE_PATH=/pedidosAtram`; a execução local usa a raiz por padrão. Ao renomear o repositório ou usar domínio próprio, ajuste essa variável no workflow. Não há tokens, `.env.local` ou dados reais no processo de publicação.
 
-## Diagnóstico da Etapa 3
+## Diagnóstico da Etapa 3 (comparação anterior)
 
 Abra o link **Diagnóstico: testar 10 a 300 itens** acima da tabela, ou `/diagnostico/`. O laboratório usa um pedido separado: não substitui o pedido da tela principal.
 
@@ -83,3 +85,33 @@ Abra o link **Diagnóstico: testar 10 a 300 itens** acima da tabela, ou `/diagno
 A tabela mantém todas as linhas no DOM, com rolagem interna e cabeçalho fixo. Não há virtualização. Adicionar ou alterar quantidade preserva as referências das outras linhas; excluir no meio renumera as posteriores, que voltam a renderizar. O array ainda exige cópia/busca O(n), embora a atualização dos totais use apenas os itens alterados.
 
 `npm run check:stage3 -- --report` regenera `docs/performance-node-etapa3.json`. O teste compara os totais incrementais a um cálculo independente após 10.800 alterações, incluindo quantidades fracionárias, descontos e exclusão de todas as linhas.
+
+## Persistência e recuperação da Etapa 4
+
+- A inclusão atualiza o modelo em memória e o DOM antes da gravação. `schedule()` só guarda uma referência ao último snapshot e agenda um timer; não serializa nem acessa IndexedDB na pilha do evento Enter.
+- `services/autosave-queue.ts`: debounce de 250 ms, limite de espera de 1.000 ms durante digitação contínua, um único escritor e substituição dos snapshots pendentes pelo mais recente. Uma gravação lenta não impede alterações em memória; elas entram no próximo snapshot.
+- `repositories/draft-repository.ts`: banco `atram-pedidos-v1`, store `drafts`, schema versão 1. “Salvo” só é emitido após `transaction.complete`; usa durabilidade estrita quando suportada. A revisão esperada é conferida atomicamente na mesma transação para impedir sobrescrita por outra aba.
+- Ao reabrir, escolha o rascunho que deseja continuar. Começar outro pedido cria um UUID novo e mantém os anteriores. Os totais são reconstruídos a partir dos itens recuperados.
+- Falha de gravação mantém o último snapshot pendente e apresenta erro, botão de nova tentativa e exportação JSON. Falha de leitura não substitui registros existentes; é possível continuar apenas em memória e exportar uma cópia.
+- Ao ocultar/sair da página, a fila tenta gravar imediatamente. Se houver alterações pendentes, o navegador pode pedir confirmação ao sair. Fechamento forçado, queda de energia ou encerramento antes de “Salvo localmente” podem perder a janela ainda não confirmada: o que se recupera é a última transação concluída. Não prometemos gravação assíncrona garantida no encerramento.
+- IndexedDB é local por origem/perfil de navegador. Limpar os dados do site, modo privado e políticas de espaço do navegador podem remover os rascunhos. A exportação produz uma cópia legível em JSON; ainda não há importação, backup remoto ou sincronização com servidor.
+
+## Offline
+
+O build gera `out/sw.js` com uma lista e versão derivadas dos recursos compilados. Instalação só termina quando HTML, JavaScript, CSS e demais arquivos necessários estiverem no cache. Aguarde **Aplicação disponível offline** antes de testar recarga sem rede. É preciso pelo menos um primeiro acesso online. O cache offline não roda no servidor de desenvolvimento; use o build de produção em HTTPS ou localhost.
+
+Uma atualização fica aguardando e aparece como **Salvar e atualizar aplicação**. A atualização só é ativada depois de drenar a fila com sucesso, seguida de recarga. O service worker mantém também o cache anterior para arquivos de abas abertas. Nenhuma gravação do pedido depende do estado de conexão. Voltar à rede não envia nada ao ERP nesta etapa.
+
+## Diagnóstico da Etapa 4
+
+No topo de `/diagnostico/`:
+
+1. **Comparar UI com autosave** repete 10/50/100/150/200/300 itens, com autosave desligado e ligado, para inclusão, quantidade, exclusão e carregamento. São 10 commits após 2 aquecimentos, com reset da fixture fora da amostra da UI. Mantém o debounce normal; amostras de gravação são contadas separadamente porque a fila agrupa alterações.
+2. **Testar rede lenta e offline simulados** repete inclusão com os seis tamanhos e autosave ligado, junto de uma operação de rede simulada independente (0/50/100/300/1000 ms ou indisponível). O atraso dessa operação nunca é aguardado no fluxo de entrada. Não muda o estado físico de conexão do navegador.
+3. **Atraso artificial de persistência** (0/50/100/300/1000 ms) torna o escritor lento, separadamente da rede. Permite digitar manualmente enquanto uma gravação espera. **Simular falha** mantém as alterações pendentes; desligue e tente salvar novamente.
+4. **Testar falha e recuperação** confirma retenção do snapshot, nova tentativa, leitura por outra conexão e proteção contra duas gravações concorrentes da mesma revisão.
+5. **Bloquear rede da aplicação para teste** faz o service worker devolver somente recursos em cache e bloquear recursos não armazenados com 503. O bloqueio permanece entre recargas e afeta as abas deste aplicativo. Abra o pedido, altere, aguarde salvo, recarregue e recupere. Reative a rede pelo diagnóstico ao terminar. Isso testa a aplicação sem acesso à rede, sem mudar as configurações do navegador.
+
+Medições independentes: **UI** = modelo + React/DOM até `useLayoutEffect`, sem pintura; **IndexedDB** = transação até `complete`; **Persistência** = abertura + atraso artificial + transação; **Autosave** = última alteração enfileirada até conclusão, incluindo debounce/fila. Um autosave de ~250 ms não significa que Enter esperou 250 ms. Valores de CPU próximos de zero podem estar abaixo da resolução do relógio. O laboratório usa o banco separado `atram-diagnostico-etapa4-v1`.
+
+O comparativo anterior Base × Otimizado continua disponível na seção recolhida da Etapa 3. Consulte `docs/VERIFICACAO-ETAPA-4.md` para evidências e limites dos testes desta etapa.

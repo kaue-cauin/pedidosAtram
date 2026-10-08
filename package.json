@@ -1,6 +1,6 @@
 {
   "name": "atram-pedidos",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "engines": {
     "node": ">=24.0.0"
@@ -8,7 +8,7 @@
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node scripts/build-offline.mjs && node scripts/check-offline.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "dev:next": "next dev",
@@ -16,7 +16,8 @@
     "check:data": "node scripts/check-mock-data.mjs",
     "mock:export": "node scripts/export-mock-data.mjs",
     "check:stage2": "node scripts/check-stage-2.mjs",
-    "check:stage3": "node scripts/check-stage-3.mjs"
+    "check:stage3": "node scripts/check-stage-3.mjs",
+    "check:stage4": "node scripts/check-stage-4.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
