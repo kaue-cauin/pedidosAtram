@@ -15,7 +15,8 @@ const proofSchema=z.object({evidenceId:commandIdSchema,operationId:commandIdSche
 const codes:Record<string,number>={UNAUTHENTICATED:401,FORBIDDEN:403,RESOURCE_UNAVAILABLE:404,INPUT_INVALID:422,EVIDENCE_INVALID:422,COMMAND_CONFLICT:409,IDENTITY_CONFLICT:409,REVISION_CONFLICT:409,ORDER_OCCUPIED:409,CONTENT_UNCHANGED:409,OUTCOME_BLOCKED:409,STATE_FORBIDDEN:409,RECOVERY_HOLD:503};
 function parsed<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)fail('INPUT_INVALID',422);return result.data;}
 export class SubmissionRepository {
-  constructor(readonly db:Database,readonly protection:SubmissionProtection,readonly recovery:RecoveryGate) {}
+  readonly db:Database; readonly protection:SubmissionProtection; readonly recovery:RecoveryGate;
+  constructor(db:Database,protection:SubmissionProtection,recovery:RecoveryGate) {this.db=db;this.protection=protection;this.recovery=recovery;}
   private async transaction<T>(run:(sql:Sql)=>Promise<T>):Promise<T> {
     try {return await this.db.client.begin(async sql=>{await sql`SET LOCAL lock_timeout='3s'`;await sql`SET LOCAL statement_timeout='10s'`;return run(sql);}) as T;}
     catch(error) {if(error instanceof BackendError)throw error;const msg=error instanceof Error?error.message:'';if(Object.hasOwn(codes,msg))throw new BackendError(msg,codes[msg]);throw new BackendError('LEDGER_UNAVAILABLE',503);}

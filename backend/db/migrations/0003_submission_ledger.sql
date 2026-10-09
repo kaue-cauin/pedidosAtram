@@ -132,9 +132,13 @@ REVOKE ALL ON FUNCTION submission_auth(uuid),submission_projection(uuid,uuid,uui
 CREATE FUNCTION submission_immutable() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,public AS $$
 BEGIN
  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'IMMUTABLE_LEDGER'; END IF;
+ IF TG_TABLE_NAME='submission_evidence' AND current_setting('atram.rotation',true)='verified-maintenance' AND (to_jsonb(NEW)-'details_encrypted')=(to_jsonb(OLD)-'details_encrypted') THEN RETURN NEW; END IF;
  IF TG_TABLE_NAME IN ('submission_events','submission_evidence') THEN RAISE EXCEPTION 'IMMUTABLE_LEDGER'; END IF;
+ IF TG_TABLE_NAME='submission_communications' AND (to_jsonb(NEW)-ARRAY['outcome','potential_effect','safe_closed_at','closed_evidence_id','lease_until','finished_at','abandoned']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['outcome','potential_effect','safe_closed_at','closed_evidence_id','lease_until','finished_at','abandoned']) THEN RAISE EXCEPTION 'IMMUTABLE_COMMUNICATION'; END IF;
  IF TG_TABLE_NAME='submission_orders' AND (NEW.organization_id,NEW.order_id,NEW.origin_local_order_id,NEW.created_at) IS DISTINCT FROM (OLD.organization_id,OLD.order_id,OLD.origin_local_order_id,OLD.created_at) THEN RAISE EXCEPTION 'IMMUTABLE_LEDGER'; END IF;
  IF TG_TABLE_NAME='order_submissions' THEN
+  IF current_setting('atram.rotation',true)='verified-maintenance' AND (to_jsonb(NEW)-ARRAY['snapshot_encrypted','request_encrypted'])=(to_jsonb(OLD)-ARRAY['snapshot_encrypted','request_encrypted']) THEN RETURN NEW; END IF;
+  IF NOT CASE OLD.state WHEN 'READY' THEN NEW.state IN ('READY','SUBMITTING','ERROR') WHEN 'SUBMITTING' THEN NEW.state IN ('SUBMITTING','SUBMITTED','ERROR','UNKNOWN') WHEN 'SUBMITTED' THEN NEW.state='SUBMITTED' WHEN 'ERROR' THEN NEW.state IN ('ERROR','SUBMITTING','SUBMITTED','UNKNOWN') WHEN 'UNKNOWN' THEN NEW.state IN ('UNKNOWN','ERROR','SUBMITTED') ELSE false END THEN RAISE EXCEPTION 'STATE_FORBIDDEN'; END IF;
   IF (to_jsonb(NEW)-ARRAY['state','certainty','ledger_revision','conflict_hold','external_order_id','accepted_evidence_id','last_evidence_id','released_at','retry_at','updated_at']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','certainty','ledger_revision','conflict_hold','external_order_id','accepted_evidence_id','last_evidence_id','released_at','retry_at','updated_at']) THEN RAISE EXCEPTION 'IMMUTABLE_SNAPSHOT'; END IF;
   IF OLD.state='SUBMITTED' AND (NEW.state,NEW.external_order_id,NEW.accepted_evidence_id) IS DISTINCT FROM (OLD.state,OLD.external_order_id,OLD.accepted_evidence_id) THEN RAISE EXCEPTION 'TERMINAL_STATE'; END IF;
   IF OLD.released_at IS NOT NULL AND NEW.released_at IS DISTINCT FROM OLD.released_at THEN RAISE EXCEPTION 'IMMUTABLE_TOMBSTONE'; END IF;
@@ -146,7 +150,7 @@ CREATE TRIGGER submission_orders_immutable BEFORE UPDATE OR DELETE ON submission
 CREATE TRIGGER order_submissions_immutable BEFORE UPDATE OR DELETE ON order_submissions FOR EACH ROW EXECUTE FUNCTION submission_immutable();
 CREATE TRIGGER submission_events_immutable BEFORE UPDATE OR DELETE ON submission_events FOR EACH ROW EXECUTE FUNCTION submission_immutable();
 CREATE TRIGGER submission_evidence_immutable BEFORE UPDATE OR DELETE ON submission_evidence FOR EACH ROW EXECUTE FUNCTION submission_immutable();
-CREATE TRIGGER submission_communications_no_delete BEFORE DELETE ON submission_communications FOR EACH ROW EXECUTE FUNCTION submission_immutable();
+CREATE TRIGGER submission_communications_no_delete BEFORE UPDATE OR DELETE ON submission_communications FOR EACH ROW EXECUTE FUNCTION submission_immutable();
 REVOKE ALL ON FUNCTION submission_immutable() FROM PUBLIC;
 --> statement-breakpoint
 CREATE FUNCTION submission_command(p_session uuid,p_command uuid,p_action text,b jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
@@ -271,7 +275,7 @@ BEGIN
   SELECT * INTO c FROM public.submission_communications WHERE organization_id=org AND operation_id=e.operation_id FOR UPDATE;
   -- A late observation is always stored. It never overwrites terminal truth on stale CAS.
   conflict:=s.conflict_hold OR o.conflict_hold OR (s.state='SUBMITTED' AND (e.conclusion<>'ACCEPTED' OR e.external_order_id IS DISTINCT FROM s.external_order_id))
-   OR (s.certainty='REJECTED_FINAL' AND e.conclusion='ACCEPTED')
+   OR (s.certainty='REJECTED_FINAL' AND e.conclusion='ACCEPTED') OR (c.safe_closed_at IS NOT NULL AND c.outcome IN ('NO_EFFECT','REJECTED_FINAL') AND e.conclusion='ACCEPTED')
    OR (s.released_at IS NOT NULL AND e.conclusion='ACCEPTED')
    OR (e.conclusion='ACCEPTED' AND EXISTS(SELECT 1 FROM public.order_submissions WHERE organization_id=org AND provider=s.provider AND target_account=s.target_account AND external_order_id=e.external_order_id AND submission_id<>sid));
   IF conflict THEN
@@ -324,3 +328,27 @@ CREATE CONSTRAINT TRIGGER submission_orders_consistent AFTER INSERT OR UPDATE ON
 CREATE CONSTRAINT TRIGGER order_submissions_consistent AFTER INSERT OR UPDATE ON order_submissions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION submission_consistency();
 CREATE CONSTRAINT TRIGGER submission_communications_consistent AFTER INSERT OR UPDATE ON submission_communications DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION submission_consistency();
 REVOKE ALL ON FUNCTION submission_consistency() FROM PUBLIC;
+--> statement-breakpoint
+-- Maintenance-only: runtime role never receives EXECUTE. Caller must verify plaintext with old/new Vaults.
+-- Expected ciphertext gives CAS against a concurrent rotation, without changing logical bytes/hashes.
+CREATE FUNCTION submission_rotate(p_session uuid,p_order uuid,p_sub uuid,p_evidence uuid,p_old text,p_new text,p_old_request text DEFAULT NULL,p_new_request text DEFAULT NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE a jsonb; org uuid; actor uuid; seq integer;
+BEGIN
+ a:=public.submission_auth(p_session);org:=(a->>'organizationId')::uuid;actor:=(a->>'userId')::uuid;
+ IF a->>'role'<>'ADMIN' THEN RAISE EXCEPTION 'FORBIDDEN'; END IF;
+ PERFORM 1 FROM public.submission_orders WHERE organization_id=org AND order_id=p_order FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'RESOURCE_UNAVAILABLE'; END IF;
+ PERFORM set_config('atram.rotation','verified-maintenance',true);
+ IF p_evidence IS NULL THEN
+  UPDATE public.order_submissions SET snapshot_encrypted=convert_to(p_new,'UTF8'),request_encrypted=convert_to(p_new_request,'UTF8')
+   WHERE organization_id=org AND order_id=p_order AND submission_id=p_sub AND snapshot_encrypted=convert_to(p_old,'UTF8') AND request_encrypted=convert_to(p_old_request,'UTF8');
+ ELSE
+  UPDATE public.submission_evidence SET details_encrypted=convert_to(p_new,'UTF8') WHERE organization_id=org AND order_id=p_order AND submission_id=p_sub AND evidence_id=p_evidence AND details_encrypted=convert_to(p_old,'UTF8');
+ END IF;
+ IF NOT FOUND THEN RAISE EXCEPTION 'REVISION_CONFLICT'; END IF;
+ PERFORM set_config('atram.rotation','',true);
+ UPDATE public.submission_orders SET event_sequence=event_sequence+1 WHERE organization_id=org AND order_id=p_order RETURNING event_sequence INTO seq;
+ INSERT INTO public.submission_events(organization_id,order_id,submission_id,sequence,action,actor_id,session_id,evidence_id)
+  VALUES(org,p_order,p_sub,seq,'KEY_ROTATED',actor,p_session,p_evidence);
+END $$;
+REVOKE ALL ON FUNCTION submission_rotate(uuid,uuid,uuid,uuid,text,text,text,text) FROM PUBLIC;

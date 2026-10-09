@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fork,execFileSync} from 'node:child_process';
 import {once} from 'node:events';
-import {writeFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
 import {fixture,id,key} from './fixtures.mjs';
 import {database} from '../../db/client.ts';
 import {SubmissionRepository} from '../../submissions/repository.ts';
@@ -13,6 +13,8 @@ import {demoOrder} from '../../../domain/mock-data.ts';
 import {validateBytes} from '../../submissions/contracts.ts';
 import {MATRIX,permitsEdge} from '../../submissions/policy.ts';
 import {applyMigrations} from '../../db/migrate.ts';
+import {isolatedDatabase} from '../fixtures.mjs';
+import {rotateSubmission} from '../../submissions/maintenance.ts';
 const withFixture=(name,fn)=>test(name,async()=>{const f=await fixture();try{await fn(f);}finally{await f.cleanup();}});
 const reject=(p,code)=>assert.rejects(p,e=>e.code===code);
 async function worker(f,config){
@@ -58,7 +60,7 @@ withFixture('B06 all 49 edges and persistent preparation/terminal restrictions',
  const allowed=['DRAFT:DRAFT','DRAFT:VALIDATING','VALIDATING:DRAFT','VALIDATING:VALIDATING','VALIDATING:READY','READY:READY','READY:SUBMITTING','READY:ERROR','SUBMITTING:SUBMITTING','SUBMITTING:SUBMITTED','SUBMITTING:ERROR','SUBMITTING:UNKNOWN','SUBMITTED:SUBMITTED','ERROR:DRAFT','ERROR:SUBMITTING','ERROR:SUBMITTED','ERROR:ERROR','ERROR:UNKNOWN','UNKNOWN:SUBMITTED','UNKNOWN:ERROR','UNKNOWN:UNKNOWN'];
  let n=0;for(const from of states)for(const to of states){assert.equal(permitsEdge(from,to),allowed.includes(from+':'+to));n++;}assert.equal(n,49);assert.equal(Object.keys(MATRIX).length,7);
  const a=await f.admitted();await reject(f.repo.archive(f.admin,{...f.decision(a),expectedOrderRevision:1}),'OUTCOME_BLOCKED');
- for(const state of ['DRAFT','VALIDATING'])await assert.rejects(f.db.client`UPDATE order_submissions SET state=${state} WHERE submission_id=${a.input.submissionId}`,{code:'23514'});
+ for(const state of ['DRAFT','VALIDATING'])await assert.rejects(f.db.client`UPDATE order_submissions SET state=${state} WHERE submission_id=${a.input.submissionId}`,/STATE_FORBIDDEN|check constraint/);
  await assert.rejects(f.db.client`UPDATE order_submissions SET state='SUBMITTED' WHERE submission_id=${a.input.submissionId}`,{code:'23514'});
 });
 withFixture('B07 abandonment, expired lease and finishedAt never permit second intent',async f=>{
@@ -79,6 +81,11 @@ withFixture('B08 restricted SQL cannot mutate bytes, binding, origin, receipt or
  assert.ok(!before.snapshot.includes('Granola'));
  const next=new SubmissionProtection(new Vault(new Map([['lab-v2',Buffer.alloc(32,23)],['lab-v1',key]]),'lab-v2'));
  const rotated=f.protection.rotate(before.snapshot,context,next);assert.equal(next.open(rotated,context),a.input.bytes);assert.equal(hash(next.open(rotated,context)),p.businessHash);
+ await assert.rejects(f.runtime.client`SELECT submission_rotate(${f.admin.sessionId}::uuid,${a.orderId}::uuid,${a.input.submissionId}::uuid,NULL,${before.snapshot},${rotated},NULL,NULL)`,{code:'42501'});
+ await rotateSubmission(f.db,f.admin,a.orderId,a.input.submissionId,f.protection,next);
+ const after=await f.repo.read(f.op,a.orderId);assert.equal(after.projection.submission.businessHash,p.businessHash);assert.equal(after.projection.submission.ledgerRevision,p.ledgerRevision);assert.equal(next.open(after.snapshot,context),a.input.bytes);
+ assert.notEqual(after.snapshot,before.snapshot);assert.notEqual(after.evidence[0].envelope,before.evidence[0].envelope);
+ assert.throws(()=>f.protection.open(after.snapshot,context));
 });
 withFixture('B09 six canonical vectors, order, Unicode and invalid schemas',async f=>{
  const v1={items:[{productId:'p-1',quantity:1}],notes:'ação',orderId:'o-1'},v2={notes:'ação',orderId:'o-1',items:v1.items,status:'UNKNOWN',submissionId:'s-1',submission:{payload:'ignored'},submissionHistory:[],submissionEvents:[]};
@@ -191,8 +198,16 @@ withFixture('B22 valid 300-item payload, bounded strings and excess bytes withou
 });
 withFixture('B23 additive migration transaction failure and application rollback preserve ledger',async f=>{
  await applyMigrations(f.db);const a=await f.intended();
- await assert.rejects(f.db.client.begin(async sql=>{await sql`CREATE TABLE synthetic_interrupted_migration(id integer)`;await sql`SELECT 1/0`;}));
- assert.equal((await f.db.client`SELECT to_regclass('synthetic_interrupted_migration') name`)[0].name,null);
+ const fresh=await isolatedDatabase();try{
+  for(const name of ['0000_regular_taskmaster','0001_serious_grandmaster','0002_smiling_golden_guardian']){
+   const text=await readFile(new URL('../../db/migrations/'+name+'.sql',import.meta.url),'utf8');
+   await fresh.db.client.begin(async sql=>{for(const part of text.split('--> statement-breakpoint'))if(part.trim())await sql.unsafe(part);});
+  }
+  const migration=await readFile(new URL('../../db/migrations/0003_submission_ledger.sql',import.meta.url),'utf8');
+  await assert.rejects(fresh.db.client.begin(async sql=>{await sql.unsafe(migration.split('--> statement-breakpoint')[0]);await sql`SELECT 1/0`;}));
+  assert.equal((await fresh.db.client`SELECT to_regclass('submission_orders') name`)[0].name,null);
+  assert.equal((await fresh.db.client`SELECT count(*)::int n FROM organizations`)[0].n,0);
+ }finally{await fresh.cleanup();}
  // The pre-7B.4 readiness contract still works with the additive tables present.
  const {ready}=await import('../../db/readiness.ts');await ready(f.db);
  assert.equal((await f.repo.read(f.op,a.orderId)).communications.length,1);await applyMigrations(f.db);
