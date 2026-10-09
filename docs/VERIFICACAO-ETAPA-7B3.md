@@ -63,3 +63,5 @@ Não comercialmente homologado. Parar na revisão deste PR; nenhuma autorizaçã
 ## Segunda revisão de ede17bd
 
 Ver [SEGUNDA-REVISAO.md](etapa7B3/SEGUNDA-REVISAO.md) para a reprodução do head prematuro, separação prepared/active e geração de conexão versus revisão de credenciais, testes PostgreSQL com OAuth simulado e limitação concreta do navegador. O PR continua em rascunho, aguardando segunda revisão e homologação visual. Os resultados históricos acima não substituem as evidências desta correção.
+
+Na segunda revisão, o CI de `ad3631a` aprovou 24 testes da 7B.3, 16 da 7B.2, 19 da 7B.1, regressões 2–6, 36 cenários Node, typecheck, lint, build e boundary. PostgreSQL 16.15 real e OAuth simulado. A matriz visual permanece pendente por ERR_CONNECTION_REFUSED no Chrome remoto. Evidência detalhada e números separados em REGRESSAO.json e SEGUNDA-REVISAO.md.
