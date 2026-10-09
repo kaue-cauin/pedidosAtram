@@ -30,7 +30,7 @@ test('7B.3E failures at first/middle/near-end keep last active version and isola
 test('7B.3E real draft IndexedDB adapter preserves captured order during catalog update and logout',async()=>{
  const drafts=new DraftRepository('stage7b3-drafts-'+randomUUID()),cache=new IndexedCatalogCache('stage7b3-cache-'+randomUUID()),local=new LocalCatalog(syntheticCatalogScope,cache),order=structuredClone({...demoOrder,orderId:randomUUID()});
  try{
-  await drafts.save(order,0);const bytes=JSON.stringify(order);await local.update(await syntheticCatalogTransport());local.activate({query:'',selection:false,editing:false});await local.logout();
+  await drafts.save(order,0);const bytes=JSON.stringify(order);await local.update(await syntheticCatalogTransport());await local.activate({query:'',selection:false,editing:false});await local.logout();
   assert.equal(JSON.stringify((await drafts.list())[0].order),bytes);assert.equal((await drafts.list())[0].revision,1);assert.equal(await cache.read(syntheticCatalogScope),null);
  }finally{await drafts.close();await cache.close();}
 });

@@ -28,9 +28,14 @@ export class LocalCatalog {
  search(query:string){return this.stale||this.active?.manifest.mode==='REAL'&&typeof navigator!=='undefined'&&navigator.onLine===false?[]:this.searchIndex(query);}
  private index(value:CachedCatalog){return createSearch(value.resources.products,p=>[p.code,p.ean,p.name,p.brand&&typeof p.brand==='object'?(p.brand as Record<string,unknown>).name:p.brand].filter(x=>typeof x==='string').join(' '),p=>[p.code,p.ean].filter(x=>typeof x==='string') as string[]);}
  async recover(offline=false){
-  const generation=this.generation,value=await this.cache.read(this.scope);if(!value)return false;await verify(value,this.scope);
-  if(generation!==this.generation||Date.now()>value.expiresAt||offline&&!value.manifest.cache.offlineAllowed)return false;
-  this.active=freeze(value);this.searchIndex=this.index(value);return true;
+  const generation=this.generation,operation=++this.updateId,scope={...this.scope};
+  const [value,pending]=await Promise.all([this.cache.read(scope),this.cache.readPrepared(scope)]);
+  if(value)await verify(value,scope);if(pending)await verify(pending,scope);
+  if(generation!==this.generation||operation!==this.updateId)return false;
+  const usable=(v:CachedCatalog|null)=>v&&Date.now()<=v.expiresAt&&(!offline||v.manifest.cache.offlineAllowed);
+  if(usable(pending))this.pending={value:freeze(pending!),search:this.index(pending!)};
+  if(!usable(value))return false;
+  this.active=freeze(value!);this.searchIndex=this.index(value!);return true;
  }
  async update(transport:CatalogTransport){
   try {
@@ -49,14 +54,17 @@ export class LocalCatalog {
   const verificationStart=performance.now();await verify(value,scope);const verificationMs=performance.now()-verificationStart,indexStart=performance.now(),immutable=freeze(structuredClone(value)),search=this.index(immutable),indexMs=performance.now()-indexStart;
   if(generation!==this.generation||operation!==this.updateId)throw new Error('CATALOG_SCOPE_CHANGED');
   // REAL stays in memory only until a local data retention/offline policy is approved.
-  const indexedDbMs=m.mode==='FIXTURE'?await this.cache.commit(immutable,expected,()=>generation===this.generation&&operation===this.updateId):0;
+  const indexedDbMs=m.mode==='FIXTURE'?await this.cache.prepare(immutable,expected,()=>generation===this.generation&&operation===this.updateId):0;
   if(generation!==this.generation||operation!==this.updateId)throw new Error('CATALOG_SCOPE_CHANGED');this.pending={value:immutable,search};
   return {transferMs,verificationMs,indexMs,indexedDbMs,activationMs:0,version:m.version} satisfies CatalogTimings;
   }catch(e){if(e instanceof Error&&/^CATALOG_HTTP_(401|403)$/.test(e.message))await this.logout();throw e;}
  }
- activate(interaction:{query:string;selection:boolean;editing:boolean}){
+ async activate(interaction:{query:string;selection:boolean;editing:boolean}){
   if(!this.pending||interaction.query||interaction.selection||interaction.editing)return false;
-  this.active=this.pending.value;this.searchIndex=this.pending.search;this.pending=undefined;return true;
+  const pending=this.pending,generation=this.generation,expected=this.version,scope={...this.scope};
+  if(pending.value.manifest.mode==='FIXTURE')await this.cache.activate(scope,pending.value.manifest.version,expected,()=>generation===this.generation&&this.pending===pending&&!interaction.query&&!interaction.selection&&!interaction.editing);
+  if(generation!==this.generation||this.pending!==pending)return false;
+  this.active=pending.value;this.searchIndex=pending.search;this.pending=undefined;return true;
  }
  async logout(){this.generation++;this.active=undefined;this.pending=undefined;this.searchIndex=()=>[];await this.cache.clear(this.scope);}
  async switchScope(scope:CatalogScope){await this.logout();this.scope={...scope};}

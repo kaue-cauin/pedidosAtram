@@ -87,6 +87,7 @@ export class CatalogRepository {
       const [s]=await sql`SELECT * FROM catalog_snapshots WHERE organization_id=${p.organizationId} AND id=${snapshot} FOR UPDATE`;
       if(!s||!(rollback?['SUPERSEDED']:['READY']).includes(s.status))fail('SNAPSHOT_NOT_READY',409);
       if(!rollback&&!(await sql`SELECT id FROM sync_jobs WHERE organization_id=${p.organizationId} AND snapshot_id=${snapshot} AND status='COMPLETED'`).length)fail('JOB_NOT_COMPLETED',409);
+      if(s.mode==='REAL'&&!(await sql`SELECT c.id FROM erp_connections c JOIN sync_jobs j ON j.organization_id=c.organization_id AND j.snapshot_id=${snapshot} WHERE c.organization_id=${p.organizationId} AND c.provider='TINY' AND c.status='CONNECTED' AND c.account_verified=true AND c.connection_generation=j.connection_version AND c.verified_account_identity=j.account_key AND j.status='COMPLETED' FOR SHARE OF c`).length)fail('CONNECTION_CHANGED',409);
       if((s.anomalies as string[]).length&&!acknowledge)fail('ANOMALY_REVIEW_REQUIRED',409);
       if(expected)await sql`UPDATE catalog_snapshots SET status='SUPERSEDED' WHERE id=${expected} AND organization_id=${p.organizationId}`;
       const manifest={...s.manifest,state:'ACTIVE',publishedAt:new Date().toISOString()};

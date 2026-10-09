@@ -84,7 +84,7 @@ export class CatalogEngine {
           if(!current)fail('EXECUTION_STALE',409);
           const permitted=await sql`SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id JOIN organization_memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.id=${p.sessionId} AND s.user_id=${p.userId} AND s.organization_id=${p.organizationId} AND s.revoked_at IS NULL AND s.expires_at>NOW() AND u.status='ACTIVE' AND m.status='ACTIVE' AND m.role='ADMIN' FOR SHARE OF s,u,m`;
           if(!permitted.length)fail('UNAUTHENTICATED',401);
-          if(job.mode==='REAL'&&!(await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND status='CONNECTED' AND account_verified=true AND token_version=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`).length)fail('CONNECTION_CHANGED',409);
+          if(job.mode==='REAL'&&!(await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND status='CONNECTED' AND account_verified=true AND connection_generation=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`).length)fail('CONNECTION_CHANGED',409);
           await sql`UPDATE catalog_entries SET projection=${sql.json(JSON.parse(JSON.stringify(entry)))},content_hash=${hash(canonical(entry))},commercial=${entry.commercial} WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id} AND resource=${detail.resource} AND erp_id=${detail.id}`;
           job.checkpoint.enrichment!.index++;
           await sql`UPDATE sync_jobs SET checkpoint=${sql.json(JSON.parse(JSON.stringify(job.checkpoint)))},execution_id=NULL,lease_until=NULL,resource=${detail.resource},error_code=NULL WHERE id=${id}`;
@@ -92,7 +92,9 @@ export class CatalogEngine {
       }
       if(job.checkpoint.resourceIndex===resources.length){
         await this.repository.prepare(p,job.snapshot_id,job.checkpoint.completed,this.options.maxRecords);
-        const done=await db.client`UPDATE sync_jobs SET status='COMPLETED',records_quarantined=(SELECT count(DISTINCT (resource,erp_id))::int FROM catalog_quarantine WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id}),finished_at=NOW(),execution_id=NULL,lease_until=NULL,error_code=NULL WHERE id=${id} AND organization_id=${p.organizationId} AND execution_id=${execution} AND lease_until>NOW() AND status='RUNNING' RETURNING id`;
+        const done=await db.client.begin(async sql=>{
+        if(job.mode==='REAL'&&!(await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND status='CONNECTED' AND account_verified=true AND connection_generation=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`).length)fail('CONNECTION_CHANGED',409);
+        return sql`UPDATE sync_jobs SET status='COMPLETED',records_quarantined=(SELECT count(DISTINCT (resource,erp_id))::int FROM catalog_quarantine WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id}),finished_at=NOW(),execution_id=NULL,lease_until=NULL,error_code=NULL WHERE id=${id} AND organization_id=${p.organizationId} AND execution_id=${execution} AND lease_until>NOW() AND status='RUNNING' RETURNING id`;});
         if(!done.length)fail('EXECUTION_STALE',409);return {status:'COMPLETED'};
       }
       if(job.pages_processed>=this.options.maxPages)fail('PAGE_LIMIT',409);
@@ -120,7 +122,7 @@ export class CatalogEngine {
         const permitted=await sql`SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id JOIN organizations o ON o.id=s.organization_id JOIN organization_memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.id=${p.sessionId} AND s.organization_id=${p.organizationId} AND s.user_id=${p.userId} AND s.revoked_at IS NULL AND s.expires_at>NOW() AND u.status='ACTIVE' AND o.status='ACTIVE' AND m.status='ACTIVE' AND m.role='ADMIN' FOR SHARE OF s,u,o,m`;
         if(!permitted.length)fail('UNAUTHENTICATED',401);
         if(job.mode==='REAL'){
-          const connection=await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND provider='TINY' AND status='CONNECTED' AND account_verified=true AND token_version=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`;
+          const connection=await sql`SELECT id FROM erp_connections WHERE organization_id=${p.organizationId} AND provider='TINY' AND status='CONNECTED' AND account_verified=true AND connection_generation=${job.connection_version} AND verified_account_identity=${job.account_key} FOR SHARE`;
           if(!connection.length)fail('CONNECTION_CHANGED',409);
         }
         const duplicates=await sql`SELECT erp_id FROM catalog_entries WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id} AND resource=${resource} AND erp_id IN ${sql(parsed.ids.length?parsed.ids:[''])}`;
