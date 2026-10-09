@@ -1,0 +1,17 @@
+
+> atram-pedidos@0.4.0 check:stage7b2:unit
+> node --test backend/tests/security.test.mjs
+
+✔ configuration fails closed, loopback only HTTP and real Tiny disabled (1.800391ms)
+✔ AES-GCM randomized IV, authentication, AAD tenant/type/version binding and rotation (2.053945ms)
+✔ async scrypt passwords, random salt, constant-time digest compare and policy (1336.173649ms)
+✔ startup and migration fail safely without config; no secret in stderr (1036.089744ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2493.379051
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.

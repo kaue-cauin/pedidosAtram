@@ -1,0 +1,19 @@
+
+> atram-pedidos@0.4.0 check:stage3
+> node scripts/check-stage-3.mjs
+
+{
+  "result": "PASS",
+  "assertions": 75642,
+  "sizes": [
+    10,
+    50,
+    100,
+    150,
+    200,
+    300
+  ],
+  "operationsChecked": 10800,
+  "benchmarkRows": 60
+}
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
