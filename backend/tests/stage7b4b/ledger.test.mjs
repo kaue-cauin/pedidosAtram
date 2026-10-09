@@ -61,7 +61,10 @@ withFixture('B06 all 49 edges and persistent preparation/terminal restrictions',
  let n=0;for(const from of states)for(const to of states){assert.equal(permitsEdge(from,to),allowed.includes(from+':'+to));n++;}assert.equal(n,49);assert.equal(Object.keys(MATRIX).length,7);
  const a=await f.admitted();await reject(f.repo.archive(f.admin,{...f.decision(a),expectedOrderRevision:1}),'OUTCOME_BLOCKED');
  for(const state of ['DRAFT','VALIDATING'])await assert.rejects(f.db.client`UPDATE order_submissions SET state=${state} WHERE submission_id=${a.input.submissionId}`,/STATE_FORBIDDEN|check constraint/);
- await assert.rejects(f.db.client`UPDATE order_submissions SET state='SUBMITTED' WHERE submission_id=${a.input.submissionId}`,{code:'23514'});
+ await assert.rejects(f.db.client`UPDATE order_submissions SET state='SUBMITTED' WHERE submission_id=${a.input.submissionId}`,/STATE_FORBIDDEN|check constraint/);
+ await assert.rejects(f.db.client`UPDATE order_submissions SET state='ERROR' WHERE submission_id=${a.input.submissionId}`,/EVIDENCE_INVALID/);
+ const blocked=await f.repo.blockBeforeIntent(f.admin,{...f.decision(a),evidenceId:id(),details:'Synthetic pre-dispatch block'});assert.equal(blocked.projection.submission.state,'ERROR');
+ assert.equal((await f.repo.confirm(f.op,f.decision(a,2))).projection.submission.state,'SUBMITTING');
 });
 withFixture('B07 abandonment, expired lease and finishedAt never permit second intent',async f=>{
  const a=await f.intended();await f.db.client`UPDATE submission_communications SET lease_until=now()-interval '1 hour' WHERE submission_id=${a.input.submissionId}`;

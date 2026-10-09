@@ -2126,13 +2126,13 @@
           "name": "operation_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "execution_id": {
           "name": "execution_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "source": {
           "name": "source",

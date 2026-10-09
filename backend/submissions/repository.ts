@@ -84,6 +84,17 @@ export class SubmissionRepository {
       return this.apply(sql,p,commandId,'EVIDENCE',{...body,evidenceId:proof.evidenceId,operationId:proof.operationId,executionId:proof.executionId,conclusion:proof.kind,businessHash:proof.businessHash,requestHash:proof.requestHash,account:proof.account,generation:proof.generation,externalId:proof.externalId??null,contentRejected:proof.contentRejected??false,checks:{exactBinding:true,transportNotInvoked:proof.transportNotInvoked??false,executionFenced:proof.executionFenced??false,rejectsPastAndFuture:proof.rejectsPastAndFuture??false},detailsHash,detailsEnvelope:previous?.envelope??this.protection.seal(proof.details,context)});
     });
   }
+  async blockBeforeIntent(p:Principal,input:Decision & {evidenceId:string;details:string}) {
+    parsed(base.extend({evidenceId:commandIdSchema,details:z.string().min(1).max(16384)}).strict(),input);
+    return this.transaction(async sql=>{
+      const {commandId,details,...body}=input,detailsHash=hash(details);
+      const stored=await this.readLocked(sql,p,input.orderId,input.submissionId);
+      const previous=stored.evidence.find(e=>e.evidence_id===input.evidenceId);
+      const context={organizationId:p.organizationId,orderId:input.orderId,submissionId:input.submissionId,kind:'evidence' as const,digest:detailsHash,identity:input.evidenceId};
+      if(previous&&(previous.details_hash!==detailsHash||this.protection.open(previous.envelope,context)!==details))fail('EVIDENCE_INVALID',422);
+      return this.apply(sql,p,commandId,'BLOCK',{...body,detailsHash,detailsEnvelope:previous?.envelope??this.protection.seal(details,context)});
+    });
+  }
   async resolve(p:Principal,input:Decision & {evidenceId:string;reason:string}) {
     parsed(base.extend({evidenceId:commandIdSchema,reason:z.string().min(1).max(1024)}).strict(),input);
     const {commandId,reason,...body}=input;return this.transaction(sql=>this.apply(sql,p,commandId,'RESOLVE',{...body,reasonHash:hash(reason)}));
