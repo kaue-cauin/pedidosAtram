@@ -1,0 +1,39 @@
+import type { CatalogManifest } from '../domain/catalog-contract.ts';
+export interface CatalogScope { organizationId:string;userId:string;projection:'TECHNICAL_ADMIN'|'SYNTHETIC' }
+export type CatalogEntry=Readonly<Record<string,unknown>&{erpId:string;commercial:string}>;
+export interface CachedCatalog { scope:CatalogScope;manifest:CatalogManifest;resources:Record<string,CatalogEntry[]>;savedAt:number;expiresAt:number }
+export const scopeKey=(s:CatalogScope)=>JSON.stringify([s.organizationId,s.userId,s.projection]);
+export interface CatalogCache { read(scope:CatalogScope):Promise<CachedCatalog|null>;commit(value:CachedCatalog,expected:string|null,valid:()=>boolean):Promise<number>;clear(scope:CatalogScope):Promise<void> }
+export class IndexedCatalogCache implements CatalogCache {
+ private connection?:Promise<IDBDatabase>;readonly name:string;
+ constructor(name='atram-catalog-v1'){this.name=name;}
+ private open(){
+  if(this.connection)return this.connection;
+  this.connection=new Promise<IDBDatabase>((resolve,reject)=>{
+   const r=indexedDB.open(this.name,1);let expired=false;
+   const timer=setTimeout(()=>{expired=true;reject(new Error('CATALOG_STORAGE_TIMEOUT'));},5000);
+   r.onupgradeneeded=()=>{r.result.createObjectStore('versions');r.result.createObjectStore('heads');};
+   r.onerror=()=>{clearTimeout(timer);reject(new Error('CATALOG_STORAGE_UNAVAILABLE'));};r.onblocked=()=>{expired=true;clearTimeout(timer);reject(new Error('CATALOG_STORAGE_BLOCKED'));};
+   r.onsuccess=()=>{clearTimeout(timer);if(expired){r.result.close();return;}r.result.onversionchange=()=>{r.result.close();this.connection=undefined;};resolve(r.result);};
+  }).catch(e=>{this.connection=undefined;throw e;});return this.connection;
+ }
+ async read(scope:CatalogScope){const db=await this.open(),key=scopeKey(scope);return new Promise<CachedCatalog|null>((resolve,reject)=>{
+  const tx=db.transaction(['heads','versions'],'readonly');let value:CachedCatalog|null=null;const head=tx.objectStore('heads').get(key);
+  head.onsuccess=()=>{if(head.result){const r=tx.objectStore('versions').get(key+'|'+head.result);r.onsuccess=()=>{value=r.result??null;};}};tx.oncomplete=()=>resolve(value);tx.onabort=()=>reject(new Error('CATALOG_STORAGE_UNAVAILABLE'));
+ });}
+ async commit(value:CachedCatalog,expected:string|null,valid:()=>boolean){const db=await this.open(),key=scopeKey(value.scope);return new Promise<number>((resolve,reject)=>{
+  const start=performance.now(),tx=db.transaction(['heads','versions'],'readwrite');let code='CATALOG_STORAGE_UNAVAILABLE';const heads=tx.objectStore('heads'),versions=tx.objectStore('versions'),r=heads.get(key);
+  r.onsuccess=()=>{
+   if(!valid()){code='CATALOG_SCOPE_CHANGED';tx.abort();return;}
+   if((r.result??null)!==expected){code='CATALOG_CACHE_CONFLICT';tx.abort();return;}
+   versions.put(value,key+'|'+value.manifest.version);heads.put(value.manifest.version,key);
+   // Keep at most two local versions per scope; no unbounded accumulation.
+   const cursor=versions.openCursor(IDBKeyRange.bound(key+'|',key+'|\uffff'));
+   cursor.onsuccess=()=>{const c=cursor.result;if(c){if(c.key!==key+'|'+value.manifest.version&&c.key!==key+'|'+expected)c.delete();c.continue();}};
+  };tx.oncomplete=()=>resolve(performance.now()-start);tx.onabort=()=>reject(new Error(code));
+ });}
+ async clear(scope:CatalogScope){const db=await this.open(),key=scopeKey(scope);return new Promise<void>((resolve,reject)=>{
+  const tx=db.transaction(['heads','versions'],'readwrite');tx.objectStore('heads').delete(key);tx.objectStore('versions').delete(IDBKeyRange.bound(key+'|',key+'|\uffff'));tx.oncomplete=()=>resolve();tx.onabort=()=>reject(new Error('CATALOG_STORAGE_UNAVAILABLE'));
+ });}
+ async close(){(await this.connection?.catch(()=>undefined))?.close();this.connection=undefined;}
+}

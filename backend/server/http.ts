@@ -5,6 +5,7 @@ import { ready } from '../db/readiness.ts';
 import { AuthService, admin, uuid, type Principal } from '../auth/service.ts';
 import { hash } from '../security/crypto.ts';
 import { BackendError, fail } from '../security/errors.ts';
+import type { CatalogController } from '../catalog/controller.ts';
 export interface TinyAdministration {
   status(p: Principal): Promise<unknown>;
   configure(p: Principal, document: string, correlation: string): Promise<void>;
@@ -21,7 +22,7 @@ async function body(req: IncomingMessage, keys: string[]): Promise<Record<string
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.keys(parsed).some(k => !keys.includes(k))) fail('INPUT_INVALID');
   return parsed as Record<string, unknown>;
 }
-export function createBackendServer(config: Config, auth: AuthService, tiny?: TinyAdministration, log: (entry: { correlationId: string; code: string }) => void = () => {}) {
+export function createBackendServer(config: Config, auth: AuthService, tiny?: TinyAdministration, log: (entry: { correlationId: string; code: string }) => void = () => {}, catalog?:CatalogController) {
   const cookieName = config.secure ? '__Host-atram_session' : 'atram_session';
   const server = createServer(async (req, res) => {
     const correlationId = randomUUID();
@@ -42,7 +43,8 @@ export function createBackendServer(config: Config, auth: AuthService, tiny?: Ti
       if (method === 'GET' && url.pathname === '/api/ready') {
         try { await ready(auth.db); return json({ ready: true }); } catch { return json({ ready: false }, 503); }
       }
-      if (!callback && url.search) fail('INPUT_INVALID');
+      const catalogGet=method==='GET'&&/^\/api\/(catalog\/(status|manifest|products|customers|sellers|price-lists|quarantine)|admin\/sync\/(jobs|status))$/.test(url.pathname);
+      if (!callback && !catalogGet && url.search) fail('INPUT_INVALID');
       if (method === 'POST' && url.pathname === '/api/auth/login') {
         const data = await body(req, ['login', 'password', 'organizationId']);
         const result = await auth.login(data.login, data.password, data.organizationId, req.socket.remoteAddress ?? 'unknown', correlationId);
@@ -57,6 +59,9 @@ export function createBackendServer(config: Config, auth: AuthService, tiny?: Ti
       if (method === 'GET' && url.pathname === '/api/organization/current') {
         const [org] = await auth.db.client`SELECT id,name,status FROM organizations WHERE id=${p.organizationId}`; return json(org);
       }
+      if(catalogGet){if(!catalog)fail('NOT_CONFIGURED',503);return json(await catalog.get(p,url.pathname,url.searchParams));}
+      const catalogPost=method==='POST'&&/^\/api\/admin\/(sync\/(start|cancel|resume|step)|catalog\/(activate|rollback))$/.test(url.pathname);
+      if(catalogPost){admin(p);if(!catalog)fail('NOT_CONFIGURED',503);const keys=url.pathname.endsWith('/start')?['mode','details']:url.pathname.includes('/catalog/')?['version','expectedVersion','acknowledge']:['id'];return json(await catalog.post(p,url.pathname,await body(req,keys)));}
       admin(p);
       if (method === 'GET' && url.pathname === '/api/admin/users') return json(await auth.listUsers(p));
       if (method === 'POST' && url.pathname === '/api/admin/users') {
