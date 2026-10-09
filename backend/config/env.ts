@@ -1,5 +1,6 @@
 import { fail } from '../security/errors.ts';
 export interface Config {
+  sync?: { detail:boolean;real:boolean; fixture:boolean; pageSize:number; maxPages:number; maxRecords:number; maxAttempts:number; intervalMs:number };
   databaseUrl: string; origin: string; host: string; port: number; secure: boolean;
   sessionSeconds: number; keys: Map<string, Buffer>; activeKey: string;
   tiny: { enabled: boolean; reads: boolean; refresh: boolean; clientId: string; clientSecret: string; callback: string };
@@ -31,5 +32,9 @@ export function readConfig(env: NodeJS.ProcessEnv): Config {
   const enabled = env.TINY_BACKEND_OAUTH_ENABLED === 'yes';
   const tiny = { enabled, reads: env.TINY_BACKEND_READ_ENABLED === 'yes', refresh: env.TINY_BACKEND_REFRESH_ENABLED === 'yes', clientId: env.TINY_BACKEND_CLIENT_ID ?? '', clientSecret: env.TINY_BACKEND_CLIENT_SECRET ?? '', callback };
   if ((enabled && (!tiny.clientId || !tiny.clientSecret)) || (!enabled && (tiny.reads || tiny.refresh))) fail('TINY_CONFIG_INVALID');
-  return { databaseUrl: db.href, origin: origin.origin, host, port, secure, sessionSeconds, keys, activeKey, tiny };
+  const bounded=(key:string,fallback:number,min:number,max:number)=>{ const n=Number(env[key]??fallback);if(!Number.isInteger(n)||n<min||n>max)fail('SYNC_CONFIG_INVALID');return n; };
+  const sync={detail:env.TINY_BACKEND_DETAIL_ENABLED==='yes',real:env.TINY_BACKEND_SYNC_ENABLED==='yes',fixture:env.BACKEND_SYNC_FIXTURE_ENABLED==='yes',pageSize:bounded('BACKEND_SYNC_PAGE_SIZE',25,1,50),maxPages:bounded('BACKEND_SYNC_MAX_PAGES',500,4,2000),maxRecords:bounded('BACKEND_SYNC_MAX_RECORDS',10000,1,10000),maxAttempts:bounded('BACKEND_SYNC_MAX_ATTEMPTS',3,1,5),intervalMs:bounded('BACKEND_SYNC_INTERVAL_MS',4000,4000,60000)};
+  if(sync.detail&&!sync.real&&!sync.fixture)fail('SYNC_CONFIG_INVALID');
+  if(sync.real&&(!tiny.enabled||!tiny.reads))fail('TINY_CONFIG_INVALID');
+  return { sync, databaseUrl: db.href, origin: origin.origin, host, port, secure, sessionSeconds, keys, activeKey, tiny };
 }

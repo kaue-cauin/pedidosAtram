@@ -1,0 +1,147 @@
+{
+  "recordedAt": "2026-10-09",
+  "codeEvidence": {
+    "run": 37867165617,
+    "url": "https://github.com/kaue-cauin/pedidosAtram/actions/runs/37867165617",
+    "sha": "ad3631ad3543121ba3e5d37b68c873c1a5108cb3",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "baseMain": "65db17b10c6a50bee931b10efdd736bcd74dfa75",
+  "branch": "etapa-7b3-catalogo",
+  "stage7b3": {
+    "tests": 24,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "postgresql": "16.15 real synthetic CI",
+    "backendFixtures": [
+      {
+        "records": 900,
+        "pages": 39,
+        "elapsedMs": 718
+      },
+      {
+        "records": 1000,
+        "pages": 43,
+        "elapsedMs": 788
+      }
+    ],
+    "note": "Other resources empty in collection benchmark; not Tiny network latency."
+  },
+  "stage7b2": {
+    "tests": 16,
+    "passed": 16
+  },
+  "stage7b1": {
+    "tests": 19,
+    "passed": 19
+  },
+  "mandatoryChecks": "All passed in linked CI",
+  "nodePerformance": {
+    "scenarios": 36,
+    "fixtureProducts": 900,
+    "autosave": true,
+    "modelAndScheduleP95MaxMs": 0.066594,
+    "localSearchP95MaxMs": 0.602878,
+    "allRecovered": true,
+    "uiMeasured": false,
+    "indexedDb": "fake-indexeddb 6.2.5",
+    "localReport": "PERFORMANCE-NODE.json"
+  },
+  "staticOffline": {
+    "resources": 40,
+    "vmChecks": 121,
+    "boundary": "PASS"
+  },
+  "browser": {
+    "status": "PARTIAL",
+    "url": "https://starlit-jelly-5d8ef0.netlify.app/diagnostico-etapa7b3/",
+    "recordedAt": "2026-10-09T10:31:10.203Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1363,
+      "height": 936,
+      "pixelRatio": 1
+    },
+    "indexedDb": "native",
+    "method": "10 commits após 2 aquecimentos por operação. UI: modelo + React/DOM até useLayoutEffect, sem pintura. IndexedDB: transação até complete. Persistência: atraso artificial + abertura + transação. Autosave: última alteração do snapshot até complete, incluindo fila/debounce de 250 ms (máximo 1000 ms). Gravações coalescidas por lote, contagem separada de amostras UI. Rede simulada independente; Offline simulado não desliga a rede do navegador.",
+    "matrixScenarios": 36,
+    "comparisonLots": 48,
+    "uiP95MaxMs": 24.800000000046566,
+    "allMatrixDraftsRecovered": true,
+    "continuousInput": {
+      "initialItems": 300,
+      "additions": 60,
+      "uiSamples": 60,
+      "uiP95": 3.8999999999068677,
+      "storageDelayMs": 1000,
+      "savesDuringInput": 2,
+      "actionsWhileSaving": 41,
+      "indexedDbP95": 5.5,
+      "persistenceP95": 1009.5999999998603,
+      "autosaveP95": 1884.3999999999069,
+      "recovered": true
+    },
+    "completed": [
+      "keyboard/autocomplete",
+      "explicit A/B activation before/after reload",
+      "native autosave/background matrices",
+      "storage failure/concurrency",
+      "draft refresh/tab reopen",
+      "synthetic catalog logout preserves drafts",
+      "MockERPProvider submission"
+    ],
+    "pending": [
+      "real offline reload/operation",
+      "complete browser process restart",
+      "network trace for API calls per keystroke"
+    ],
+    "expectedSourceSha": "124e1dff8eb010b5f8049ff9fa53625de9c8f897",
+    "previewBuildShaVerified": false,
+    "report": "HOMOLOGACAO-NAVEGADOR.md",
+    "requiredBeforeHomologation": true
+  },
+  "realTiny": {
+    "oauth": 0,
+    "authenticatedGet": 0,
+    "refresh": 0,
+    "commercialWrite": 0
+  },
+  "merge": false,
+  "pagesDeploy": false,
+  "pagesPreviousRun": {
+    "id": 37851437082,
+    "sha": "65db17b10c6a50bee931b10efdd736bcd74dfa75",
+    "conclusion": "success"
+  },
+  "backendPublicDeploy": false,
+  "stage7b4": false,
+  "pending": [
+    "Browser real offline, full process restart and network trace per keystroke",
+    "Commercial price/unit/weight/contact/list rules",
+    "Secure operational frontend origin",
+    "Rate limit behind trusted proxy",
+    "Password policy",
+    "Persistent real OAuth homologation",
+    "PostgreSQL and encryption key backup/restore"
+  ],
+  "commercialApproval": false,
+  "secondReview": {
+    "baseline": "ede17bd",
+    "prematureActivationReproduced": true,
+    "cacheFormat": 3,
+    "activeAndPreparedSeparated": true,
+    "crossInstanceLogoutEpoch": true,
+    "oauthPostgresqlSimulatedProviderTests": 4,
+    "realTinyCalls": 0,
+    "localPerformanceFirstAttempt": "FAIL local search threshold 50ms; cause undetermined",
+    "localPerformanceFinalAttempt": {
+      "scenarios": 36,
+      "modelAndScheduleP95MaxMs": 0.226078,
+      "localSearchP95MaxMs": 20.240529,
+      "allRecovered": true,
+      "uiMeasured": false
+    }
+  }
+}

@@ -22,7 +22,8 @@ export async function isolatedDatabase() {
   } };
 }
 export async function authFixture() {
-  const f=await isolatedDatabase();await applyMigrations(f.db);
+  const f=await isolatedDatabase();
+  try { await applyMigrations(f.db); } catch (error) { await f.cleanup(); throw error; }
   const auth=new AuthService(f.db,3600), password='Synthetic-secure-password!';
   const a=await auth.bootstrap('Synthetic A','admin-a',password);
   const [b]=await f.db.client`INSERT INTO organizations(name) VALUES ('Synthetic B') RETURNING id`;

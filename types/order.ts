@@ -6,7 +6,7 @@ export interface Product {
   ean: string;
   name: string;
   brand: string;
-  unit: 'UN';
+  unit: string;
   priceCents: number;
   grossWeightGrams: number;
   netWeightGrams: number;

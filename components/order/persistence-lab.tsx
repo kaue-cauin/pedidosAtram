@@ -18,7 +18,7 @@ function PersistenceStatus({ queue }: { queue?: AutosaveQueue<Order> }) {
   const state = useSyncExternalStore(queue?.subscribe ?? noopSubscribe, queue?.getSnapshot ?? emptySnapshot, emptySnapshot);
   return <p role="status">Persistência do laboratório: {state.phase} {state.dirty ? '· alterações pendentes' : ''}{state.error && ` · ${state.error}`}</p>;
 }
-export function PersistenceLab() {
+export function PersistenceLab({backgroundWork}:{backgroundWork?:()=>Promise<unknown>}={}) {
   const [snapshot, setSnapshot] = useState(() => initialItemsState(performanceItems(10)));
   const stateRef = useRef(snapshot);
   const [enabled, setEnabled] = useState(true);
@@ -116,6 +116,7 @@ export function PersistenceLab() {
           const firstMetric = metrics.current.length;
           // Independent simulated network request. It never gates the UI or IndexedDB.
           const networkProbe = network === 'Offline' ? Promise.resolve('offline') : new Promise<string>(r => setTimeout(() => r('ok'), Number.parseInt(network) || 0));
+          const backgroundProbe=backgroundWork?.();
           const samples: UiSample[] = [];
           for (let i = 0; i < 12; i++) {
             await commit({ type: 'replace', items: fixture }); // fixture reset is outside measured UI sample
@@ -127,6 +128,7 @@ export function PersistenceLab() {
           }
           if (autosave) await settled();
           await networkProbe;
+          await backgroundProbe;
           const saves = metrics.current.slice(firstMetric);
           const recovered = autosave ? await checkRecovery() : false;
           collected.push({ size, autosave, network, storageDelayMs: simulationRef.current.delayMs, operation, samples: samples.length, modelP95: percentile(samples.map(x => x.modelMs), .95), uiP50: percentile(samples.map(x => x.commitMs), .5), uiP95: percentile(samples.map(x => x.commitMs), .95), rows: percentile(samples.map(x => x.rows), .5), saveSamples: saves.length,
@@ -192,7 +194,7 @@ export function PersistenceLab() {
     const a = document.createElement('a'); a.href = url; a.download = 'atram-performance-etapa4.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const n = (value?: number) => value === undefined ? '—' : value.toFixed(2);
-  return <section className="persistence-lab"><h2>Etapa 4 · UI e persistência independentes</h2><p>Este pedido de teste tem autosave real em um banco IndexedDB separado. Os tempos da UI não incluem a espera por gravação. O lote usa o debounce normal; amostras de gravação são contadas separadamente.</p>
+  return <section className="persistence-lab"><h2>{backgroundWork?'Etapa 7B.3 · autosave durante atualização de catálogo':'Etapa 4 · UI e persistência independentes'}</h2><p>Este pedido de teste tem autosave real em um banco IndexedDB separado. Os tempos da UI não incluem a espera por gravação. O lote usa o debounce normal; amostras de gravação são contadas separadamente.</p>
     <div className="lab-controls"><label>Linhas <select aria-label="Linhas do teste de autosave" disabled={busy} value={snapshot.items.length} onChange={e => onChange({ type: 'replace', items: performanceItems(Number(e.target.value)) })}>{!testSizes.some(n => n === snapshot.items.length) && <option>{snapshot.items.length}</option>}{testSizes.map(n => <option key={n}>{n}</option>)}</select></label>
     <label><input type="checkbox" checked={enabled} disabled={busy} onChange={e => { enabledRef.current = e.target.checked; setEnabled(e.target.checked); if (e.target.checked) queueRef.current?.schedule(latestOrder.current); }} /> Autosave ligado</label>
     <label>Atraso de armazenamento <select aria-label="Atraso artificial de persistência" value={delay} disabled={busy} onChange={e => setDelay(Number(e.target.value))}>{[0, 50, 100, 300, 1000].map(n => <option value={n} key={n}>{n} ms</option>)}</select></label>

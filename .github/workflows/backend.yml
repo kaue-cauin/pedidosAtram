@@ -1,7 +1,7 @@
 name: Backend PostgreSQL
 on:
   push:
-    branches: [main, etapa-7b2-backend]
+    branches: [main, etapa-7b2-backend, etapa-7b3-catalogo]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -10,6 +10,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16
@@ -32,6 +33,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:stage7b2
+      - run: npm run check:stage7b3
+      - run: npm run check:stage7b3:performance
+      - uses: actions/upload-artifact@v4
+        with:
+          name: etapa7b3-performance-node
+          path: docs/etapa7B3/PERFORMANCE-NODE.json
       - run: npm run check:data
       - run: npm run check:stage2
       - run: npm run check:stage3
