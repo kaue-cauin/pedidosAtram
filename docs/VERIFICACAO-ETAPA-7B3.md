@@ -59,3 +59,7 @@ Roteiro da matriz real: [PERFORMANCE-E-NAVEGADOR](etapa7B3/PERFORMANCE-E-NAVEGAD
 Detalhes: [Arquitetura/banco](etapa7B3/ARQUITETURA-E-BANCO.md), [sincronização](etapa7B3/SINCRONIZACAO.md), [mapeamento comercial](etapa7B3/MAPEAMENTO-COMERCIAL.md), [API/cache](etapa7B3/API-E-CACHE.md), [R1–R4 e pendências](etapa7B3/HOMOLOGACAO-REAL-E-PENDENCIAS.md).
 
 Não comercialmente homologado. Parar na revisão deste PR; nenhuma autorização para merge, Pages, Tiny real ou 7B.4 é inferida deste relatório.
+
+## Segunda revisão de ede17bd
+
+Ver [SEGUNDA-REVISAO.md](etapa7B3/SEGUNDA-REVISAO.md) para a reprodução do head prematuro, separação prepared/active e geração de conexão versus revisão de credenciais, testes PostgreSQL com OAuth simulado e limitação concreta do navegador. O PR continua em rascunho, aguardando segunda revisão e homologação visual. Os resultados históricos acima não substituem as evidências desta correção.

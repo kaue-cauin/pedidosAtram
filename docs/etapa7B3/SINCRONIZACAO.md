@@ -21,3 +21,9 @@ PostgreSQL coordena a identidade verificada da conta, compartilhada entre organi
 ## Ativação e operação
 
 Migrations não executam GET no Tiny. O startup não inicia jobs. Todos os flags reais e o modo fixture estão desabilitados por padrão. Administração autenticada inicia e avança cada página por ação explícita. Nenhum token/DTO integral é retornado pelo catálogo. A fase real exige homologação adicional, fora dos testes sintéticos.
+
+## Identidade da conexão e revisão OAuth (segunda revisão)
+
+`erp_connections.connection_generation` identifica o ciclo da conexão/conta. Configure, início OAuth, desconexão e invalidação de credenciais incrementam essa geração. `token_version` continua protegendo CAS das credenciais, tentativas OAuth e leases de refresh; uma renovação legítima incrementa apenas essa revisão. `sync_jobs.connection_version` agora registra a geração, junto da identidade verificada da conta.
+
+A migração 0002 inicializa a geração com a revisão existente, preservando o significado dos jobs antigos. O leitor compara geração antes e depois da resposta e reclama o lease usando também a revisão do access token efetivamente utilizado. Um 401 atrasado só pode invalidar a revisão que originou a requisição; não revoga credenciais renovadas. Refresh tardio conserva o CAS de revisão/lease/status e não restaura credenciais após desconexão. O engine valida geração/conta dentro das transações de páginas, detalhes e conclusão; a ativação e o rollback REAL também recusam snapshots de outra geração/conta.

@@ -69,3 +69,13 @@ test('7B.3 review PostgreSQL: late refresh cannot restore disconnected credentia
   const [row]=await f.db.client`SELECT access_token_encrypted,refresh_token_encrypted,status FROM erp_connections WHERE organization_id=${f.p.organizationId}`;assert.equal(row.access_token_encrypted,null);assert.equal(row.refresh_token_encrypted,null);assert.equal(row.status,'DISCONNECTED');
  }finally{await f.cleanup();}
 });
+test('7B.3 review PostgreSQL: delayed valid page survives credential rotation; disconnect before completion fences publication',async()=>{
+ const f=await fixture();try{
+  const binding=await f.service.syncBinding(f.p),job=await f.engine.start(f.p);f.control.pageGate=deferred();f.control.pageStarted=deferred();
+  const running=f.engine.step(f.p,job.id);await f.control.pageStarted.promise;await f.expire();await assert.rejects(f.second.verify(f.p),/READ_BUSY/);assert.equal(f.control.refreshes,1);
+  f.control.pageGate.resolve();await running;f.control.pageGate=undefined;assert.deepEqual(await f.service.syncBinding(f.p),binding);assert.equal((await f.repository.job(f.p,job.id)).records_received,25);
+  for(let i=0;i<5;i++){await f.due();await f.secondEngine.step(f.p,job.id);}
+  await f.second.disconnect(f.p);await assert.rejects(f.engine.step(f.p,job.id),/CONNECTION_CHANGED/);assert.equal((await f.repository.job(f.p,job.id)).status,'FAILED');assert.equal(await f.repository.manifest(f.p),null);
+  const [snapshot]=await f.db.client`SELECT status FROM catalog_snapshots WHERE id=${job.snapshot_id}`;assert.equal(snapshot.status,'INCOMPLETE');
+ }finally{await f.cleanup();}
+});

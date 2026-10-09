@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {IndexedCatalogCache} from '../../../repositories/catalog-cache.ts';
+import {IndexedCatalogCache,scopeKey} from '../../../repositories/catalog-cache.ts';
 import {LocalCatalog,checksum} from '../../../services/catalog-client.ts';
 const scope={organizationId:randomUUID(),userId:randomUUID(),projection:'SYNTHETIC'};
 async function transport(n=900,transform=x=>x){
@@ -47,9 +47,28 @@ test('7B.3 review: prepared B survives reload without becoming active; CAS and f
   const a=await transport(100),b=await transport(100);await local.update(a);await local.activate(quiet);await local.update(b);
   const reload=new LocalCatalog(scope,cache);assert.equal(await reload.recover(true),true);assert.equal(reload.version,a.version);assert.equal(reload.pendingVersion,b.version);
   await assert.rejects(cache.activate(scope,b.version,a.version,()=>false),/SCOPE_CHANGED/);assert.equal((await cache.read(scope)).manifest.version,a.version);assert.equal((await cache.readPrepared(scope)).manifest.version,b.version);
+  const interaction={...quiet},applying=reload.activate(interaction);interaction.query='operator resumed typing';await assert.rejects(applying,/SCOPE_CHANGED/);assert.equal(reload.version,a.version);assert.equal((await cache.read(scope)).manifest.version,a.version);
   const other=new LocalCatalog(scope,cache);await other.recover();assert.equal(await reload.activate(quiet),true);await assert.rejects(other.activate(quiet),/CACHE_CONFLICT/);
   const after=new LocalCatalog(scope,cache);await after.recover();assert.equal(after.version,b.version);assert.equal(after.pendingVersion,null);
   await assert.rejects(cache.prepare(await cache.read(scope),b.version,()=>true),/VERSION_REUSED/);
   await local.logout();assert.equal(await cache.read(scope),null);assert.equal(await cache.readPrepared(scope),null);
  }finally{await cache.close();}
+});
+
+test('7B.3 review: legacy ambiguous head migrates to pending; preparing concurrent versions never replaces active',async()=>{
+ const name='migration-'+randomUUID(),a=await transport(1),b=await transport(1),quiet={query:'',selection:false,editing:false};
+ const value={scope,manifest:a.manifestValue,resources:a.resources,savedAt:Date.now(),expiresAt:Date.parse(a.manifestValue.publishedAt)+3600000};
+ const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>{r.result.createObjectStore('heads');r.result.createObjectStore('versions');};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+ await new Promise((resolve,reject)=>{const tx=db.transaction(['heads','versions'],'readwrite');tx.objectStore('heads').put(a.version,scopeKey(scope));tx.objectStore('versions').put(value,scopeKey(scope)+'|'+a.version);tx.oncomplete=resolve;tx.onabort=reject;});db.close();
+ const cache=new IndexedCatalogCache(name),local=new LocalCatalog(scope,cache);
+ try{assert.equal(await local.recover(),false);assert.equal(local.version,null);assert.equal(local.pendingVersion,a.version);await local.activate(quiet);
+  const second=new LocalCatalog(scope,cache);await second.recover();await local.update(b);const c=await transport(1);await second.update(c);await assert.rejects(local.activate(quiet),/CACHE_CONFLICT/);assert.equal((await cache.read(scope)).manifest.version,a.version);await second.activate(quiet);
+  const recovering=new LocalCatalog(scope,cache);const pending=recovering.recover();await recovering.logout();await pending;assert.equal(recovering.version,null);assert.equal(recovering.pendingVersion,null);
+ }finally{await cache.close();}
+});
+
+test('7B.3 review: logout from another instance fences an initial in-flight preparation even with null head',async()=>{
+ const cache=new IndexedCatalogCache('cross-logout-'+randomUUID()),local=new LocalCatalog(scope,cache),other=new LocalCatalog(scope,cache),t=await transport(1);let release,started;
+ const gate=new Promise(r=>release=r),ready=new Promise(r=>started=r),page=t.page;t.page=async(...args)=>{started();await gate;return page(...args);};
+ try{const running=local.update(t);await ready;await other.logout();release();await assert.rejects(running,/SCOPE_CHANGED/);assert.equal(await cache.readPrepared(scope),null);assert.equal(await cache.read(scope),null);}finally{release();await cache.close();}
 });

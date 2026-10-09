@@ -20,7 +20,7 @@ export async function verify(value:CachedCatalog,scope:CatalogScope){
 export interface CatalogTimings { transferMs:number;verificationMs:number;indexMs:number;indexedDbMs:number;activationMs:number;version:string }
 function freeze<T>(value:T):T{if(value&&typeof value==='object'){for(const v of Object.values(value))freeze(v);Object.freeze(value);}return value;}
 export class LocalCatalog {
- private scope:CatalogScope;private cache:CatalogCache;private generation=0;private updateId=0;private active?:CachedCatalog;private pending?:{value:CachedCatalog;search:(q:string)=>CatalogEntry[]};private searchIndex:(q:string)=>CatalogEntry[]=()=>[];
+ private scope:CatalogScope;private cache:CatalogCache;private generation=0;private updateId=0;private epoch=0;private active?:CachedCatalog;private pending?:{value:CachedCatalog;search:(q:string)=>CatalogEntry[]};private searchIndex:(q:string)=>CatalogEntry[]=()=>[];
  constructor(scope:CatalogScope,cache:CatalogCache){this.scope={...scope};this.cache=cache;}
  get version(){return this.active?.manifest.version??null;}
  get pendingVersion(){return this.pending?.value.manifest.version??null;}
@@ -29,17 +29,18 @@ export class LocalCatalog {
  private index(value:CachedCatalog){return createSearch(value.resources.products,p=>[p.code,p.ean,p.name,p.brand&&typeof p.brand==='object'?(p.brand as Record<string,unknown>).name:p.brand].filter(x=>typeof x==='string').join(' '),p=>[p.code,p.ean].filter(x=>typeof x==='string') as string[]);}
  async recover(offline=false){
   const generation=this.generation,operation=++this.updateId,scope={...this.scope};
-  const [value,pending]=await Promise.all([this.cache.read(scope),this.cache.readPrepared(scope)]);
-  if(value)await verify(value,scope);if(pending)await verify(pending,scope);
+  const {active:value,prepared:staged,epoch}=await this.cache.readState(scope);
+  if(value)await verify(value,scope);let pending=staged;if(pending)try{await verify(pending,scope);}catch{pending=null;}
   if(generation!==this.generation||operation!==this.updateId)return false;
   const usable=(v:CachedCatalog|null)=>v&&Date.now()<=v.expiresAt&&(!offline||v.manifest.cache.offlineAllowed);
+  this.epoch=epoch;this.active=undefined;this.pending=undefined;this.searchIndex=()=>[];
   if(usable(pending))this.pending={value:freeze(pending!),search:this.index(pending!)};
   if(!usable(value))return false;
   this.active=freeze(value!);this.searchIndex=this.index(value!);return true;
  }
  async update(transport:CatalogTransport){
   try {
-  const operation=++this.updateId,generation=this.generation,scope={...this.scope},expected=(await this.cache.read(scope))?.manifest.version??null,start=performance.now(),m=await transport.manifest();
+  const operation=++this.updateId,generation=this.generation,scope={...this.scope},state=await this.cache.readState(scope),expected=state.active?.manifest.version??null,start=performance.now(),m=await transport.manifest();
   if(!m)return null;if(m.organizationId!==scope.organizationId)throw new Error('CATALOG_SCOPE_CHANGED');
   const result:Record<string,CatalogEntry[]>={};let received=0;
   for(const resource of resources){const spec=m.resources[resource];if(!spec||!spec.complete||!Number.isSafeInteger(spec.count)||spec.count<0||spec.count>10000)throw new Error('CATALOG_MANIFEST_INVALID');const items:CatalogEntry[]=[];
@@ -54,15 +55,15 @@ export class LocalCatalog {
   const verificationStart=performance.now();await verify(value,scope);const verificationMs=performance.now()-verificationStart,indexStart=performance.now(),immutable=freeze(structuredClone(value)),search=this.index(immutable),indexMs=performance.now()-indexStart;
   if(generation!==this.generation||operation!==this.updateId)throw new Error('CATALOG_SCOPE_CHANGED');
   // REAL stays in memory only until a local data retention/offline policy is approved.
-  const indexedDbMs=m.mode==='FIXTURE'?await this.cache.prepare(immutable,expected,()=>generation===this.generation&&operation===this.updateId):0;
-  if(generation!==this.generation||operation!==this.updateId)throw new Error('CATALOG_SCOPE_CHANGED');this.pending={value:immutable,search};
+  const indexedDbMs=m.mode==='FIXTURE'?await this.cache.prepare(immutable,expected,()=>generation===this.generation&&operation===this.updateId,state.epoch):0;
+  if(generation!==this.generation||operation!==this.updateId)throw new Error('CATALOG_SCOPE_CHANGED');this.epoch=state.epoch;this.pending={value:immutable,search};
   return {transferMs,verificationMs,indexMs,indexedDbMs,activationMs:0,version:m.version} satisfies CatalogTimings;
   }catch(e){if(e instanceof Error&&/^CATALOG_HTTP_(401|403)$/.test(e.message))await this.logout();throw e;}
  }
  async activate(interaction:{query:string;selection:boolean;editing:boolean}){
   if(!this.pending||interaction.query||interaction.selection||interaction.editing)return false;
   const pending=this.pending,generation=this.generation,expected=this.version,scope={...this.scope};
-  if(pending.value.manifest.mode==='FIXTURE')await this.cache.activate(scope,pending.value.manifest.version,expected,()=>generation===this.generation&&this.pending===pending&&!interaction.query&&!interaction.selection&&!interaction.editing);
+  if(pending.value.manifest.mode==='FIXTURE')await this.cache.activate(scope,pending.value.manifest.version,expected,()=>generation===this.generation&&this.pending===pending&&!interaction.query&&!interaction.selection&&!interaction.editing,this.epoch);
   if(generation!==this.generation||this.pending!==pending)return false;
   this.active=pending.value;this.searchIndex=pending.search;this.pending=undefined;return true;
  }
