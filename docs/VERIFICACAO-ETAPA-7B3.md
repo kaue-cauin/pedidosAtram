@@ -6,11 +6,15 @@ Data: 09/10/2026 UTC. Branch `etapa-7b3-catalogo`, base main `65db17b10c6a50bee9
 
 Infraestrutura de catálogo técnico implementada e testada: staging, sete tabelas, jobs persistentes, coleta paginada, orçamento por conta, leases, recuperação controlada, mapeadores, referências/quarentenas, snapshots, CAS/rollback, API autenticada, cache/índice local e diagnóstico sintético.
 
-**Homologação de navegador ainda pendente.** Não foi possível acessar a prévia local pelo navegador deste ambiente. A matriz Node foi executada, mas não substitui teclado/React/DOM, IndexedDB nativo nem fechar/reabrir e recarregar offline real. O PR deve permanecer em rascunho para revisão até essa validação e aceite do responsável. Não declarar a etapa integralmente homologada com métricas de outra natureza.
+**Homologação funcional com dados sintéticos CONCLUÍDA em 09/10/2026**, combinando evidências nativas anteriores com os testes manuais finais realizados pessoalmente pelo responsável Kauê Palazolli no Chrome Windows. Offline real 6/6, reinício completo com o mesmo perfil, A ativa/B pendente sem ativação automática e zero requisições HTTP de pesquisa durante a digitação em Fetch/XHR foram declarados aprovados. Os resultados manuais não foram observados pelo agente nem substituem os exports de performance.
+
+**Identidade exata do build Netlify ainda NÃO COMPROVADA DOCUMENTALMENTE.** A prévia manual é https://wonderful-blancmange-11885c.netlify.app/diagnostico-etapa7b3/ ; não foram disponibilizados deploy ID/metadados ou commit de origem verificável. Esse aceite funcional não confirma vínculo entre o artefato testado e um SHA específico. Registrar essa vinculação ou repetir em build identificado antes de atestar rastreabilidade integral. Ver [relatório consolidado de navegador](etapa7B3/HOMOLOGACAO-NAVEGADOR.md).
+
+**PR #2 apto à decisão de integração técnica à main**, condicionado à CI verde do commit final, revisão e autorização explícita, com a ressalva documental registrada. Permanece em rascunho aguardando autorização; nenhum merge automático. Homologação funcional sintética não equivale a homologação comercial, integração real Tiny/Olist ou autorização de implantação.
 
 Catálogo REAL é sempre técnico PENDING/BLOCKED, somente ADMIN, sem persistência privada em IndexedDB/offline. Infraestrutura íntegra não implica preço/unidade/cliente aprovado para venda. A hospedagem da prévia real continua pendente; não conectamos o Pages ao banco comercial.
 
-## Evidência sequencial
+## Evidência sequencial histórica
 
 | Fase | Commit validado | Execução PostgreSQL |
 | --- | --- | --- |
@@ -22,7 +26,7 @@ Catálogo REAL é sempre técnico PENDING/BLOCKED, somente ADMIN, sem persistên
 
 Os primeiros ensaios de A detectaram ordem incorreta da chave única/FKs gerada e serialização dupla de JSON. Foram corrigidos e repetidos; execuções com falha não são evidência de aceite. Fixtures agora fecham clientes mesmo se migrations falharem.
 
-## Testes
+## Testes — implementação inicial e evidências históricas
 
 Suíte 7B.3: 17 casos com múltiplos cenários e PostgreSQL 16 real no CI; Node com IndexedDB emulado para contratos do cliente. Coletas 0/1/10/50/100/900/1000, última página curta, IDs dentro/entre páginas, total/offset/empty/identidade inválidos, falhas na primeira/intermediária/quase última página, HTTP 400/401/403/429/500, retries limitados, pausa persistente, cancelamento e resposta tardia, restart conservador, duas instâncias, organizações isoladas, referências e quarentenas, preços/unidades, detalhes explícitos, CAS/rollback, version pinning, checksum, transferência interrompida, scope/logout e rascunhos preservados.
 
@@ -36,7 +40,7 @@ Suíte 7B.3: 17 casos com múltiplos cenários e PostgreSQL 16 real no CI; Node 
 | typecheck, lint | PASS; zero warnings de lint | PASS |
 | build estático/offline | PASS — 40 recursos, 121 verificações VM | PASS com base /pedidosAtram |
 | check:backend-boundary | PASS | PASS |
-| Teclado/React/DOM/IndexedDB nativo/offline navegador | PENDENTE | Não medido por essas suítes |
+| Teclado/React/DOM/IndexedDB nativo/offline navegador | APROVADO: sessão nativa + relato manual Chrome Windows | Não medido por essas suítes |
 | Tiny autenticado real | NÃO EXECUTADO | NÃO EXECUTADO |
 
 A regressão preserva MockERPProvider, busca mock local, estados SUBMITTING/SUBMITTED/ERROR/UNKNOWN, bytes congelados, rascunhos e fila/debounce. Não há cálculo de preço real novo no domínio. `Product.unit` passou a textual, mantendo todos os mocks UN.
@@ -62,10 +66,23 @@ Não comercialmente homologado. Parar na revisão deste PR; nenhuma autorizaçã
 
 ## Segunda revisão de ede17bd
 
-Ver [SEGUNDA-REVISAO.md](etapa7B3/SEGUNDA-REVISAO.md) para a reprodução do head prematuro, separação prepared/active e geração de conexão versus revisão de credenciais, testes PostgreSQL com OAuth simulado e limitação concreta do navegador. O PR continua em rascunho, aguardando segunda revisão e homologação visual. Os resultados históricos acima não substituem as evidências desta correção.
+Ver [SEGUNDA-REVISAO.md](etapa7B3/SEGUNDA-REVISAO.md) para a reprodução do head prematuro, separação prepared/active e geração de conexão versus revisão de credenciais, testes PostgreSQL com OAuth simulado e limitação concreta do navegador. O PR continua em rascunho, aguardando autorização para integração; a homologação funcional de navegador foi concluída pelo complemento abaixo. Os resultados históricos acima não substituem as evidências desta correção.
 
-Na segunda revisão, o CI de `ad3631a` aprovou 24 testes da 7B.3, 16 da 7B.2, 19 da 7B.1, regressões 2–6, 36 cenários Node, typecheck, lint, build e boundary. PostgreSQL 16.15 real e OAuth simulado. A matriz visual permanece pendente por ERR_CONNECTION_REFUSED no Chrome remoto. Evidência detalhada e números separados em REGRESSAO.json e SEGUNDA-REVISAO.md.
+Na segunda revisão, o CI de `ad3631a` aprovou 24 testes da 7B.3, 16 da 7B.2, 19 da 7B.1, regressões 2–6, 36 cenários Node, typecheck, lint, build e boundary. PostgreSQL 16.15 real e OAuth simulado. Naquela tentativa, a matriz visual permaneceu pendente por ERR_CONNECTION_REFUSED no Chrome remoto; esse limite foi posteriormente superado pelas sessões descritas abaixo. Evidência detalhada e números separados em REGRESSAO.json e SEGUNDA-REVISAO.md.
 
-## Complementação de navegador — 09/10/2026
+## Complementação anterior de navegador remoto — 09/10/2026
 
-Homologação PARCIAL no preview Netlify: 36 cenários e 48 lotes com IndexedDB nativo, autosave, catálogo em background, teclado, ativação explícita A/B, recuperação, logout e Mock ERP passaram. UI p95 máximo 24,8 ms. Permanecem offline real, reinício completo do navegador e captura de tráfego por tecla, além da identificação do SHA de build. [Relatório e evidências](etapa7B3/HOMOLOGACAO-NAVEGADOR.md). PR #2 continua em rascunho; main/Pages/backend/Tiny real preservados.
+Resultado parcial daquela sessão no preview Netlify: 36 cenários e 48 lotes com IndexedDB nativo, autosave, catálogo em background, teclado, ativação explícita A/B, recuperação, logout e Mock ERP passaram. UI p95 máximo 24,8 ms. Naquela sessão ficaram pendentes offline real, reinício completo do navegador e observação de tráfego por tecla, além da identificação do SHA de build. Os três ensaios funcionais foram concluídos manualmente abaixo; a identidade do build segue pendente. [Relatório e evidências](etapa7B3/HOMOLOGACAO-NAVEGADOR.md). PR #2 continua em rascunho; main/Pages/backend/Tiny real preservados.
+
+## Consolidação final — testes manuais do responsável
+
+Em 09/10/2026 (America/Sao_Paulo), Kauê Palazolli declarou os seguintes resultados pessoais no Chrome Windows, na nova prévia HTTPS indicada no resultado de aceite:
+
+- Offline real **6/6 APROVADOS**: diagnóstico abriu, 900 produtos recuperados, autocomplete operou, rascunho recuperado, inclusão/alteração operaram e alterações permaneceram salvas após reconectar.
+- Reinício completo **APROVADO**: Chrome encerrado e reiniciado com o mesmo perfil; catálogo ativo e pedido recuperados.
+- Persistência A/B **APROVADA**: A `ad3791d5-8738-4419-9309-8820f60d994d` ativa; B `7a4912ea-98e8-4cae-8eaf-a638066749b6` preparada permaneceu pendente, sem ativação automática.
+- Autocomplete/Network **APROVADO**: DevTools → Network → Fetch/XHR, zero requisições HTTP relacionadas à pesquisa durante digitação.
+
+Fonte desses quatro itens: relato manual do responsável; não execução do agente, HAR ou nova medição de desempenho. A versão exata do Chrome/hardware não foi informada. Preservados os 36 cenários nativos (UI p95 máximo 24,8 ms), 48 lotes, digitação contínua (UI p95 3,9 ms), exports/captura e evidências PostgreSQL/regressões. CI anterior do complemento `dcc7590`: [push](https://github.com/kaue-cauin/pedidosAtram/actions/runs/37919277209) e [PR](https://github.com/kaue-cauin/pedidosAtram/actions/runs/37919283409), SUCCESS; 24 casos 7B.3, 16 casos 7B.2, 19 casos 7B.1, regressões 2–6, performance Node, typecheck, lint, build e boundary.
+
+Este complemento altera somente documentação. A CI do commit final será registrada no PR #2 após sua conclusão. Homologação funcional sintética encerrada com ressalva documental de identidade do build; homologação comercial e Tiny/Olist real continuam fora do aceite. Nenhum acesso Tiny, implantação backend, mudança de flags, merge ou início da 7B.4. Pendências comerciais de rate limit atrás de proxy, política de senhas, OAuth persistente e backup/restauração PostgreSQL/chaves permanecem.
