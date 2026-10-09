@@ -1,4 +1,4 @@
-# Atram Comercial — entrada rápida de pedidos e backend 7B.2
+# Atram Comercial — entrada rápida de pedidos e catálogo técnico 7B.3
 
 Esta versão inclui as Etapas 1–6: entrada rápida, tabela grande, autosave em IndexedDB, recuperação, cache offline e envio idempotente ao Mock ERP. Os dados são fictícios; não há integração com Tiny/Olist. O pedido é salvo neste navegador, sem upload ou sincronização entre dispositivos.
 
@@ -153,7 +153,7 @@ Serviço Node local de OAuth e leitura em `integrations/tiny-poc/`, sem conexão
 
 `npm run poc:tiny` exige pré-requisitos/configuração segura previamente confirmados. O [roteiro e arquitetura](docs/etapa7B1/ARQUITETURA-POC.md) explica a inicialização; nunca envie Client Secret/tokens pelo chat ou ao GitHub. Sem autorização/configuração, o serviço falha antes de abrir a porta. Não hospedar a POC no Pages.
 
-[Verificação 7B.1](docs/VERIFICACAO-ETAPA-7B1.md): implementação concluída e conexão real de leitura homologada para **info, produtos, contatos, vendedores e listas de preços**, conforme [evidência sanitizada fornecida pelo responsável](docs/etapa7B1/HOMOLOGACAO-REAL.json). OAuth com S256, callback local e verificação da conta funcionaram; cinco GETs da sessão final, três restantes de oito. Nenhuma criação real. Quotas efetivas e validação comercial completa continuam pendentes. As seções de etapas anteriores registram o estado de suas entregas originais; este é o resumo atual da 7B.1. **A 7B.2 não foi iniciada.**
+[Verificação 7B.1](docs/VERIFICACAO-ETAPA-7B1.md): implementação concluída e conexão real de leitura homologada para **info, produtos, contatos, vendedores e listas de preços**, conforme [evidência sanitizada fornecida pelo responsável](docs/etapa7B1/HOMOLOGACAO-REAL.json). OAuth com S256, callback local e verificação da conta funcionaram; cinco GETs da sessão final, três restantes de oito. Nenhuma criação real. Quotas efetivas e validação comercial completa continuam pendentes. As seções de etapas anteriores registram o estado de suas entregas originais; este é o resumo atual da 7B.1. **Este era o estado ao encerrar a 7B.1; o backend 7B.2 está documentado abaixo.**
 
 
 ## Backend operacional — Etapa 7B.2
@@ -177,4 +177,13 @@ npm run check:stage7b2
 npm run check:backend-boundary # após npm run build
 ```
 
-A suíte completa exige PostgreSQL real temporário e falha sem configuração, sem skip silencioso. CI backend usa banco sintético separado e também verifica toda regressão do MVP. Homologação 7B.1 permanece histórica; o OAuth persistente novo ainda não foi homologado no Tiny real. Testes técnicos aprovados não representam liberação de produção. 7B.3 e 7B.4 não iniciadas.
+A suíte completa exige PostgreSQL real temporário e falha sem configuração, sem skip silencioso. CI backend usa banco sintético separado e também verifica toda regressão do MVP. Homologação 7B.1 permanece histórica; o OAuth persistente novo ainda não foi homologado no Tiny real. Testes técnicos aprovados não representam liberação de produção. A 7B.3 está implementada em branch/PR para revisão, com homologação de navegador pendente. A 7B.4 não foi iniciada.
+
+
+## Catálogo técnico — Etapa 7B.3 em revisão
+
+[Relatório da 7B.3](docs/VERIFICACAO-ETAPA-7B3.md): PostgreSQL com staging/snapshots, jobs e quota compartilhados, leitor paginado, mapeadores com decimal exato e política comercial pendente, API autenticada, cache/índice local e diagnóstico sintético. Não houve merge ou publicação desta etapa.
+
+Todos os flags reais e fixture continuam desabilitados por padrão. REAL só é inspecionável por ADMIN, não vai para IndexedDB/offline e não se conecta ao GitHub Pages. Nenhuma escrita comercial Tiny, ledger distribuído ou 7B.4 foi implementado.
+
+`npm run check:stage7b3` exige banco sintético aprovado; `npm run check:stage7b3:performance` executa 36 cenários Node/emulador. A rota `/diagnostico-etapa7b3/` prepara 900 produtos mock, busca por teclado e matriz de autosave com atualização de catálogo em background. As medidas React/DOM, IndexedDB nativo, fechamento/reabertura e offline real ainda precisam da [matriz de navegador](docs/etapa7B3/PERFORMANCE-E-NAVEGADOR.md) antes de homologar. A demonstração atual continua MockERPProvider.

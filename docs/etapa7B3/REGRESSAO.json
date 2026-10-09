@@ -1,0 +1,89 @@
+{
+  "recordedAt": "2026-10-09",
+  "codeEvidence": {
+    "run": 37863793785,
+    "url": "https://github.com/kaue-cauin/pedidosAtram/actions/runs/37863793785",
+    "sha": "39940b7113ff9612a186e5cd70c44710b95cc6af",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-10-09T00:15:01Z",
+    "updatedAt": "2026-10-09T00:17:18Z"
+  },
+  "baseMain": "65db17b10c6a50bee931b10efdd736bcd74dfa75",
+  "branch": "etapa-7b3-catalogo",
+  "stage7b3": {
+    "tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "postgresql": "16.15 real synthetic CI",
+    "backendFixtures": [
+      {
+        "records": 900,
+        "pages": 39,
+        "elapsedMs": 857
+      },
+      {
+        "records": 1000,
+        "pages": 43,
+        "elapsedMs": 837
+      }
+    ],
+    "note": "Other resources empty in collection benchmark; not Tiny network latency."
+  },
+  "stage7b2": {
+    "tests": 16,
+    "passed": 16
+  },
+  "stage7b1": {
+    "tests": 19,
+    "passed": 19
+  },
+  "mandatoryChecks": "All passed in linked CI",
+  "nodePerformance": {
+    "scenarios": 36,
+    "fixtureProducts": 900,
+    "autosave": true,
+    "modelAndScheduleP95MaxMs": 0.11577400000001603,
+    "localSearchP95MaxMs": 0.6956760000000202,
+    "allRecovered": true,
+    "uiMeasured": false,
+    "indexedDb": "fake-indexeddb 6.2.5",
+    "localReport": "PERFORMANCE-NODE.json"
+  },
+  "staticOffline": {
+    "resources": 40,
+    "vmChecks": 121,
+    "boundary": "PASS"
+  },
+  "browser": {
+    "status": "PENDING",
+    "reason": "No accessible local browser preview in this environment",
+    "requiredBeforeHomologation": true
+  },
+  "realTiny": {
+    "oauth": 0,
+    "authenticatedGet": 0,
+    "refresh": 0,
+    "commercialWrite": 0
+  },
+  "merge": false,
+  "pagesDeploy": false,
+  "pagesPreviousRun": {
+    "id": 37851437082,
+    "sha": "65db17b10c6a50bee931b10efdd736bcd74dfa75",
+    "conclusion": "success"
+  },
+  "backendPublicDeploy": false,
+  "stage7b4": false,
+  "pending": [
+    "Browser keyboard/React/DOM/native IndexedDB/offline matrix",
+    "Commercial price/unit/weight/contact/list rules",
+    "Secure operational frontend origin",
+    "Rate limit behind trusted proxy",
+    "Password policy",
+    "Persistent real OAuth homologation",
+    "PostgreSQL and encryption key backup/restore"
+  ],
+  "commercialApproval": false
+}
