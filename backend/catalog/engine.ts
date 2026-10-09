@@ -92,7 +92,7 @@ export class CatalogEngine {
       }
       if(job.checkpoint.resourceIndex===resources.length){
         await this.repository.prepare(p,job.snapshot_id,job.checkpoint.completed,this.options.maxRecords);
-        const done=await db.client`UPDATE sync_jobs SET status='COMPLETED',finished_at=NOW(),execution_id=NULL,lease_until=NULL,error_code=NULL WHERE id=${id} AND organization_id=${p.organizationId} AND execution_id=${execution} AND lease_until>NOW() AND status='RUNNING' RETURNING id`;
+        const done=await db.client`UPDATE sync_jobs SET status='COMPLETED',records_quarantined=(SELECT count(DISTINCT (resource,erp_id))::int FROM catalog_quarantine WHERE organization_id=${p.organizationId} AND snapshot_id=${job.snapshot_id}),finished_at=NOW(),execution_id=NULL,lease_until=NULL,error_code=NULL WHERE id=${id} AND organization_id=${p.organizationId} AND execution_id=${execution} AND lease_until>NOW() AND status='RUNNING' RETURNING id`;
         if(!done.length)fail('EXECUTION_STALE',409);return {status:'COMPLETED'};
       }
       if(job.pages_processed>=this.options.maxPages)fail('PAGE_LIMIT',409);

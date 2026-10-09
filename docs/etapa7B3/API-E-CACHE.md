@@ -7,7 +7,7 @@ Backend separado do export estático. Nenhuma configuração real entra em NEXT_
 | GET /api/catalog/status, /manifest | Sessão; REAL somente ADMIN até política aprovada |
 | GET /api/catalog/products, /customers, /sellers, /price-lists | `version` obrigatória; `offset` 0..10000; `limit` 1..100; mesma organização |
 | GET /api/catalog/quarantine | ADMIN; version, offset; 100 motivos sanitizados por página |
-| GET /api/admin/sync/jobs | ADMIN; até 50 jobs; progresso e falhas sanitizadas |
+| GET /api/admin/sync/jobs | ADMIN; até 50 jobs; progresso e falhas sanitizadas; quarentenas incluem validação de referências |
 | GET /api/admin/sync/status | ADMIN; id do job; sem account key ou credenciais |
 | POST /api/admin/sync/start | ADMIN + CSRF; mode FIXTURE/REAL, details opcional até 10 IDs |
 | POST /api/admin/sync/step, /cancel, /resume | ADMIN + CSRF; id; ação explícita, sem startup automático |
@@ -30,3 +30,5 @@ Uma nova versão fica pending. Aplicação exige pesquisa vazia, sem seleção e
 `/diagnostico-etapa7b3/` utiliza exclusivamente os 900 produtos mock e IndexedDB de diagnóstico. Permite preparar/aplicar/recuperar catálogo sintético, pesquisar por teclado e repetir a matriz de 10..300 itens com autosave durante transferência/indexação em background. Exporta JSON de catálogo separado do JSON de UI/autosave. Esta rota pode integrar o export estático após revisão; esta etapa não publica o GitHub Pages.
 
 A prévia operacional REAL depende de hospedagem autenticada na mesma origem e da política comercial. Entregamos contrato, API e testes de integração; não conectamos o GitHub Pages ao backend comercial.
+
+O contador validated indica transformação estrutural; quarantine inclui também divergências referenciais detectadas após a coleta. Um contato tecnicamente armazenável com vendedor inexistente permanece visível como BLOCKED e também conta como registro em quarentena. Esses indicadores não autorizam venda.
