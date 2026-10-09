@@ -55,8 +55,51 @@
     "boundary": "PASS"
   },
   "browser": {
-    "status": "PENDING",
-    "reason": "Chrome CUA: net::ERR_CONNECTION_REFUSED for loopback diagnostic; native IndexedDB/keyboard/UI/real offline/reopen not measured",
+    "status": "PARTIAL",
+    "url": "https://starlit-jelly-5d8ef0.netlify.app/diagnostico-etapa7b3/",
+    "recordedAt": "2026-10-09T10:31:10.203Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1363,
+      "height": 936,
+      "pixelRatio": 1
+    },
+    "indexedDb": "native",
+    "method": "10 commits após 2 aquecimentos por operação. UI: modelo + React/DOM até useLayoutEffect, sem pintura. IndexedDB: transação até complete. Persistência: atraso artificial + abertura + transação. Autosave: última alteração do snapshot até complete, incluindo fila/debounce de 250 ms (máximo 1000 ms). Gravações coalescidas por lote, contagem separada de amostras UI. Rede simulada independente; Offline simulado não desliga a rede do navegador.",
+    "matrixScenarios": 36,
+    "comparisonLots": 48,
+    "uiP95MaxMs": 24.800000000046566,
+    "allMatrixDraftsRecovered": true,
+    "continuousInput": {
+      "initialItems": 300,
+      "additions": 60,
+      "uiSamples": 60,
+      "uiP95": 3.8999999999068677,
+      "storageDelayMs": 1000,
+      "savesDuringInput": 2,
+      "actionsWhileSaving": 41,
+      "indexedDbP95": 5.5,
+      "persistenceP95": 1009.5999999998603,
+      "autosaveP95": 1884.3999999999069,
+      "recovered": true
+    },
+    "completed": [
+      "keyboard/autocomplete",
+      "explicit A/B activation before/after reload",
+      "native autosave/background matrices",
+      "storage failure/concurrency",
+      "draft refresh/tab reopen",
+      "synthetic catalog logout preserves drafts",
+      "MockERPProvider submission"
+    ],
+    "pending": [
+      "real offline reload/operation",
+      "complete browser process restart",
+      "network trace for API calls per keystroke"
+    ],
+    "expectedSourceSha": "124e1dff8eb010b5f8049ff9fa53625de9c8f897",
+    "previewBuildShaVerified": false,
+    "report": "HOMOLOGACAO-NAVEGADOR.md",
     "requiredBeforeHomologation": true
   },
   "realTiny": {
@@ -75,7 +118,7 @@
   "backendPublicDeploy": false,
   "stage7b4": false,
   "pending": [
-    "Browser keyboard/React/DOM/native IndexedDB/offline matrix",
+    "Browser real offline, full process restart and network trace per keystroke",
     "Commercial price/unit/weight/contact/list rules",
     "Secure operational frontend origin",
     "Rate limit behind trusted proxy",

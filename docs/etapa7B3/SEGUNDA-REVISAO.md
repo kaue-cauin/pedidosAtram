@@ -1,6 +1,6 @@
 # Etapa 7B.3 — correções para segunda revisão
 
-Base revisada: `ede17bd`. Branch exclusivo: `etapa-7b3-catalogo`; PR #2 permanece em rascunho. Homologação visual pendente.
+Base revisada: `ede17bd`. Branch exclusivo: `etapa-7b3-catalogo`; PR #2 permanece em rascunho. Homologação visual parcial; limitações restantes registradas no relatório de navegador.
 
 ## Reprodução e correção do cache
 
@@ -33,3 +33,7 @@ Chrome remoto disponibilizado, porém o diagnóstico local retornou `net::ERR_CO
 Main e workflow Pages não foram alterados; backend não foi publicado; Tiny/OAuth/leitura/refresh reais permanecem desabilitados por padrão; nenhuma credencial real configurada; nenhuma consulta/escrita no Tiny; não iniciada 7B.4. MockERPProvider e os contratos de autocomplete, autosave, rascunhos e offline permanecem nas regressões. Antes de implantação comercial: rate limit seguro atrás de proxy, política de senhas, homologação OAuth persistente, backup/restauração PostgreSQL e chaves de criptografia.
 
 O epoch de logout é incrementado numa transação e permanece como tombstone, sem produtos ou credenciais. Preparações e ativações com epoch antigo são recusadas entre instâncias, mesmo quando a head era null. A migração de v2 mantém seus ponteiros ativos/preparados; só o head ambíguo v1 é movido para pendente.
+
+## Complemento de navegador — 09/10/2026
+
+Executados no preview Netlify fornecido pelo usuário: matriz 36 nativa, comparação 48, entrada contínua, recuperação A/B por recarga, teclado, recuperação de rascunho por refresh/reabertura de aba, logout sintético e envio Mock ERP. UI p95 máximo 24,8 ms, com autosave e catálogo em background. Offline real, reinício do processo Chrome e captura de requisições por tecla continuam pendentes por limitação do navegador remoto. SHA do build do preview não exposto. O registro anterior de indisponibilidade local é histórico. Consulte [HOMOLOGACAO-NAVEGADOR.md](HOMOLOGACAO-NAVEGADOR.md) e seus exports nativos. Não houve mudança de código nesta complementação.

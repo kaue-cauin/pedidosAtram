@@ -6,7 +6,7 @@ Execução local em Node 24.19.0 (09/10/2026 UTC): máximo p95 do modelo + sched
 
 O CI executa o mesmo benchmark e disponibiliza JSON próprio como artifact. PostgreSQL usa serviço real PostgreSQL 16 e registra separadamente tempo de coleta sintética; fetchers não representam latência Tiny real.
 
-## Matriz de navegador pendente
+## Tentativa local anterior e roteiro
 
 Na segunda revisão, foi gerado o export estático e iniciado um servidor Python em `0.0.0.0:3000`. O Chrome remoto via CUA recusou `http://127.0.0.1:3000/diagnostico-etapa7b3/` com `net::ERR_CONNECTION_REFUSED`; a verificação HTTP em outra execução também falhou. A aplicação não chegou a abrir nesse navegador. Não foi possível testar IndexedDB nativo, teclado, matriz UI, offline real ou reabertura. Não atribuímos resultados de Node ao navegador. A matriz visual permanece requerida antes de homologar a 7B.3.
 
@@ -21,3 +21,7 @@ Na segunda revisão, foi gerado o export estático e iniciado um servidor Python
 Esse roteiro não habilita flags reais, OAuth ou consultas Tiny. Não publicar o branch no Pages para contornar hospedagem segura.
 
 A primeira execução local do benchmark nesta revisão falhou no limite de busca de 50 ms. A segunda execução completa passou (36 cenários), sem mudança no algoritmo de busca; não atribuímos a causa a hardware sem medição. O CI fornece outra execução independente. Esta variação é registrada e não representa evidência de UI ou aprovação visual.
+
+## Execução posterior no preview Netlify
+
+Em 09/10/2026 a interface foi acessada no preview fornecido pelo usuário. Homologação **PARCIAL**: matriz 36 e comparação 48 com IndexedDB nativo, teclado, A/B antes/depois de ativar, refresh, reabertura de aba, logout e Mock ERP passaram. UI p95 máximo 24,8 ms na matriz e 3,9 ms na digitação com armazenamento atrasado. Offline real, reinício completo do Chrome e captura de API por tecla continuam pendentes. Resultados, método e evidências: [HOMOLOGACAO-NAVEGADOR.md](HOMOLOGACAO-NAVEGADOR.md). O erro de loopback acima registra a tentativa anterior; não descreve o preview acessível.

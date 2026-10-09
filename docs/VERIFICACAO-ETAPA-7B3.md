@@ -65,3 +65,7 @@ Não comercialmente homologado. Parar na revisão deste PR; nenhuma autorizaçã
 Ver [SEGUNDA-REVISAO.md](etapa7B3/SEGUNDA-REVISAO.md) para a reprodução do head prematuro, separação prepared/active e geração de conexão versus revisão de credenciais, testes PostgreSQL com OAuth simulado e limitação concreta do navegador. O PR continua em rascunho, aguardando segunda revisão e homologação visual. Os resultados históricos acima não substituem as evidências desta correção.
 
 Na segunda revisão, o CI de `ad3631a` aprovou 24 testes da 7B.3, 16 da 7B.2, 19 da 7B.1, regressões 2–6, 36 cenários Node, typecheck, lint, build e boundary. PostgreSQL 16.15 real e OAuth simulado. A matriz visual permanece pendente por ERR_CONNECTION_REFUSED no Chrome remoto. Evidência detalhada e números separados em REGRESSAO.json e SEGUNDA-REVISAO.md.
+
+## Complementação de navegador — 09/10/2026
+
+Homologação PARCIAL no preview Netlify: 36 cenários e 48 lotes com IndexedDB nativo, autosave, catálogo em background, teclado, ativação explícita A/B, recuperação, logout e Mock ERP passaram. UI p95 máximo 24,8 ms. Permanecem offline real, reinício completo do navegador e captura de tráfego por tecla, além da identificação do SHA de build. [Relatório e evidências](etapa7B3/HOMOLOGACAO-NAVEGADOR.md). PR #2 continua em rascunho; main/Pages/backend/Tiny real preservados.

@@ -1,0 +1,296 @@
+{
+  "recordedAt": "2026-10-09T10:32:49.813Z",
+  "fixtureProducts": 900,
+  "realTinyCalls": 0,
+  "method": "Transferência sintética paginada, SHA-256, índice local e IndexedDB medidos separadamente. A matriz de pedidos abaixo exporta UI/React e autosave em seu próprio JSON.",
+  "timings": [
+    {
+      "transferMs": 105.30000000004657,
+      "verificationMs": 3,
+      "indexMs": 4.599999999860302,
+      "indexedDbMs": 1.9000000001396984,
+      "activationMs": 0,
+      "version": "06023af8-1057-43a2-abb9-319b59424a0a"
+    },
+    {
+      "transferMs": 126.9000000001397,
+      "verificationMs": 3.699999999953434,
+      "indexMs": 5.100000000093132,
+      "indexedDbMs": 2,
+      "activationMs": 0,
+      "version": "7f70dcbf-1b05-4314-b0d7-e8f7862c39c4"
+    },
+    {
+      "transferMs": 168.89999999990687,
+      "verificationMs": 4.5,
+      "indexMs": 5.100000000093132,
+      "indexedDbMs": 2,
+      "activationMs": 0,
+      "version": "02309c88-103b-4530-a826-6735c02b9813"
+    },
+    {
+      "transferMs": 149.60000000009313,
+      "verificationMs": 2.800000000046566,
+      "indexMs": 5.099999999860302,
+      "indexedDbMs": 2.199999999953434,
+      "activationMs": 0,
+      "version": "3584d0e7-beee-40d6-b928-8a673e765169"
+    },
+    {
+      "transferMs": 123.20000000018626,
+      "verificationMs": 2.8999999999068677,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 14.5,
+      "activationMs": 0,
+      "version": "d34c8711-9ddb-4964-96b4-5081c93bc93b"
+    },
+    {
+      "transferMs": 101.5999999998603,
+      "verificationMs": 4.800000000046566,
+      "indexMs": 6.699999999953434,
+      "indexedDbMs": 2.4000000001396984,
+      "activationMs": 0,
+      "version": "c7440bc0-8ad9-4f3f-886b-541e2fffcdf3"
+    },
+    {
+      "transferMs": 267.19999999995343,
+      "verificationMs": 3.699999999953434,
+      "indexMs": 4.800000000046566,
+      "indexedDbMs": 2.699999999953434,
+      "activationMs": 0,
+      "version": "dd670d6d-8b65-4d8f-b674-b6ee51dded94"
+    },
+    {
+      "transferMs": 229.39999999990687,
+      "verificationMs": 3.0999999998603016,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 2.0999999998603016,
+      "activationMs": 0,
+      "version": "573dee92-41f0-4eaf-89a8-7a4e15bda32a"
+    },
+    {
+      "transferMs": 187.5,
+      "verificationMs": 3,
+      "indexMs": 4.699999999953434,
+      "indexedDbMs": 2.1000000000931323,
+      "activationMs": 0,
+      "version": "4654cb14-971d-4d42-aafb-f5636a0608b6"
+    },
+    {
+      "transferMs": 95.80000000004657,
+      "verificationMs": 3,
+      "indexMs": 5.900000000139698,
+      "indexedDbMs": 2.3999999999068677,
+      "activationMs": 0,
+      "version": "73645b0c-562e-40d9-855e-793a3b2e781d"
+    },
+    {
+      "transferMs": 299.10000000009313,
+      "verificationMs": 3.300000000046566,
+      "indexMs": 5.199999999953434,
+      "indexedDbMs": 33.699999999953434,
+      "activationMs": 0,
+      "version": "eb35ce34-1fb4-46f3-89d6-7654be6e7cb0"
+    },
+    {
+      "transferMs": 385,
+      "verificationMs": 4.600000000093132,
+      "indexMs": 4.899999999906868,
+      "indexedDbMs": 6.300000000046566,
+      "activationMs": 0,
+      "version": "5f05289a-a31b-48cd-b2c8-8842c0071f5b"
+    },
+    {
+      "transferMs": 94.39999999990687,
+      "verificationMs": 3.199999999953434,
+      "indexMs": 5,
+      "indexedDbMs": 2.1000000000931323,
+      "activationMs": 0,
+      "version": "6bffd3d8-4d3a-409a-82b0-94d1adac3a50"
+    },
+    {
+      "transferMs": 94.69999999995343,
+      "verificationMs": 3.6000000000931323,
+      "indexMs": 4.800000000046566,
+      "indexedDbMs": 2.0999999998603016,
+      "activationMs": 0,
+      "version": "a574c73c-9ad4-4589-8c33-83aaaa228880"
+    },
+    {
+      "transferMs": 96,
+      "verificationMs": 3.2000000001862645,
+      "indexMs": 5.399999999906868,
+      "indexedDbMs": 1.8999999999068677,
+      "activationMs": 0,
+      "version": "c2a2e809-ce1b-49f3-8fd9-98cbc0b4dcc9"
+    },
+    {
+      "transferMs": 105.19999999995343,
+      "verificationMs": 3.199999999953434,
+      "indexMs": 4.400000000139698,
+      "indexedDbMs": 2,
+      "activationMs": 0,
+      "version": "b8e0e330-95b0-4f57-8eb7-c7641c86187e"
+    },
+    {
+      "transferMs": 95,
+      "verificationMs": 3,
+      "indexMs": 4.5,
+      "indexedDbMs": 5.100000000093132,
+      "activationMs": 0,
+      "version": "f09d8f3d-ae88-48a7-8eb2-040dd82feb35"
+    },
+    {
+      "transferMs": 96.69999999995343,
+      "verificationMs": 3.6000000000931323,
+      "indexMs": 4.899999999906868,
+      "indexedDbMs": 2.1000000000931323,
+      "activationMs": 0,
+      "version": "28b2911a-d9d5-4d5e-a2f9-5cd9f5356184"
+    },
+    {
+      "transferMs": 101.60000000009313,
+      "verificationMs": 2.8999999999068677,
+      "indexMs": 4.699999999953434,
+      "indexedDbMs": 4.800000000046566,
+      "activationMs": 0,
+      "version": "7b179235-abaf-4b8d-aace-bc713eca040c"
+    },
+    {
+      "transferMs": 109,
+      "verificationMs": 4.399999999906868,
+      "indexMs": 4.800000000046566,
+      "indexedDbMs": 2.1000000000931323,
+      "activationMs": 0,
+      "version": "5686556d-a0cc-466f-920b-f15c9d6d12c3"
+    },
+    {
+      "transferMs": 94.89999999990687,
+      "verificationMs": 3.199999999953434,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 1.8999999999068677,
+      "activationMs": 0,
+      "version": "e91f4315-cd03-472d-b82b-602ee313bf6c"
+    },
+    {
+      "transferMs": 95.60000000009313,
+      "verificationMs": 3.199999999953434,
+      "indexMs": 4.699999999953434,
+      "indexedDbMs": 2.3999999999068677,
+      "activationMs": 0,
+      "version": "ab4c99f2-c940-4cbe-a0c2-365849adb71d"
+    },
+    {
+      "transferMs": 118.9000000001397,
+      "verificationMs": 3.5999999998603016,
+      "indexMs": 5.2000000001862645,
+      "indexedDbMs": 2.0999999998603016,
+      "activationMs": 0,
+      "version": "622eb20a-b813-43e4-b719-f7582f2b8d26"
+    },
+    {
+      "transferMs": 159.69999999995343,
+      "verificationMs": 3.7000000001862645,
+      "indexMs": 4.899999999906868,
+      "indexedDbMs": 2.6000000000931323,
+      "activationMs": 0,
+      "version": "91c74164-24df-4a23-b753-bcde847cd252"
+    },
+    {
+      "transferMs": 97.70000000018626,
+      "verificationMs": 3.199999999953434,
+      "indexMs": 5.5,
+      "indexedDbMs": 2.3999999999068677,
+      "activationMs": 0,
+      "version": "879ef23b-faa6-4eed-b777-dc73f9a2d003"
+    },
+    {
+      "transferMs": 95.39999999990687,
+      "verificationMs": 4.599999999860302,
+      "indexMs": 5.400000000139698,
+      "indexedDbMs": 2.5999999998603016,
+      "activationMs": 0,
+      "version": "9aaedd05-f869-4c11-bdd1-6bfe62b31eb9"
+    },
+    {
+      "transferMs": 129.5,
+      "verificationMs": 4.599999999860302,
+      "indexMs": 5,
+      "indexedDbMs": 2.9000000001396984,
+      "activationMs": 0,
+      "version": "10120f30-19f1-4f09-bd13-ea427a7d54bc"
+    },
+    {
+      "transferMs": 159.0999999998603,
+      "verificationMs": 2.800000000046566,
+      "indexMs": 4.699999999953434,
+      "indexedDbMs": 2.199999999953434,
+      "activationMs": 0,
+      "version": "7ade6021-9fd8-4b68-9b9b-0e9bed31ec6e"
+    },
+    {
+      "transferMs": 95.70000000018626,
+      "verificationMs": 2.8999999999068677,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 2.5999999998603016,
+      "activationMs": 0,
+      "version": "43ee42f5-6ef8-4dbf-9f1b-61a49544073e"
+    },
+    {
+      "transferMs": 102.89999999990687,
+      "verificationMs": 3,
+      "indexMs": 4.7000000001862645,
+      "indexedDbMs": 2,
+      "activationMs": 0,
+      "version": "afd6a767-f182-4084-b2a5-f55c0108acb1"
+    },
+    {
+      "transferMs": 139.30000000004657,
+      "verificationMs": 2.8999999999068677,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 2.300000000046566,
+      "activationMs": 0,
+      "version": "84dac136-1b02-40ca-8992-71066d5589a0"
+    },
+    {
+      "transferMs": 210,
+      "verificationMs": 4.300000000046566,
+      "indexMs": 5.300000000046566,
+      "indexedDbMs": 3,
+      "activationMs": 0,
+      "version": "ab35c0ee-95c2-44f5-9061-3b60086d93f5"
+    },
+    {
+      "transferMs": 98.10000000009313,
+      "verificationMs": 3.3999999999068677,
+      "indexMs": 4.900000000139698,
+      "indexedDbMs": 2.5999999998603016,
+      "activationMs": 0,
+      "version": "23cc17fe-f7fe-4299-b1d9-a34105d88941"
+    },
+    {
+      "transferMs": 171.5,
+      "verificationMs": 3,
+      "indexMs": 5.300000000046566,
+      "indexedDbMs": 3.199999999953434,
+      "activationMs": 0,
+      "version": "e7fe8afd-1194-4fb8-abec-8a38c8ad2d56"
+    },
+    {
+      "transferMs": 158,
+      "verificationMs": 3.300000000046566,
+      "indexMs": 4.899999999906868,
+      "indexedDbMs": 3,
+      "activationMs": 0,
+      "version": "c9ca37bf-15f6-4c9e-af07-9f791a507160"
+    },
+    {
+      "transferMs": 328.5999999998603,
+      "verificationMs": 3,
+      "indexMs": 4.600000000093132,
+      "indexedDbMs": 2.5,
+      "activationMs": 0,
+      "version": "5804ab94-ba68-4bb6-9c41-8dac93004da7"
+    }
+  ]
+}
