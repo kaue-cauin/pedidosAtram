@@ -34,6 +34,11 @@ jobs:
       - run: npm ci
       - run: npm run check:stage7b2
       - run: npm run check:stage7b3
+      - run: npm run check:stage7b3:performance
+      - uses: actions/upload-artifact@v4
+        with:
+          name: etapa7b3-performance-node
+          path: docs/etapa7B3/PERFORMANCE-NODE.json
       - run: npm run check:data
       - run: npm run check:stage2
       - run: npm run check:stage3

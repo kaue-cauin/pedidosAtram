@@ -22,7 +22,7 @@ export class AccountBudget {
   async release(key:string,lease:string,quota:Quota={},status=200){
     const pause=status===429||quota.remaining!==undefined&&quota.remaining<=2;
     const seconds=Math.max(1,quota.retryAfterSeconds??quota.resetSeconds??60);
-    await this.db.client`UPDATE sync_budgets SET lease=NULL,lease_until=NULL,remaining=${quota.remaining??null},reset_at=CASE WHEN ${quota.resetSeconds??null}::bigint IS NULL THEN NULL ELSE NOW()+${quota.resetSeconds??null}*interval '1 second' END,
+    await this.db.client`UPDATE sync_budgets SET lease=NULL,lease_until=NULL,remaining=CASE WHEN ${quota.remaining??null}::bigint IS NULL THEN remaining ELSE ${quota.remaining===undefined?null:Math.min(2147483647,quota.remaining)} END,reset_at=CASE WHEN ${quota.resetSeconds??null}::bigint IS NULL THEN reset_at ELSE NOW()+${quota.resetSeconds??null}*interval '1 second' END,
       pause_until=CASE WHEN ${pause} THEN GREATEST(COALESCE(pause_until,NOW()),NOW()+${seconds}*interval '1 second') ELSE pause_until END WHERE key=${key} AND lease=${lease}`;
   }
 }

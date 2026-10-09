@@ -80,6 +80,8 @@ export class CatalogRepository {
     admin(p);if(!uuid(snapshot)||expected!==null&&!uuid(expected))fail('INPUT_INVALID');
     return this.db.client.begin(async sql=>{
       await sql`SELECT id FROM organizations WHERE id=${p.organizationId} FOR UPDATE`;
+      const permitted=await sql`SELECT s.id FROM sessions s JOIN users u ON u.id=s.user_id JOIN organization_memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.id=${p.sessionId} AND s.user_id=${p.userId} AND s.organization_id=${p.organizationId} AND s.revoked_at IS NULL AND s.expires_at>NOW() AND u.status='ACTIVE' AND m.status='ACTIVE' AND m.role='ADMIN' FOR SHARE OF s,u,m`;
+      if(!permitted.length)fail('UNAUTHENTICATED',401);
       const [head]=await sql`SELECT snapshot_id,revision FROM catalog_heads WHERE organization_id=${p.organizationId}`;
       if((head?.snapshot_id??null)!==expected)fail('HEAD_CHANGED',409);
       const [s]=await sql`SELECT * FROM catalog_snapshots WHERE organization_id=${p.organizationId} AND id=${snapshot} FOR UPDATE`;

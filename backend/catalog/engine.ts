@@ -76,7 +76,7 @@ export class CatalogEngine {
         if(budgetLease){await this.budget.release(job.account_key!,budgetLease,response.quota,response.status);budgetLease=undefined;}
         if(response.status===429)throw new BudgetWait(new Date(Date.now()+Math.max(1,response.quota.retryAfterSeconds??response.quota.resetSeconds??60)*1000),true);
         if(response.status!==200)fail(response.status>=500?'ERP_TRANSIENT':response.status===401?'REAUTH_REQUIRED':response.status===403?'PERMISSION_DENIED':'DETAIL_REQUEST_REJECTED',503);
-        const entry=detail.resource==='products'?enrichProduct(existing.projection,response.data):{...existing.projection,...mapPriceList(response.data,job.mode)};
+        const entry=detail.resource==='products'?enrichProduct(existing.projection,response.data):{...existing.projection,...mapPriceList(response.data,job.mode),detailSource:'GET /listas-precos/{id}'};
         if(entry.erpId!==detail.id)fail('DETAIL_ID_CONFLICT');
         await this.authorized(p);
         await db.client.begin(async sql=>{
