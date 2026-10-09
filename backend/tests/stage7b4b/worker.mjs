@@ -1,0 +1,9 @@
+import {database} from '../../db/client.ts';
+import {Vault} from '../../security/crypto.ts';
+import {SubmissionProtection} from '../../submissions/protection.ts';
+import {SubmissionRepository} from '../../submissions/repository.ts';
+import {RecoveryGate} from '../../submissions/recovery.ts';
+const config=JSON.parse(process.env.LEDGER_WORKER_CONFIG),db=database(config.url);
+const repo=new SubmissionRepository(db,new SubmissionProtection(new Vault(new Map([['lab-v1',Buffer.alloc(32,17)]]),'lab-v1')),new RecoveryGate(config.gatePath,'synthetic-lab'));
+process.send?.({ready:true});
+process.on('message',async()=>{try{const value=config.action==='read'?await repo.read(config.principal,config.orderId,config.submissionId):await repo[config.action](config.principal,config.input);process.send?.({value});}catch(error){process.send?.({error:error.code??'INTERNAL'});}finally{await db.close();process.disconnect?.();}});

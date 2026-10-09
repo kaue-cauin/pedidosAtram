@@ -22,6 +22,13 @@
       "when": 1791506781353,
       "tag": "0002_smiling_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791559800000,
+      "tag": "0003_submission_ledger",
+      "breakpoints": true
     }
   ]
 }
