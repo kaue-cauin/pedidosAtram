@@ -11,7 +11,7 @@ Uma migration aditiva, `0003_submission_ledger.sql`, cria cinco tabelas. A ânco
 | submission_orders | PK organização/pedido; origem única e imutável; ownership; revisões de pedido/âncora; ponteiros current/accepted; holds |
 | order_submissions | Snapshot/DTO cifrados; hashes e versões imutáveis; uma ocupante por pedido; recibo externo único por organização/conta; revisão do ledger; tombstone de arquivamento |
 | submission_communications | Intenção local CREATE/LOOKUP; execução única; sequência; potentialEffect; fechamento somente com evidência; lease não libera unicidade |
-| submission_events | Sequência da âncora; ator/sessão; digest e recibo original do comando; append-only |
+| submission_events | Sequência da âncora; ator/sessão; digest e recibo original do comando; justificativa administrativa cifrada; append-only |
 | submission_evidence | Prova sintética vinculada à tentativa/operação/execução, hashes e conta; detalhes cifrados; autoria; observação durável |
 
 As referências entre pedido, tentativa, comunicação, evento e evidência são compostas por organização e recurso. Constraints diferidas verificam os ponteiros circulares e o vínculo da aceitação/fechamento ao terminar a transação. A unicidade parcial de ocupação ignora lease. Eventos e tombstones não podem ser removidos para liberar um pedido.
@@ -32,7 +32,7 @@ A role operacional é NOSUPERUSER/NOCREATEDB/NOCREATEROLE, não é dona das tabe
 
 ```sql
 GRANT EXECUTE ON FUNCTION submission_read(uuid,uuid,uuid),
- submission_command(uuid,uuid,text,jsonb) TO role_operacional_do_laboratorio;
+ submission_command(uuid,uuid,text,jsonb), submission_denial(uuid,text) TO role_operacional_do_laboratorio;
 ```
 
 O provisionador deve impedir CREATE no schema público e não conceder membership da role de migration à role operacional. As funções SECURITY DEFINER são de propriedade da role de migration, possuem search_path fixo e referências qualificadas. Helpers internos e manutenção têm EXECUTE revogado de PUBLIC. Testes usam uma role nova restrita por banco; superusuário só provisiona o ambiente e injeta falhas administrativas controladas.
@@ -47,7 +47,7 @@ Replay compara ator, ação, recurso e digest antes de CAS. Retorna o recibo ori
 
 `confirm` registra somente intenção, operação e execução locais; não existe método que execute transporte. UNKNOWN e execuções potencialmente capazes permanecem bloqueados. ABANDONED, finishedAt e lease vencido não são prova de ausência. NO_EFFECT exige prova de não invocação e executor impedido; REJECTED_FINAL exige exclusão de efeito passado e futuro. Conteúdo só é liberado por arquivamento administrativo de rejeição final de conteúdo, com CAS, prova e ausência de execução capaz.
 
-`recordLabEvidence` é uma entrada **interna de atestação sintética**, não um endpoint que aceita classificação do cliente. B verifica persistência, vínculos, política e atomicidade dessas atestações. A veracidade de respostas de um sistema externo e a política de reconciliação serão responsabilidades das fases C/D. Evidência tardia é armazenada mesmo com revisão informativa antiga; contradições põem hold, preservam recibo terminal e não autorizam reenvio. Não há override administrativo para reenviar apesar da dúvida.
+`recordLabEvidence` é uma entrada **interna de atestação sintética**, não um endpoint que aceita classificação do cliente. B verifica persistência, vínculos, política e atomicidade dessas atestações. A veracidade de respostas de um sistema externo e a política de reconciliação serão responsabilidades das fases C/D. Evidência tardia é armazenada mesmo com revisão informativa antiga; contradições põem hold, preservam recibo terminal e não autorizam reenvio. Não há override administrativo para reenviar apesar da dúvida. Uma nova READY permanece READY, ocupante e bloqueada se chegar aceitação tardia de tentativa arquivada. Justificativas administrativas são cifradas com AAD da identidade do comando; seu hash integra o digest de replay. Denegações autorizativas são registradas após rollback em transação separada, sem payload nem identificação do recurso alheio; indisponibilidade dessa auditoria não converte uma denegação em sucesso. A rotação implementada cobre snapshots, DTOs e evidências; justificativas ainda requerem retenção da chave original.
 
 ## READY abandonado
 

@@ -30,7 +30,7 @@ export async function fixture(){
   role='ledger_'+id().replaceAll('-','');
   await f.db.client.unsafe(`CREATE ROLE "${role}" LOGIN PASSWORD 'synthetic-lab-only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT`);
   await f.db.client.unsafe(`GRANT USAGE ON SCHEMA public TO "${role}"`);
-  await f.db.client.unsafe(`GRANT EXECUTE ON FUNCTION submission_read(uuid,uuid,uuid),submission_command(uuid,uuid,text,jsonb) TO "${role}"`);
+  await f.db.client.unsafe(`GRANT EXECUTE ON FUNCTION submission_read(uuid,uuid,uuid),submission_command(uuid,uuid,text,jsonb),submission_denial(uuid,text) TO "${role}"`);
   const url=new URL(f.url);url.username=role;url.password='synthetic-lab-only';runtime=database(url.href);
   const protection=new SubmissionProtection(new Vault(new Map([['lab-v1',key]]),'lab-v1')),gate=new RecoveryGate(gatePath,'synthetic-lab');
   const repo=new SubmissionRepository(runtime,protection,gate);

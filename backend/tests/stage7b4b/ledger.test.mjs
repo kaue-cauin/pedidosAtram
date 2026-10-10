@@ -63,7 +63,7 @@ withFixture('B06 all 49 edges and persistent preparation/terminal restrictions',
  const a=await f.admitted();await reject(f.repo.archive(f.admin,{...f.decision(a),expectedOrderRevision:1}),'OUTCOME_BLOCKED');
  for(const state of ['DRAFT','VALIDATING'])await assert.rejects(f.db.client`UPDATE order_submissions SET state=${state} WHERE submission_id=${a.input.submissionId}`,/STATE_FORBIDDEN|check constraint/);
  await assert.rejects(f.db.client`UPDATE order_submissions SET state='SUBMITTED' WHERE submission_id=${a.input.submissionId}`,/STATE_FORBIDDEN|check constraint/);
- await assert.rejects(f.db.client`UPDATE order_submissions SET state='ERROR' WHERE submission_id=${a.input.submissionId}`,/EVIDENCE_INVALID/);
+ await assert.rejects(f.db.client.begin(async sql=>{await sql`UPDATE order_submissions SET state='ERROR' WHERE submission_id=${a.input.submissionId}`}),/EVIDENCE_INVALID/);
  const blocked=await f.repo.blockBeforeIntent(f.admin,{...f.decision(a),evidenceId:id(),details:'Synthetic pre-dispatch block'});assert.equal(blocked.projection.submission.state,'ERROR');
  assert.equal((await f.repo.confirm(f.op,f.decision(a,2))).projection.submission.state,'SUBMITTING');
 });
@@ -108,7 +108,7 @@ withFixture('B11 tenant isolation, composite foreign keys and scoped evidence',a
  const a=await f.intended();await reject(f.repo.read(f.other,a.orderId),'RESOURCE_UNAVAILABLE');await reject(f.repo.recordLabEvidence(f.other,f.decision(a,2),f.proof(a)),'RESOURCE_UNAVAILABLE');
  await assert.rejects(f.db.client`INSERT INTO submission_orders(organization_id,origin_local_order_id,owner_id) VALUES(${f.other.organizationId},${id()},${f.op.userId})`,{code:'23503'});
  const opB=await f.principal('OPERADOR',f.other.organizationId),b=await f.repo.register(opB,id(),id());
- await assert.rejects(f.db.client`UPDATE submission_orders SET current_submission_id=${a.input.submissionId} WHERE order_id=${b.projection.orderId}`);
+ await assert.rejects(f.db.client.begin(async sql=>{await sql`UPDATE submission_orders SET current_submission_id=${a.input.submissionId} WHERE order_id=${b.projection.orderId}`}));
 });
 withFixture('B12 revocation committed during admission wins; owner and membership rechecked',async f=>{
  const a=await f.prepared();let ready,release;const locked=new Promise(r=>ready=r),gate=new Promise(r=>release=r);
@@ -125,6 +125,9 @@ withFixture('B13 concurrent administrative resolutions use CAS and idempotent re
  const inputs=[1,2].map(()=>({...f.decision(a,3),evidenceId:proof.evidenceId,reason:'Synthetic resolution with exact proof'}));
  const results=await Promise.allSettled(inputs.map(i=>f.repo.resolve(f.admin,i)));assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.find(r=>r.status==='rejected').reason.code,'REVISION_CONFLICT');
  const winner=results.findIndex(r=>r.status==='fulfilled');assert.equal((await f.repo.resolve(f.admin,inputs[winner])).replay,true);
+ const event=(await f.repo.read(f.admin,a.orderId)).events.find(e=>e.command_id===inputs[winner].commandId);
+ const envelope=Buffer.from(event.justification_encrypted.slice(2),'hex').toString('utf8');
+ assert.equal(f.protection.open(envelope,{organizationId:f.admin.organizationId,orderId:a.orderId,submissionId:a.input.submissionId,kind:'justification',digest:event.justification_hash,identity:event.command_id}),inputs[winner].reason);
 });
 withFixture('B14 archive only rejected content; revised admission; released attempt never reexecutes',async f=>{
  const a=await f.intended();await f.repo.recordLabEvidence(f.admin,f.decision(a,2),f.proof(a,'REJECTED_FINAL'));
@@ -140,7 +143,11 @@ withFixture('B15 contradictory late acceptance and reused external receipt creat
  const r=await f.repo.recordLabEvidence(f.admin,f.decision(a,1),f.proof(a));assert.equal(r.projection.submission.state,'SUBMITTED');assert.equal(r.projection.submission.externalId,p.externalId);assert.equal(r.projection.conflictHold,true);
  const b=await f.intended();const collision=await f.repo.recordLabEvidence(f.admin,f.decision(b,2),f.proof(b,'ACCEPTED',{externalId:p.externalId}));assert.equal(collision.projection.conflictHold,true);
  const c=await f.intended();await f.repo.recordLabEvidence(f.admin,f.decision(c,2),f.proof(c,'REJECTED_FINAL'));await f.repo.archive(f.admin,{...f.decision(c,3),expectedOrderRevision:1});
- const late=await f.repo.recordLabEvidence(f.admin,f.decision(c,2),f.proof(c));assert.equal(late.projection.conflictHold,true);assert.equal(late.projection.submission.releasedAt!==null,true);
+ const revisedBytes=submissionPayload({...JSON.parse(c.input.bytes),notes:'Corrected synthetic revision'});
+ const newer={...c.input,commandId:id(),submissionId:id(),expectedOrderRevision:2,bytes:revisedBytes,businessHash:hash(revisedBytes)};await f.repo.admit(f.op,newer);
+ const late=await f.repo.recordLabEvidence(f.admin,f.decision(c,2),f.proof(c));
+ const guarded=await f.repo.read(f.op,c.orderId,newer.submissionId);assert.equal(guarded.projection.submission.state,'READY');assert.equal(guarded.projection.submission.conflictHold,true);
+ await reject(f.repo.confirm(f.op,{...f.decision(c,2),submissionId:newer.submissionId}),'RECOVERY_HOLD');assert.equal(late.projection.conflictHold,true);assert.equal(late.projection.submission.releasedAt!==null,true);
  assert.equal((await f.repo.read(f.admin,c.orderId,c.input.submissionId)).evidence.length,2);
 });
 withFixture('B16 rollback and post-commit ACK loss recover by same command',async f=>{
@@ -188,9 +195,9 @@ withFixture('B20 runtime cannot forge safeClosedAt or delete tombstones',async f
 });
 withFixture('B21 circular pointers reject other order, wrong state and evidence mismatch',async f=>{
  const a=await f.admitted(),b=await f.admitted();
- await assert.rejects(f.db.client`UPDATE submission_orders SET current_submission_id=${b.input.submissionId} WHERE order_id=${a.orderId}`);
- await assert.rejects(f.db.client`UPDATE submission_orders SET accepted_submission_id=${a.input.submissionId} WHERE order_id=${a.orderId}`,/POINTER_INVALID/);
- await assert.rejects(f.db.client`UPDATE order_submissions SET accepted_evidence_id=${id()},external_order_id='synthetic-invalid',state='SUBMITTED',certainty='ACCEPTED' WHERE submission_id=${a.input.submissionId}`);
+ await assert.rejects(f.db.client.begin(async sql=>{await sql`UPDATE submission_orders SET current_submission_id=${b.input.submissionId} WHERE order_id=${a.orderId}`}));
+ await assert.rejects(f.db.client.begin(async sql=>{await sql`UPDATE submission_orders SET accepted_submission_id=${a.input.submissionId} WHERE order_id=${a.orderId}`}),/POINTER_INVALID/);
+ await assert.rejects(f.db.client.begin(async sql=>{await sql`UPDATE order_submissions SET accepted_evidence_id=${id()},external_order_id='synthetic-invalid',state='SUBMITTED',certainty='ACCEPTED' WHERE submission_id=${a.input.submissionId}`}));
  assert.equal((await f.repo.read(f.op,a.orderId)).projection.submission.state,'READY');
 });
 withFixture('B22 valid 300-item payload, bounded strings and excess bytes without partial commit',async f=>{
@@ -225,5 +232,6 @@ withFixture('B24 audit sequence, actor, original receipt and no payload or token
  assert.equal(stored.events[2].command_receipt.operationId,a.intent.commandReceipt.operationId);
  await assert.rejects(f.repo.read(f.other,a.orderId),e=>e.message==='RESOURCE_UNAVAILABLE'&&!JSON.stringify(e).includes(f.op.organizationId));
  assert.equal((await f.db.client`SELECT rolsuper FROM pg_roles WHERE rolname=current_user`)[0].rolsuper,true);
+ assert.equal((await f.db.client`SELECT count(*)::int n FROM audit_events WHERE action='SUBMISSION_DENIED'`)[0].n,1);
  assert.equal((await f.runtime.client`SELECT rolsuper FROM pg_roles WHERE rolname=current_user`)[0].rolsuper,false);
 });

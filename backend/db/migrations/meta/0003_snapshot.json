@@ -1947,6 +1947,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "justification_encrypted": {
+          "name": "justification_encrypted",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "justification_hash": {
+          "name": "justification_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {

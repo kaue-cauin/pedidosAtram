@@ -75,6 +75,7 @@ CREATE TABLE submission_events (
  organization_id uuid NOT NULL, order_id uuid NOT NULL, event_id uuid NOT NULL DEFAULT gen_random_uuid(), submission_id uuid,
  sequence integer NOT NULL CHECK(sequence>0), action text NOT NULL, actor_id uuid NOT NULL, session_id uuid NOT NULL REFERENCES sessions(id),
  command_id uuid, command_digest text, command_receipt jsonb, evidence_id uuid, from_state text, to_state text,
+ justification_encrypted bytea, justification_hash text,
  created_at timestamptz NOT NULL DEFAULT now(),
  PRIMARY KEY(organization_id,event_id), UNIQUE(organization_id,order_id,sequence), UNIQUE(organization_id,command_id),
  FOREIGN KEY(organization_id,order_id) REFERENCES submission_orders(organization_id,order_id),
@@ -166,7 +167,7 @@ BEGIN
  IF p_command IS NULL OR p_action NOT IN ('REGISTER','ADMIT','CONFIRM','ABANDON','LOOKUP','EVIDENCE','RESOLVE','ARCHIVE','OWNER','HOLD','BLOCK') THEN RAISE EXCEPTION 'INPUT_INVALID'; END IF;
  -- Serializes command identities including conflicts on different resources. No network in this transaction.
  PERFORM pg_advisory_xact_lock(hashtextextended(org::text||p_command::text,73441));
- digest:=encode(sha256(convert_to(jsonb_build_object('action',p_action,'body',b-'snapshot'-'request'-'detailsEnvelope'-'recoveryEpoch')::text,'UTF8')),'hex');
+ digest:=encode(sha256(convert_to(jsonb_build_object('action',p_action,'body',b-'snapshot'-'request'-'detailsEnvelope'-'recoveryEpoch'-'reasonEnvelope')::text,'UTF8')),'hex');
  oid:=(b->>'orderId')::uuid; sid:=(b->>'submissionId')::uuid;
  IF p_action='REGISTER' THEN
   IF role_name<>'OPERADOR' THEN RAISE EXCEPTION 'FORBIDDEN'; END IF;
@@ -264,7 +265,7 @@ BEGIN
    VALUES(org,oid,sid,eid,'LAB_ATTESTATION','NO_EFFECT',s.business_hash,s.request_hash,s.target_account,s.connection_generation,'{"transportNotInvoked":true,"executionFenced":true,"preDispatch":true}'::jsonb,convert_to(b->>'detailsEnvelope','UTF8'),b->>'detailsHash',actor);
   UPDATE public.order_submissions SET state='ERROR',certainty='NO_EFFECT',last_evidence_id=eid,ledger_revision=ledger_revision+1,updated_at=now() WHERE organization_id=org AND submission_id=sid;
  ELSIF p_action='OWNER' THEN
-  IF o.anchor_revision IS DISTINCT FROM (b->>'expectedAnchorRevision')::integer OR length(coalesce(b->>'reasonHash',''))<>64 THEN RAISE EXCEPTION 'REVISION_CONFLICT'; END IF;
+  IF o.anchor_revision IS DISTINCT FROM (b->>'expectedAnchorRevision')::integer OR length(coalesce(b->>'reasonHash',''))<>64 OR b->>'reasonEnvelope' IS NULL THEN RAISE EXCEPTION 'REVISION_CONFLICT'; END IF;
   UPDATE public.submission_orders SET owner_id=target_owner,anchor_revision=anchor_revision+1 WHERE organization_id=org AND order_id=oid;
  ELSIF p_action='HOLD' THEN
   IF o.anchor_revision IS DISTINCT FROM (b->>'expectedAnchorRevision')::integer THEN RAISE EXCEPTION 'REVISION_CONFLICT'; END IF;
@@ -282,7 +283,7 @@ BEGIN
     VALUES(org,oid,sid,eid,c.operation_id,c.execution_id,'LAB_ATTESTATION',b->>'conclusion',s.business_hash,s.request_hash,s.target_account,s.connection_generation,b->>'externalId',b->'checks',coalesce((b->>'contentRejected')::boolean,false),convert_to(b->>'detailsEnvelope','UTF8'),b->>'detailsHash',actor);
   END IF;
   SELECT * INTO e FROM public.submission_evidence WHERE organization_id=org AND order_id=oid AND submission_id=sid AND evidence_id=eid;
-  IF NOT FOUND OR (p_action='RESOLVE' AND length(coalesce(b->>'reasonHash',''))<>64) THEN RAISE EXCEPTION 'EVIDENCE_INVALID'; END IF;
+  IF NOT FOUND OR (p_action='RESOLVE' AND (length(coalesce(b->>'reasonHash',''))<>64 OR b->>'reasonEnvelope' IS NULL)) THEN RAISE EXCEPTION 'EVIDENCE_INVALID'; END IF;
   SELECT * INTO c FROM public.submission_communications WHERE organization_id=org AND operation_id=e.operation_id FOR UPDATE;
   -- A late observation is always stored. It never overwrites terminal truth on stale CAS.
   conflict:=s.conflict_hold OR o.conflict_hold OR (s.state='SUBMITTED' AND (e.conclusion<>'ACCEPTED' OR e.external_order_id IS DISTINCT FROM s.external_order_id))
@@ -291,7 +292,7 @@ BEGIN
    OR (e.conclusion='ACCEPTED' AND EXISTS(SELECT 1 FROM public.order_submissions WHERE organization_id=org AND provider=s.provider AND target_account=s.target_account AND external_order_id=e.external_order_id AND submission_id<>sid));
   IF conflict THEN
    UPDATE public.submission_orders SET conflict_hold=true,anchor_revision=anchor_revision+1 WHERE organization_id=org AND order_id=oid;
-   UPDATE public.order_submissions SET conflict_hold=true,ledger_revision=ledger_revision+1,updated_at=now(),state=CASE WHEN state='SUBMITTED' OR released_at IS NOT NULL THEN state ELSE 'UNKNOWN' END,certainty=CASE WHEN state='SUBMITTED' OR released_at IS NOT NULL THEN certainty ELSE 'CONFLICT' END WHERE organization_id=org AND order_id=oid;
+   UPDATE public.order_submissions SET conflict_hold=true,ledger_revision=ledger_revision+1,updated_at=now(),state=CASE WHEN state IN ('READY','SUBMITTED') OR released_at IS NOT NULL THEN state ELSE 'UNKNOWN' END,certainty=CASE WHEN state IN ('READY','SUBMITTED') OR released_at IS NOT NULL THEN certainty ELSE 'CONFLICT' END WHERE organization_id=org AND order_id=oid;
   ELSIF e.conclusion='ACCEPTED' THEN
    IF s.state NOT IN ('SUBMITTING','UNKNOWN','ERROR','SUBMITTED') THEN RAISE EXCEPTION 'STATE_FORBIDDEN'; END IF;
    UPDATE public.submission_communications SET outcome='ACCEPTED',potential_effect=false,safe_closed_at=now(),closed_evidence_id=eid,finished_at=now() WHERE organization_id=org AND operation_id=c.operation_id;
@@ -315,8 +316,8 @@ BEGIN
  IF eid IS NOT NULL THEN receipt:=receipt||jsonb_build_object('evidenceId',eid,'result',CASE WHEN conflict THEN 'CONFLICT_HELD' ELSE 'EVIDENCE_RECORDED' END); END IF;
  UPDATE public.submission_orders SET event_sequence=event_sequence+1,updated_at=now() WHERE organization_id=org AND order_id=oid RETURNING * INTO o;
  event_action:=p_action;
- INSERT INTO public.submission_events(organization_id,order_id,submission_id,sequence,action,actor_id,session_id,command_id,command_digest,command_receipt,evidence_id,from_state,to_state)
- VALUES(org,oid,sid,o.event_sequence,event_action,actor,p_session,p_command,digest,receipt,eid,oldstate,(SELECT state FROM public.order_submissions WHERE organization_id=org AND submission_id=sid));
+ INSERT INTO public.submission_events(organization_id,order_id,submission_id,sequence,action,actor_id,session_id,command_id,command_digest,command_receipt,evidence_id,from_state,to_state,justification_encrypted,justification_hash)
+ VALUES(org,oid,sid,o.event_sequence,event_action,actor,p_session,p_command,digest,receipt,eid,oldstate,(SELECT state FROM public.order_submissions WHERE organization_id=org AND submission_id=sid),convert_to(b->>'reasonEnvelope','UTF8'),b->>'reasonHash');
  RETURN jsonb_build_object('commandReceipt',receipt,'projection',public.submission_projection(org,oid,sid),'replay',false);
 END $$;
 REVOKE ALL ON FUNCTION submission_command(uuid,uuid,text,jsonb) FROM PUBLIC;
@@ -365,3 +366,12 @@ BEGIN
   VALUES(org,p_order,p_sub,seq,'KEY_ROTATED',actor,p_session,p_evidence);
 END $$;
 REVOKE ALL ON FUNCTION submission_rotate(uuid,uuid,uuid,uuid,text,text,text,text) FROM PUBLIC;
+--> statement-breakpoint
+-- Separate post-rollback denial audit. No request body, foreign resource or secret is logged.
+CREATE FUNCTION submission_denial(p_session uuid,p_code text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF p_code NOT IN ('UNAUTHENTICATED','FORBIDDEN','RESOURCE_UNAVAILABLE','INPUT_INVALID','EVIDENCE_INVALID','COMMAND_CONFLICT','IDENTITY_CONFLICT','REVISION_CONFLICT','ORDER_OCCUPIED','CONTENT_UNCHANGED','OUTCOME_BLOCKED','STATE_FORBIDDEN') THEN RETURN; END IF;
+ INSERT INTO public.audit_events(organization_id,user_id,action,result,correlation_id)
+ SELECT organization_id,user_id,'SUBMISSION_DENIED',p_code,gen_random_uuid() FROM public.sessions WHERE id=p_session;
+END $$;
+REVOKE ALL ON FUNCTION submission_denial(uuid,text) FROM PUBLIC;

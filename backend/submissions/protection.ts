@@ -1,7 +1,7 @@
 import { Vault, hash } from '../security/crypto.ts';
 import { fail } from '../security/errors.ts';
 import { CONTRACT,CANONICAL,MAPPER } from './contracts.ts';
-export interface ProtectedContext { organizationId:string;orderId:string;submissionId:string;kind:'snapshot'|'request'|'evidence';digest:string;identity?:string }
+export interface ProtectedContext { organizationId:string;orderId:string;submissionId:string;kind:'snapshot'|'request'|'evidence'|'justification';digest:string;identity?:string }
 function aad(c:ProtectedContext) {return JSON.stringify([CONTRACT,CANONICAL,MAPPER,c.orderId,c.submissionId,c.kind,c.digest,c.identity??'']);}
 export class SubmissionProtection {
   readonly vault:Vault; constructor(vault:Vault) {this.vault=vault;}
