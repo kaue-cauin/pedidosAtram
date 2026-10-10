@@ -1,0 +1,6 @@
+
+> atram-pedidos@0.4.0 check:backend-boundary
+> node scripts/check-backend-boundary.mjs
+
+BACKEND_BROWSER_BOUNDARY_PASS
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.

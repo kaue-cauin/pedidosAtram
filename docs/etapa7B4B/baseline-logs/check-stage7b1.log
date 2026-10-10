@@ -1,0 +1,32 @@
+
+> atram-pedidos@0.4.0 check:stage7b1
+> node --test scripts/check-stage-7b1.mjs
+
+✔ configuration gates live mode and rejects unsafe callback, missing credentials and resource escalation (2.170991ms)
+✔ OAuth state, cookie, exact callback, expiry, PKCE S256 and concurrent replay (5.503144ms)
+✔ OAuth denial consumes state without token exchange and duplicate parameters are rejected (0.762935ms)
+✔ token response validation rejects malformed/unsafe payloads and permits documented bearer fields (4.929426ms)
+✔ expiration requires reconnection without refresh authorization (0.897154ms)
+✔ refresh serializes concurrent callers, accepts rotation, uses server POST and no access-token replay (1.49371ms)
+✔ disconnect during code exchange cannot resurrect tokens (1.938562ms)
+✔ GET allowlist, account gate, strict first page and eight-call budget (3.152975ms)
+✔ wrong account blocks all further resource reads without disclosing the company (0.95023ms)
+✔ observations preserve input text and expose only known field names/counts, not raw values (0.898208ms)
+✔ HTTP 401/403/429/500 are recorded once, sanitized and never automatically retried (4.163799ms)
+✔ malformed response, network and timeout all consume a dispatched GET and have safe metrics (17.699228ms)
+✔ transport rejects redirects/body types, bounds bytes and times out a stalled body (15.871084ms)
+✔ quota accepts only numeric values or a valid HTTP-date, never arbitrary header text (0.364795ms)
+✔ local HTTP service enforces authentication, Host, CSRF, cookie binding and no raw DTO/token diagnostics (65.630568ms)
+✔ refresh failure, expired refresh and session lifetime require reconnection (1.243086ms)
+✔ no PKCE parameters when support explicitly confirmed unavailable; private fields do not serialize (0.444996ms)
+✔ read operations are serialized and disconnect in flight preserves the gate and spent budget (1.156939ms)
+✔ native transport never follows a redirect to disclose a bearer token (5.734086ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 262.666325
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.

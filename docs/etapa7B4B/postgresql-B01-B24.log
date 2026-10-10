@@ -1,0 +1,39 @@
+Source: https://github.com/kaue-cauin/pedidosAtram/actions/runs/38048402108/job/114202458596
+Code SHA: 2488b041a41ac5914f0cbece9a5826a5d04665a3
+Extract: exact suite output, runner timestamp prefixes removed. Full logs remain in GitHub Actions.
+
+> node --test backend/tests/stage7b4b/*.test.mjs
+
+✔ B01 repeated origin, lost response and stable ownership (219.906488ms)
+✔ B02 100 concurrent identical admissions, restricted runtime connections (485.825807ms)
+✔ B03 independent processes compete; unassigned second operator denied (836.6603ms)
+✔ B04 command reuse across body, resource, action and actor conflicts (205.208668ms)
+✔ B05 original replay after revision advances; new stale command rejected (205.018675ms)
+✔ B06 all 49 edges and persistent preparation/terminal restrictions (219.49763ms)
+✔ B07 abandonment, expired lease and finishedAt never permit second intent (214.21836ms)
+✔ B08 restricted SQL cannot mutate bytes, binding, origin, receipt or history (242.086187ms)
+✔ B09 six canonical vectors, order, Unicode and invalid schemas (189.945455ms)
+✔ B10 local revision has no authority and divergent content cannot overwrite (222.975127ms)
+✔ B11 tenant isolation, composite foreign keys and scoped evidence (225.559094ms)
+✔ B12 revocation committed during admission wins; owner and membership rechecked (211.31619ms)
+✔ B13 concurrent administrative resolutions use CAS and idempotent receipts (217.390587ms)
+✔ B14 archive only rejected content; revised admission; released attempt never reexecutes (220.285047ms)
+✔ B15 contradictory late acceptance and reused external receipt create holds (246.464736ms)
+✔ B16 rollback and post-commit ACK loss recover by same command (197.642203ms)
+✔ B17 actual process restart preserves snapshot, command, revision and uncertain hold (1859.935813ms)
+✔ B18 unavailable database, lock timeout and real deadlock roll back safely (4212.651662ms)
+✔ B19 real old backup restoration while external RECOVERY_HOLD blocks admission and confirm (623.393797ms)
+✔ B20 runtime cannot forge safeClosedAt or delete tombstones (207.356979ms)
+✔ B21 circular pointers reject other order, wrong state and evidence mismatch (237.164124ms)
+B22_PAYLOAD {"items":300,"bytes":71388,"admissionMs":12.553217999999106,"measurement":"PostgreSQL admission, not UI"}
+✔ B22 valid 300-item payload, bounded strings and excess bytes without partial commit (204.306307ms)
+✔ B23 additive migration transaction failure and application rollback preserve ledger (410.343741ms)
+✔ B24 audit sequence, actor, original receipt and no payload or tokens in events/errors (508.98977ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13160.001599

@@ -10,7 +10,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -27,6 +27,10 @@ jobs:
       BACKEND_TEST_DATABASE_APPROVED: 'yes'
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - run: git rev-parse HEAD
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -34,6 +38,16 @@ jobs:
       - run: npm ci
       - run: npm run check:stage7b2
       - run: npm run check:stage7b3
+      - name: PostgreSQL 7B.4B B01–B24
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          npm run check:stage7b4b 2>&1 | tee test-results/7b4b.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: etapa7b4b-postgresql
+          path: test-results/7b4b.log
       - run: npm run check:stage7b3:performance
       - uses: actions/upload-artifact@v4
         with:
