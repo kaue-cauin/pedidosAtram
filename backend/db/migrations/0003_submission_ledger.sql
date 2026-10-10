@@ -321,7 +321,7 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION submission_command(uuid,uuid,text,jsonb) FROM PUBLIC;
 --> statement-breakpoint
-CREATE FUNCTION submission_consistency() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,public AS $$
+CREATE FUNCTION submission_consistency() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE org uuid; oid uuid; o public.submission_orders;
 BEGIN
  org:=NEW.organization_id;oid:=NEW.order_id;

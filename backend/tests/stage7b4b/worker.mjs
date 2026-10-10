@@ -1,3 +1,4 @@
+import './no-network.mjs';
 import {database} from '../../db/client.ts';
 import {Vault} from '../../security/crypto.ts';
 import {SubmissionProtection} from '../../submissions/protection.ts';

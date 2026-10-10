@@ -1,3 +1,4 @@
+import './no-network.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fork,execFileSync} from 'node:child_process';
