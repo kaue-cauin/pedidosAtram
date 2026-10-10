@@ -119,6 +119,17 @@ withFixture('B12 revocation committed during admission wins; owner and membershi
  const other=await f.principal('OPERADOR');const r=await f.repo.register(other,id(),id());
  await f.db.client`UPDATE organization_memberships SET status='INACTIVE' WHERE organization_id=${other.organizationId} AND user_id=${other.userId}`;
  await reject(f.repo.read(other,r.projection.orderId),'UNAUTHENTICATED');
+ // Confirmation must also linearize after a revocation, without creating an intent.
+ const p=await f.principal('OPERADOR'),origin=id(),registered=await f.repo.register(p,id(),origin),input=f.admitInput(registered.projection.orderId,origin);
+ await f.repo.admit(p,input);
+ let lockedConfirm,releaseConfirm;const confirmLock=new Promise(r=>lockedConfirm=r),confirmGate=new Promise(r=>releaseConfirm=r);
+ const revokeConfirm=f.db.client.begin(async sql=>{await sql`UPDATE sessions SET revoked_at=now() WHERE id=${p.sessionId}`;lockedConfirm();await confirmGate;});await confirmLock;
+ const denied=reject(f.repo.confirm(p,{commandId:id(),orderId:input.orderId,submissionId:input.submissionId,expectedLedgerRevision:1}),'UNAUTHENTICATED');
+ releaseConfirm();await revokeConfirm;await denied;
+ assert.equal((await f.db.client`SELECT count(*)::int n FROM submission_communications WHERE submission_id=${input.submissionId}`)[0].n,0);
+ await f.repo.owner(f.admin,{commandId:id(),orderId:input.orderId,ownerId:f.op2.userId,expectedAnchorRevision:2,reason:'Synthetic ownership transfer'});
+ await f.db.client`UPDATE sessions SET revoked_at=NULL WHERE id=${p.sessionId}`;
+ await reject(f.repo.confirm(p,{commandId:id(),orderId:input.orderId,submissionId:input.submissionId,expectedLedgerRevision:1}),'RESOURCE_UNAVAILABLE');
 });
 withFixture('B13 concurrent administrative resolutions use CAS and idempotent receipts',async f=>{
  const a=await f.intended(),proof=f.proof(a,'NO_EFFECT');await f.repo.recordLabEvidence(f.admin,f.decision(a,2),proof);
@@ -234,4 +245,11 @@ withFixture('B24 audit sequence, actor, original receipt and no payload or token
  assert.equal((await f.db.client`SELECT rolsuper FROM pg_roles WHERE rolname=current_user`)[0].rolsuper,true);
  assert.equal((await f.db.client`SELECT count(*)::int n FROM audit_events WHERE action='SUBMISSION_DENIED'`)[0].n,1);
  assert.equal((await f.runtime.client`SELECT rolsuper FROM pg_roles WHERE rolname=current_user`)[0].rolsuper,false);
+ const first=await f.repo.auditPage(f.admin,a.orderId,0,2),second=await f.repo.auditPage(f.admin,a.orderId,first.nextSequence,2);
+ assert.deepEqual([...first.items,...second.items].map(e=>e.sequence),[1,2,3,4]);assert.equal((await f.repo.auditPage(f.admin,a.orderId,second.nextSequence,2)).items.length,0);
+ await reject(f.repo.auditPage(f.other,a.orderId),'RESOURCE_UNAVAILABLE');await reject(f.repo.auditPage(f.admin,a.orderId,0,101),'INPUT_INVALID');
+ const pending=[];for(let i=0;i<2;i++){const b=await f.intended();await f.repo.abandon(f.admin,f.decision(b,2));pending.push(b.orderId);}
+ const q1=await f.repo.pendingPage(f.admin,null,1),q2=await f.repo.pendingPage(f.admin,q1.nextOrderId,1);
+ assert.deepEqual([q1.items[0].orderId,q2.items[0].orderId],pending.sort());assert.equal((await f.repo.pendingPage(f.admin,q2.nextOrderId,1)).items.length,0);
+ assert.equal((await f.repo.pendingPage(f.other)).items.length,0);await reject(f.repo.pendingPage(f.op),'FORBIDDEN');
 });

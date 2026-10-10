@@ -32,12 +32,14 @@ A role operacional é NOSUPERUSER/NOCREATEDB/NOCREATEROLE, não é dona das tabe
 
 ```sql
 GRANT EXECUTE ON FUNCTION submission_read(uuid,uuid,uuid),
- submission_command(uuid,uuid,text,jsonb), submission_denial(uuid,text) TO role_operacional_do_laboratorio;
+ submission_command(uuid,uuid,text,jsonb), submission_denial(uuid,text),
+ submission_audit_page(uuid,uuid,integer,integer),
+ submission_pending_page(uuid,uuid,integer) TO role_operacional_do_laboratorio;
 ```
 
 O provisionador deve impedir CREATE no schema público e não conceder membership da role de migration à role operacional. As funções SECURITY DEFINER são de propriedade da role de migration, possuem search_path fixo e referências qualificadas. Helpers internos e manutenção têm EXECUTE revogado de PUBLIC. Testes usam uma role nova restrita por banco; superusuário só provisiona o ambiente e injeta falhas administrativas controladas.
 
-A sessão deriva do AuthService; SQL revalida organização, usuários, memberships, sessão e owner. ADMIN consulta/resolve/arquiva/transfere, mas não recebe envio por implicação. OPERADOR prepara/confirma somente pedidos próprios. VENDEDOR consulta somente próprios, sem envio. Compartilhamento amplo permanece pendente; B03 testa concorrência de processos para o mesmo owner e transferência explícita para um segundo operador, que nunca ganha acesso por conhecer um UUID.
+A sessão deriva do AuthService; SQL revalida organização, usuários, memberships, sessão e owner. ADMIN consulta/resolve/arquiva/transfere, mas não recebe envio por implicação. OPERADOR prepara/confirma somente pedidos próprios. VENDEDOR consulta somente próprios, sem envio. Auditoria e fila têm consultas paginadas (1–100 registros, cursor de sequência/UUID), com revalidação de sessão e tenant. A fila é ADMIN-only, usa ordenação estável por UUID e não define prioridade operacional/SLA. O método interno read agrega a prova da tentativa para comandos/manutenção; consumidores de auditoria usam auditPage. Compartilhamento amplo permanece pendente; B03 testa concorrência de processos para o mesmo owner e transferência explícita para um segundo operador, que nunca ganha acesso por conhecer um UUID.
 
 ## Transações, comandos e certeza
 

@@ -37,6 +37,14 @@ export class SubmissionRepository {
     return row.value as CommandResult;
   }
   async read(p:Principal,orderId:string,submissionId?:string) {return this.transaction(p,sql=>this.readLocked(sql,p,orderId,submissionId));}
+  async auditPage(p:Principal,orderId:string,afterSequence=0,limit=50) {
+    parsed(commandIdSchema,orderId);parsed(z.number().int().nonnegative(),afterSequence);parsed(z.number().int().min(1).max(100),limit);
+    return this.transaction(p,async sql=>{const [row]=await sql`SELECT submission_audit_page(${principalSession(p)}::uuid,${orderId}::uuid,${afterSequence},${limit}) value`;return row.value as {items:Record<string,unknown>[];nextSequence:number|null};});
+  }
+  async pendingPage(p:Principal,afterOrderId:string|null=null,limit=50) {
+    if(afterOrderId!==null)parsed(commandIdSchema,afterOrderId);parsed(z.number().int().min(1).max(100),limit);
+    return this.transaction(p,async sql=>{const [row]=await sql`SELECT submission_pending_page(${principalSession(p)}::uuid,${afterOrderId}::uuid,${limit}) value`;return row.value as {items:Projection[];nextOrderId:string|null};});
+  }
   async register(p:Principal,commandId:string,origin:string) {
     parsed(z.string().min(1).max(128),origin);
     return this.transaction(p,sql=>this.apply(sql,p,commandId,'REGISTER',{origin}));

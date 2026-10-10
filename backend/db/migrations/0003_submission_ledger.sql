@@ -375,3 +375,28 @@ BEGIN
  SELECT organization_id,user_id,'SUBMISSION_DENIED',p_code,gen_random_uuid() FROM public.sessions WHERE id=p_session;
 END $$;
 REVOKE ALL ON FUNCTION submission_denial(uuid,text) FROM PUBLIC;
+
+--> statement-breakpoint
+-- Bounded read models for future administrative consumers; no HTTP routes or dispatch.
+CREATE FUNCTION submission_audit_page(p_session uuid,p_order uuid,p_after integer,p_limit integer) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE a jsonb; o public.submission_orders;
+BEGIN
+ IF p_after IS NULL OR p_after<0 OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'INPUT_INVALID'; END IF;
+ a:=public.submission_auth(p_session);
+ SELECT * INTO o FROM public.submission_orders WHERE organization_id=(a->>'organizationId')::uuid AND order_id=p_order FOR SHARE;
+ IF NOT FOUND OR (a->>'role'<>'ADMIN' AND o.owner_id<>(a->>'userId')::uuid) THEN RAISE EXCEPTION 'RESOURCE_UNAVAILABLE'; END IF;
+ RETURN (SELECT jsonb_build_object('items',coalesce(jsonb_agg(to_jsonb(e) ORDER BY sequence),'[]'),'nextSequence',max(sequence)) FROM
+  (SELECT * FROM public.submission_events WHERE organization_id=o.organization_id AND order_id=o.order_id AND sequence>p_after ORDER BY sequence LIMIT p_limit) e);
+END $$;
+CREATE FUNCTION submission_pending_page(p_session uuid,p_after uuid,p_limit integer) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE a jsonb;
+BEGIN
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'INPUT_INVALID'; END IF;
+ a:=public.submission_auth(p_session);
+ IF a->>'role'<>'ADMIN' THEN RAISE EXCEPTION 'FORBIDDEN'; END IF;
+ RETURN (SELECT jsonb_build_object('items',coalesce(jsonb_agg(public.submission_projection(o.organization_id,o.order_id) ORDER BY order_id),'[]'),'nextOrderId', (array_agg(order_id ORDER BY order_id DESC))[1]) FROM
+  (SELECT * FROM public.submission_orders o WHERE organization_id=(a->>'organizationId')::uuid AND (p_after IS NULL OR order_id>p_after)
+   AND (conflict_hold OR recovery_hold OR EXISTS(SELECT 1 FROM public.order_submissions s WHERE s.organization_id=o.organization_id AND s.order_id=o.order_id AND (s.state='UNKNOWN' OR s.conflict_hold OR EXISTS(SELECT 1 FROM public.submission_communications c WHERE c.organization_id=s.organization_id AND c.submission_id=s.submission_id AND c.kind='CREATE' AND c.potential_effect AND (c.abandoned OR c.lease_until<clock_timestamp())))))
+   ORDER BY order_id LIMIT p_limit) o);
+END $$;
+REVOKE ALL ON FUNCTION submission_audit_page(uuid,uuid,integer,integer),submission_pending_page(uuid,uuid,integer) FROM PUBLIC;
