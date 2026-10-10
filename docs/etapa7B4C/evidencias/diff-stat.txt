@@ -1,0 +1,27 @@
+ .github/workflows/backend.yml                    |  25 ++
+ backend/submissions/lab/contracts.ts             |  25 ++
+ backend/submissions/lab/evidence-policy.ts       |  27 ++
+ backend/submissions/lab/executor.ts              |  99 +++++
+ backend/submissions/lab/observer.ts              |  20 +
+ backend/submissions/lab/transport.ts             |  74 ++++
+ backend/submissions/repository.ts                |  30 ++
+ backend/tests/stage7b4c/control.mjs              |  55 +++
+ backend/tests/stage7b4c/execution.test.mjs       | 160 ++++++++
+ backend/tests/stage7b4c/harness.mjs              |  83 +++++
+ backend/tests/stage7b4c/postgresql-erp-ledger.ts |  35 ++
+ backend/tests/stage7b4c/preflight.mjs            |  15 +
+ backend/tests/stage7b4c/simulator-store.ts       |  47 +++
+ backend/tests/stage7b4c/simulator.mjs            |  65 ++++
+ backend/tests/stage7b4c/unit.test.mjs            | 141 +++++++
+ backend/tests/stage7b4c/verify-local.mjs         |  24 ++
+ backend/tests/stage7b4c/wire-child.mjs           |  13 +
+ backend/tests/stage7b4c/wire.test.mjs            |  60 +++
+ backend/tests/stage7b4c/worker.mjs               |  48 +++
+ docs/etapa7B4A/CONTRATOS-ETAPA-7B4A.md           | 453 +++++++++++++++++++++++
+ docs/etapa7B4A/ORIGEM.md                         |  14 +
+ docs/etapa7B4C/IMPLEMENTACAO.md                  | 131 +++++++
+ docs/etapa7B4C/MATRIZ-C.md                       |  69 ++++
+ docs/etapa7B4C/PROPOSTA-ETAPA-7B4C.md            | 179 +++++++++
+ docs/etapa7B4C/VERIFICACAO.md                    |   6 +
+ package.json                                     |   5 +-
+ 26 files changed, 1902 insertions(+), 1 deletion(-)

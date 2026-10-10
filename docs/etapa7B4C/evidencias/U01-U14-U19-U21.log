@@ -1,0 +1,30 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage7b4c:unit
+> node --test backend/tests/stage7b4c/unit.test.mjs
+
+✔ U01 accepted requires complete exact binding (3.232609ms)
+✔ U02 timeout, close and empty response cannot establish NO_EFFECT (0.458068ms)
+✔ U03 status 500, 400 and 200 without ID are inconclusive (0.394297ms)
+✔ U04 controlled rejection requires tombstone and exact key (0.430105ms)
+✔ U05 ADMIN observer exposes no confirm or execute (0.254526ms)
+✔ U06 1000 replays do not reconstruct capability (coordinator double) (6.988222ms)
+✔ U07 lost ACK never mints a capability (injected adapter) (0.443285ms)
+✔ U08 controlled pre-invocation failure closes owner path (0.324341ms)
+✔ U09 failure after consumption never creates negative proof (0.244358ms)
+✔ U10 hold/lease/storage errors before invocation stay pending (0.440361ms)
+✔ U11 elapsed validation/commit time is not added to lease (0.170296ms)
+✔ U12 evidence failure returns stable local proof without retrying transport (0.458483ms)
+✔ U13 invalid response becomes sanitized INCONCLUSIVE (0.247018ms)
+✔ U14 residual window remains visible after last check (coordinator double) (0.192391ms)
+✔ U19 epoch change during intention ACK cannot be silently adopted (0.165731ms)
+✔ U20 executor children do not inherit privileged database credentials; SIGKILL exit observed (484.63352ms)
+✔ U21 packet budget preserves maximum frozen bytes through two JSON escaping layers (39.981304ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 689.009534

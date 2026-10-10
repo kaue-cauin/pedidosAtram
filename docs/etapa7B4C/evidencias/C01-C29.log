@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage7b4c
+> node backend/tests/stage7b4c/preflight.mjs && npm run check:stage7b4c:unit && npm run check:stage7b4c:wire && node --test --test-concurrency=1 backend/tests/stage7b4c/execution.test.mjs
+
+7B.4C BLOCKED: real PostgreSQL, pg_dump/pg_restore and approved disposable Docker controls required. C01–C29 NOT EXECUTED.

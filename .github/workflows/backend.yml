@@ -22,9 +22,21 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U test_runner -d atram_test_ci"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      postgres_sim:
+        image: postgres:16
+        env:
+          POSTGRES_DB: atram_test_sim_ci
+          POSTGRES_USER: sim_runner
+          POSTGRES_PASSWORD: synthetic_sim_ci_only
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U sim_runner -d atram_test_sim_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       BACKEND_TEST_DATABASE_URL: postgresql://test_runner:synthetic_ci_only@127.0.0.1:5432/atram_test_ci
       BACKEND_TEST_DATABASE_APPROVED: 'yes'
+      SIM_TEST_DATABASE_URL: postgresql://sim_runner:synthetic_sim_ci_only@127.0.0.1:5433/atram_test_sim_ci
+      LAB_POSTGRES_INTERRUPTION_APPROVED: 'yes'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -48,6 +60,20 @@ jobs:
         with:
           name: etapa7b4b-postgresql
           path: test-results/7b4b.log
+      - name: PostgreSQL 7B.4C C01–C29 (two independent instances)
+        env:
+          APP_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          SIM_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres_sim.id }}
+        run: |
+          mkdir -p test-results/7b4c
+          git rev-parse HEAD > test-results/7b4c/executed-sha.txt
+          set -o pipefail
+          npm run check:stage7b4c 2>&1 | tee test-results/7b4c/suite.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: etapa7b4c-postgresql
+          path: test-results/7b4c/
       - run: npm run check:stage7b3:performance
       - uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,24 @@
+{
+  "status": "FAILED",
+  "error": "ENOENT",
+  "scope": "PROCESS_CONTROL_ONLY_NO_POSTGRESQL_OR_CREATE",
+  "log": [
+    {
+      "pid": 677,
+      "at": "2026-10-10T13:17:55.212Z",
+      "ready": true,
+      "privilegedEnvironmentPresent": false
+    },
+    {
+      "event": "SIGNAL_SENT",
+      "pid": 677,
+      "signal": "SIGSTOP"
+    },
+    {
+      "event": "PROCESS_EXIT",
+      "pid": 677,
+      "code": null,
+      "signal": "SIGKILL"
+    }
+  ]
+}

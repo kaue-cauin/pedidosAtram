@@ -32,7 +32,10 @@
     "check:backend-boundary": "node scripts/check-backend-boundary.mjs",
     "check:stage7b3": "node --test backend/tests/stage7b3/*.test.mjs",
     "check:stage7b3:performance": "node scripts/check-stage-7b3-performance.mjs",
-    "check:stage7b4b": "node --test backend/tests/stage7b4b/*.test.mjs"
+    "check:stage7b4b": "node --test backend/tests/stage7b4b/*.test.mjs",
+    "check:stage7b4c:unit": "node --test backend/tests/stage7b4c/unit.test.mjs",
+    "check:stage7b4c:wire": "node --test backend/tests/stage7b4c/wire.test.mjs",
+    "check:stage7b4c": "node backend/tests/stage7b4c/preflight.mjs && npm run check:stage7b4c:unit && npm run check:stage7b4c:wire && node --test --test-concurrency=1 backend/tests/stage7b4c/execution.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

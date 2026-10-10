@@ -1,0 +1,34 @@
+{
+  "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+  "S01": {
+    "status": "PASS",
+    "nodeSyntaxChecked": 10,
+    "files": [
+      "backend/tests/stage7b4c/harness.mjs",
+      "backend/tests/stage7b4c/verify-local.mjs",
+      "backend/tests/stage7b4c/worker.mjs",
+      "backend/tests/stage7b4c/preflight.mjs",
+      "backend/tests/stage7b4c/wire-child.mjs",
+      "backend/tests/stage7b4c/unit.test.mjs",
+      "backend/tests/stage7b4c/execution.test.mjs",
+      "backend/tests/stage7b4c/control.mjs",
+      "backend/tests/stage7b4c/simulator.mjs",
+      "backend/tests/stage7b4c/wire.test.mjs"
+    ],
+    "sqlExecuted": false
+  },
+  "S02": {
+    "status": "PASS",
+    "existingWorkflowStepsPreserved": 21,
+    "triggersPermissionsAndFirstDatabaseUnchanged": true,
+    "otherWorkflowsUnchanged": true,
+    "remoteCiExecuted": false
+  },
+  "S03": {
+    "status": "PASS",
+    "contractByteIdentical": true,
+    "contractSha256": "324f4c412e7dab5de0dcda9e6da1de22a10353e15d7b5741a0653f43cdd4fd48",
+    "ledgerMigrationsPermissionsAndFrontendUnchanged": true
+  },
+  "scope": "STATIC_SOURCE_AND_CONFIGURATION_ONLY"
+}

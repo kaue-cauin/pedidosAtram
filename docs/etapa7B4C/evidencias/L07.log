@@ -1,0 +1,32 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage7b1
+> node --test scripts/check-stage-7b1.mjs
+
+✔ configuration gates live mode and rejects unsafe callback, missing credentials and resource escalation (1.971268ms)
+✔ OAuth state, cookie, exact callback, expiry, PKCE S256 and concurrent replay (4.858606ms)
+✔ OAuth denial consumes state without token exchange and duplicate parameters are rejected (0.897234ms)
+✔ token response validation rejects malformed/unsafe payloads and permits documented bearer fields (6.296903ms)
+✔ expiration requires reconnection without refresh authorization (0.623713ms)
+✔ refresh serializes concurrent callers, accepts rotation, uses server POST and no access-token replay (1.470587ms)
+✔ disconnect during code exchange cannot resurrect tokens (1.699434ms)
+✔ GET allowlist, account gate, strict first page and eight-call budget (3.541955ms)
+✔ wrong account blocks all further resource reads without disclosing the company (0.975158ms)
+✔ observations preserve input text and expose only known field names/counts, not raw values (0.466275ms)
+✔ HTTP 401/403/429/500 are recorded once, sanitized and never automatically retried (3.47963ms)
+✔ malformed response, network and timeout all consume a dispatched GET and have safe metrics (16.778575ms)
+✔ transport rejects redirects/body types, bounds bytes and times out a stalled body (17.356613ms)
+✔ quota accepts only numeric values or a valid HTTP-date, never arbitrary header text (0.413031ms)
+✔ local HTTP service enforces authentication, Host, CSRF, cookie binding and no raw DTO/token diagnostics (59.598113ms)
+✔ refresh failure, expired refresh and session lifetime require reconnection (1.191368ms)
+✔ no PKCE parameters when support explicitly confirmed unavailable; private fields do not serialize (0.478457ms)
+✔ read operations are serialized and disconnect in flight preserves the gate and spent budget (1.575751ms)
+✔ native transport never follows a redirect to disclose a bearer token (5.481905ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 271.1769

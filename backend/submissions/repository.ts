@@ -7,6 +7,8 @@ import { SubmissionProtection } from './protection.ts';
 import { RecoveryGate } from './recovery.ts';
 import { CANONICAL,MAPPER,commandIdSchema,validateBytes,type Admission,type Decision,type CommandResult,type Projection,type LabProof } from './contracts.ts';
 import { z } from 'zod';
+import type { DispatchBinding } from './lab/contracts.ts';
+import {performance} from 'node:perf_hooks';
 
 type Sql=import('postgres').TransactionSql;
 interface Stored {projection:Projection;origin:string;snapshot:string|null;request:string|null;events:Record<string,unknown>[];evidence:(Record<string,unknown>&{evidence_id:string;details_hash:string;envelope:string})[];communications:Record<string,unknown>[]}
@@ -72,6 +74,34 @@ export class SubmissionRepository {
     const epoch=await this.recovery.assertOpen();const {commandId,...body}=input;
     const result=await this.apply(sql,p,commandId,'CONFIRM',{...body,recoveryEpoch:epoch});await this.recovery.assertSame(epoch);return result;
   });}
+  // A read/replay barrier, never a claim or permission to reconstruct dispatch on boot.
+  // The executor separately requires its private capability from an ACKed, NEW confirm.
+  async validateLabDispatch(p:Principal,input:Decision,operationId:string,executionId:string,epoch:string):Promise<DispatchBinding> {
+    parsed(base,input);parsed(commandIdSchema,operationId);parsed(commandIdSchema,executionId);
+    return this.transaction(p,async sql=>{
+      await this.recovery.assertSame(epoch);
+      const {commandId,...body}=input;
+      // SQL checks current OPERADOR/session/owner under authorization + anchor locks,
+      // even on replay. It returns the original receipt without another event.
+      const result=await this.apply(sql,p,commandId,'CONFIRM',{...body,recoveryEpoch:epoch});
+      const stored=await this.readLocked(sql,p,input.orderId,input.submissionId),s=stored.projection.submission;
+      const c=stored.communications.find(c=>c.operation_id===operationId);
+      const sampledAt=performance.now();
+      const [clock]=await sql`SELECT clock_timestamp() AS now`;
+      if(!result.replay||result.commandReceipt.operationId!==operationId||result.commandReceipt.executionId!==executionId||!s||s.state!=='SUBMITTING'||s.releasedAt||s.conflictHold||stored.projection.conflictHold||stored.projection.recoveryHold||!c||c.kind!=='CREATE'||c.execution_id!==executionId||c.authorized_by!==p.userId||c.authorized_session_id!==p.sessionId||c.abandoned||c.safe_closed_at||!c.potential_effect||c.outcome!=='PENDING')fail('DISPATCH_BLOCKED',503);
+      const remainingMs=new Date(c.lease_until as string).getTime()-new Date(clock.now).getTime();
+      if(remainingMs<=0)fail('LEASE_EXPIRED',503);
+      const context={organizationId:p.organizationId,orderId:input.orderId,submissionId:input.submissionId};
+      const business=this.protection.open(stored.snapshot!,{...context,kind:'snapshot',digest:s.businessHash});
+      validateBytes(business,s.businessHash);
+      const request=this.protection.open(stored.request!,{...context,kind:'request',digest:s.requestHash});
+      const dto=JSON.parse(request);
+      if(dto.mapper!==MAPPER||dto.account!==s.account||dto.business!==business||s.account!=='lab:'+p.organizationId||s.generation!==1)fail('INTEGRITY_ERROR',503);
+      await this.recovery.assertSame(epoch);
+      // Conservatively charge query/commit/decryption time to the remaining lease.
+      return {version:1,organizationId:p.organizationId,orderId:input.orderId,submissionId:input.submissionId,operationId,executionId,account:s.account,generation:1,businessHash:s.businessHash,requestHash:s.requestHash,mapper:MAPPER,canonical:CANONICAL,contract:'submission-ledger-v1',request,remainingMs,expiresMonotonicMs:sampledAt+remainingMs};
+    });
+  }
   async abandon(p:Principal,input:Decision) {parsed(base,input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'ABANDON',body));}
   async lookup(p:Principal,input:Decision) {parsed(base,input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'LOOKUP',body));}
   async archive(p:Principal,input:Decision & {expectedOrderRevision:number}) {parsed(base.extend({expectedOrderRevision:z.number().int().positive()}).strict(),input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'ARCHIVE',body));}

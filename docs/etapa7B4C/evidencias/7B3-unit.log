@@ -1,0 +1,17 @@
+✔ 7B.3D complete checksummed IndexedDB cache, pure local search, quiet activation and draft captures (111.092024ms)
+✔ 7B.3D interrupted/wrong-checksum/mixed-version downloads retain the last good cache; logout fences writes (13.225464ms)
+✔ 7B.3D expiry, scope and cache compare-and-swap; no REAL data persisted (7.765861ms)
+✔ 7B.3 review: prepared B survives reload without becoming active; CAS and failed activation preserve A (15.692383ms)
+✔ 7B.3 review: legacy ambiguous head migrates to pending; preparing concurrent versions never replaces active (6.543882ms)
+✔ 7B.3 review: logout from another instance fences an initial in-flight preparation even with null head (2.353225ms)
+✔ 7B.3C decimal lexemes remain exact; promotion is not the effective price (1.909505ms)
+✔ 7B.3C contacts are not automatically customers; projections exclude private DTO fields (0.519682ms)
+✔ 7B.3B lossless JSON, leading zeros and bounded pagination contracts (1.733391ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 309.986215
