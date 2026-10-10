@@ -1,0 +1,21 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:data
+> node scripts/check-mock-data.mjs
+
+{
+  "result": "PASS",
+  "products": 900,
+  "customers": 100,
+  "sellers": 5,
+  "priceLists": 3,
+  "demoTotals": {
+    "itemCount": 10,
+    "quantity": 75,
+    "grossWeightGrams": 39465,
+    "netWeightGrams": 36405,
+    "productsCents": 124790,
+    "discountCents": 0,
+    "saleCents": 124790
+  }
+}

@@ -1,0 +1,299 @@
+{
+  "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+  "dirtyAtStart": false,
+  "results": [
+    {
+      "label": "L01",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:data"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:19.310Z",
+      "end": "2026-10-10T13:17:19.537Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L01.log",
+      "logHash": "8c613ae93fc069616d03c6efab6b39b98e414a03bae14eefb0a68916757d1d43"
+    },
+    {
+      "label": "L02",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage2"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:19.538Z",
+      "end": "2026-10-10T13:17:19.867Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L02.log",
+      "logHash": "9ea8434e2a1f3cb1493e9144cbfe9041312a2e5f1e45d3293dbe2321d50d4696"
+    },
+    {
+      "label": "L03",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage3"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:19.867Z",
+      "end": "2026-10-10T13:17:20.807Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L03.log",
+      "logHash": "d7ca6c5c39c8810bae1722989d8721159edc10c172e21e07f11ff56ea342800f"
+    },
+    {
+      "label": "L04",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage4"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:20.807Z",
+      "end": "2026-10-10T13:17:21.289Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L04.log",
+      "logHash": "e828746655038a2978d93b50e601cc0f76f978e5d6650a433d8909c61082c796"
+    },
+    {
+      "label": "L05",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage5"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:21.289Z",
+      "end": "2026-10-10T13:17:21.591Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L05.log",
+      "logHash": "7c86dc545dc5b3f02693abfafef962d1b9e92f244b5f72f13f56adda0d6f4edd"
+    },
+    {
+      "label": "L06",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage6"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:21.591Z",
+      "end": "2026-10-10T13:17:22.010Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L06.log",
+      "logHash": "ed248d0219addf71be72c4a001ef46aa997f14cb718a461416ea6d81ab8be0a5"
+    },
+    {
+      "label": "L07",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b1"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:22.011Z",
+      "end": "2026-10-10T13:17:22.481Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L07.log",
+      "logHash": "68c7b0f46173655e9f538977cd5bf76c35d7a515ef5c6c5d0fd5620bff4645fd"
+    },
+    {
+      "label": "L08",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b2:unit"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:22.481Z",
+      "end": "2026-10-10T13:17:24.962Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L08.log",
+      "logHash": "c1282e2a1ac87c0d68eda92f557f4d6e58af9f0d23776aca6f7ed48f9a0841e2"
+    },
+    {
+      "label": "L09",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "typecheck"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:24.962Z",
+      "end": "2026-10-10T13:17:27.719Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L09.log",
+      "logHash": "00229f815f753ab47ea8ee1506b8bc13cab49ee073f4cde5985bcf76bca3b77b"
+    },
+    {
+      "label": "L10",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "lint"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:27.719Z",
+      "end": "2026-10-10T13:17:34.762Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L10.log",
+      "logHash": "55a357946b9cc1b56084ebd91a42db4cecb1d5b12858e0c103abf45a07d5ac95"
+    },
+    {
+      "label": "L11",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "build"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:34.762Z",
+      "end": "2026-10-10T13:17:53.386Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L11.log",
+      "logHash": "b7305a9985e73f702d245f174c47990c636ca632243f41cf43cea2546b6fed86"
+    },
+    {
+      "label": "L12",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:backend-boundary"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:53.386Z",
+      "end": "2026-10-10T13:17:53.569Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "L12.log",
+      "logHash": "3d55d13c7201a6c42fa23850384acf591046e49f96c1206aefd0897251a22bde"
+    },
+    {
+      "label": "U01-U14-U19-U21",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b4c:unit"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:53.569Z",
+      "end": "2026-10-10T13:17:54.444Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "U01-U14-U19-U21.log",
+      "logHash": "e1049dd0d033e69e40b6166a4458c1e60a126d6551bb42506341fc08a94312af"
+    },
+    {
+      "label": "U15-U18",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b4c:wire"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:54.444Z",
+      "end": "2026-10-10T13:17:55.251Z",
+      "exitCode": 1,
+      "signal": null,
+      "log": "U15-U18.log",
+      "logHash": "5f711890916bae29fe316af0beee2a355205667919aded1ba59b85529ba2f13e"
+    },
+    {
+      "label": "C01-C29",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b4c"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:55.251Z",
+      "end": "2026-10-10T13:17:55.453Z",
+      "exitCode": 1,
+      "signal": null,
+      "log": "C01-C29.log",
+      "logHash": "4fbed7090c5a628b972498dbb937a1f8c74c8bafee0a975b5a09b8b2d3b9c815"
+    },
+    {
+      "label": "7B3-unit",
+      "command": [
+        "node",
+        "--test",
+        "backend/tests/stage7b3/client.test.mjs",
+        "backend/tests/stage7b3/mappers.test.mjs",
+        "backend/tests/stage7b3/pagination.test.mjs"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:55.453Z",
+      "end": "2026-10-10T13:17:55.823Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "7B3-unit.log",
+      "logHash": "109108ea84a6ce126193d311afcaf2ac63d99fed1fc6371adecfe5024d6504b9"
+    },
+    {
+      "label": "7B3-performance-node",
+      "command": [
+        "node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+        "run",
+        "check:stage7b3:performance"
+      ],
+      "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+      "dirtyAtStart": false,
+      "start": "2026-10-10T13:17:55.824Z",
+      "end": "2026-10-10T13:18:07.757Z",
+      "exitCode": 0,
+      "signal": null,
+      "log": "7B3-performance-node.log",
+      "logHash": "d23ca5d08724a84a8e3486ffc60d730553fa03788dff69732c36a3e55e4a5e42"
+    }
+  ],
+  "postgresqlCases": "NOT_EXECUTED_UNLESS_PREFLIGHT_AND_SUITE_SUCCEED",
+  "browserHomologation": false,
+  "remoteCiExecuted": false
+}

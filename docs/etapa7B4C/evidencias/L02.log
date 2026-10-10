@@ -1,0 +1,15 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage2
+> node scripts/check-stage-2.mjs
+
+{
+  "result": "PASS",
+  "products": 900,
+  "exactLookups": 1800,
+  "searchSamples": 1000,
+  "searchP50Ms": 0.029223000000001775,
+  "searchP95Ms": 0.05469000000002211,
+  "note": "Busca pura em Node; não mede pintura, teclado ou renderização no navegador."
+}
+Roteiro de 4 inclusões: PASS; 14 linhas, 106 unidades, R$ 1.999,80.

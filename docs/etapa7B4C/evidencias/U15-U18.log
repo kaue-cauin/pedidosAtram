@@ -1,0 +1,94 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage7b4c:wire
+> node --test backend/tests/stage7b4c/wire.test.mjs
+
+✖ U15 real Unix socket: timeout followed by same-socket late proof, one packet (4.749993ms)
+✖ U16 real Unix socket: lost response cannot establish absence (1.917143ms)
+✖ U17 actual independent child SIGKILL after packet; no response evidence (1.487203ms)
+✖ U18 actual SIGSTOP/SIGCONT/SIGKILL with confirmed process state (113.743172ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 623.671433
+
+✖ failing tests:
+
+test at backend/tests/stage7b4c/wire.test.mjs:27:1
+✖ U15 real Unix socket: timeout followed by same-socket late proof, one packet (4.749993ms)
+  Error: listen EPERM: operation not permitted /tmp/atram-u-MfNWHR/wire.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2145:21)
+      at listenInCluster (node:net:2224:12)
+      at Server.listen (node:net:2361:5)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:250
+      at new Promise (<anonymous>)
+      at create (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:178)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:27:190
+      at socketTest (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:18:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/tmp/atram-u-MfNWHR/wire.sock',
+    port: -1
+  }
+
+test at backend/tests/stage7b4c/wire.test.mjs:29:1
+✖ U16 real Unix socket: lost response cannot establish absence (1.917143ms)
+  Error: listen EPERM: operation not permitted /tmp/atram-u-u4GD41/wire.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2145:21)
+      at listenInCluster (node:net:2224:12)
+      at Server.listen (node:net:2361:5)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:250
+      at new Promise (<anonymous>)
+      at create (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:178)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:29:146
+      at socketTest (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:18:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/tmp/atram-u-u4GD41/wire.sock',
+    port: -1
+  }
+
+test at backend/tests/stage7b4c/wire.test.mjs:31:1
+✖ U17 actual independent child SIGKILL after packet; no response evidence (1.487203ms)
+  Error: listen EPERM: operation not permitted /tmp/atram-u-P3PwQC/wire.sock
+      at Server.setupListenHandle [as _listen2] (node:net:2145:21)
+      at listenInCluster (node:net:2224:12)
+      at Server.listen (node:net:2361:5)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:250
+      at new Promise (<anonymous>)
+      at create (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:17:178)
+      at file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:31:173
+      at socketTest (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:18:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '/tmp/atram-u-P3PwQC/wire.sock',
+    port: -1
+  }
+
+test at backend/tests/stage7b4c/wire.test.mjs:44:1
+✖ U18 actual SIGSTOP/SIGCONT/SIGKILL with confirmed process state (113.743172ms)
+  Error: ENOENT: no such file or directory, open '/proc/677/status'
+      at async open (node:internal/fs/promises:697:25)
+      at async readFile (node:internal/fs/promises:1348:14)
+      at async Child.signal (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/harness.mjs:36:23)
+      at async TestContext.<anonymous> (file:///workspace/scratch/3e83a120fab5/pedidosAtram/backend/tests/stage7b4c/wire.test.mjs:45:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/proc/677/status'
+  }

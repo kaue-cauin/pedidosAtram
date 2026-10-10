@@ -1,0 +1,2091 @@
+diff --git a/.github/workflows/backend.yml b/.github/workflows/backend.yml
+index b12c35b..894cbe2 100644
+--- a/.github/workflows/backend.yml
++++ b/.github/workflows/backend.yml
+@@ -22,9 +22,23 @@ jobs:
+         options: >-
+           --health-cmd "pg_isready -U test_runner -d atram_test_ci"
+           --health-interval 5s --health-timeout 5s --health-retries 10
++      postgres_sim:
++        image: postgres:16
++        env:
++          POSTGRES_DB: atram_test_sim_ci
++          POSTGRES_USER: sim_runner
++          POSTGRES_PASSWORD: synthetic_sim_ci_only
++        ports: ['5433:5432']
++        options: >-
++          --health-cmd "pg_isready -U sim_runner -d atram_test_sim_ci"
++          --health-interval 5s --health-timeout 5s --health-retries 10
+     env:
+       BACKEND_TEST_DATABASE_URL: postgresql://test_runner:synthetic_ci_only@127.0.0.1:5432/atram_test_ci
+       BACKEND_TEST_DATABASE_APPROVED: 'yes'
++      SIM_TEST_DATABASE_URL: postgresql://sim_runner:synthetic_sim_ci_only@127.0.0.1:5433/atram_test_sim_ci
++      LAB_POSTGRES_INTERRUPTION_APPROVED: 'yes'
++      APP_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
++      SIM_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres_sim.id }}
+     steps:
+       - uses: actions/checkout@v6
+         with:
+@@ -48,6 +62,17 @@ jobs:
+         with:
+           name: etapa7b4b-postgresql
+           path: test-results/7b4b.log
++      - name: PostgreSQL 7B.4C C01–C29 (two independent instances)
++        run: |
++          mkdir -p test-results/7b4c
++          git rev-parse HEAD > test-results/7b4c/executed-sha.txt
++          set -o pipefail
++          npm run check:stage7b4c 2>&1 | tee test-results/7b4c/suite.log
++      - uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: etapa7b4c-postgresql
++          path: test-results/7b4c/
+       - run: npm run check:stage7b3:performance
+       - uses: actions/upload-artifact@v4
+         with:
+diff --git a/backend/submissions/lab/contracts.ts b/backend/submissions/lab/contracts.ts
+new file mode 100644
+index 0000000..a364a3d
+--- /dev/null
++++ b/backend/submissions/lab/contracts.ts
+@@ -0,0 +1,25 @@
++import { z } from 'zod';
++import {MAX_BYTES} from '../contracts.ts';
++// Business bytes are JSON-escaped once in request and again in the wire packet.
++export const MAX_WIRE_BYTES=4*MAX_BYTES+8192;
++export const bindingSchema = z.object({ version: z.literal(1), organizationId: z.string().uuid(), orderId: z.string().uuid(), submissionId: z.string().uuid(), operationId: z.string().uuid(), executionId: z.string().uuid(), account: z.string().max(128), generation: z.literal(1), businessHash: z.string().regex(/^[a-f0-9]{64}$/), requestHash: z.string().regex(/^[a-f0-9]{64}$/), mapper: z.literal('fixture-identity-v1'), canonical: z.literal('legacy-order-canonical-v1'), contract: z.literal('submission-ledger-v1') }).strict();
++export type Binding = z.infer<typeof bindingSchema>;
++export interface DispatchBinding extends Binding {
++    request: string;
++    remainingMs: number;
++    expiresMonotonicMs: number;
++}
++export const responseSchema = z.object({ binding: bindingSchema, status: z.number().int(), kind: z.enum(['ACCEPTED', 'REJECTED_FINAL', 'INCONCLUSIVE']), externalId: z.string().min(1).max(128).optional(), tombstone: z.object({ id: z.string().uuid(), submissionId: z.string().uuid(), pastEffects: z.literal(0), futureDeliveriesBlocked: z.literal(true) }).strict().optional() }).strict();
++export type Response = z.infer<typeof responseSchema>;
++export type Observation = {
++    type: 'response';
++    response: unknown;
++} | {
++    type: 'uncertain';
++    reason: 'TRANSPORT_TIMEOUT' | 'TRANSPORT_CLOSED' | 'INVALID_RESPONSE';
++};
++export interface SyntheticTransport {
++    observe(binding: DispatchBinding): AsyncIterable<Observation>;
++}
++export function publicBinding(b: DispatchBinding): Binding { const { request, remainingMs, expiresMonotonicMs, ...identity } = b; void request; void remainingMs; void expiresMonotonicMs; return identity; }
++export const sameBinding = (a: Binding, b: Binding) => Object.keys(a).every(k => a[k as keyof Binding] === b[k as keyof Binding]);
+diff --git a/backend/submissions/lab/evidence-policy.ts b/backend/submissions/lab/evidence-policy.ts
+new file mode 100644
+index 0000000..4b24d03
+--- /dev/null
++++ b/backend/submissions/lab/evidence-policy.ts
+@@ -0,0 +1,27 @@
++import { randomUUID } from 'node:crypto';
++import { responseSchema, sameBinding, type Binding, type Observation } from './contracts.ts';
++import type { LabProof } from '../contracts.ts';
++// Only trusted local transport observations reach this policy. The simulator is
++// controlled synthetic infrastructure; its protocol does not establish Tiny guarantees.
++export function classify(binding: Binding, observation: Observation): LabProof {
++    const proof: LabProof = { evidenceId: randomUUID(), operationId: binding.operationId, executionId: binding.executionId, source: 'LAB_ATTESTATION', businessHash: binding.businessHash, requestHash: binding.requestHash, account: binding.account, generation: 1, kind: 'INCONCLUSIVE', details: JSON.stringify({ producer: 'LAB_EXECUTOR', observation: observation.type === 'uncertain' ? observation.reason : 'UNVALIDATED_RESPONSE' }) };
++    if (observation.type === 'uncertain')
++        return proof;
++    const parsed = responseSchema.safeParse(observation.response);
++    // Invalid schema/binding is rejected BEFORE any repository transaction/audit.
++    if (!parsed.success || !sameBinding(binding, parsed.data.binding))
++        throw Error('LAB_RESPONSE_BINDING_INVALID');
++    const r = parsed.data;
++    if (r.kind === 'ACCEPTED' && r.status === 200 && r.externalId && !r.tombstone) {
++        proof.kind = 'ACCEPTED';
++        proof.externalId = r.externalId;
++    }
++    else if (r.kind === 'REJECTED_FINAL' && r.status === 400 && r.tombstone && r.tombstone.submissionId === binding.submissionId && !r.externalId) {
++        proof.kind = 'REJECTED_FINAL';
++        proof.executionFenced = true;
++        proof.rejectsPastAndFuture = true;
++        proof.contentRejected = true;
++    }
++    proof.details = JSON.stringify({ producer: 'LAB_EXECUTOR', status: r.status, kind: proof.kind, tombstone: r.tombstone ?? null });
++    return proof;
++}
+diff --git a/backend/submissions/lab/executor.ts b/backend/submissions/lab/executor.ts
+new file mode 100644
+index 0000000..6caad3a
+--- /dev/null
++++ b/backend/submissions/lab/executor.ts
+@@ -0,0 +1,99 @@
++import { randomUUID } from 'node:crypto';
++import { performance } from 'node:perf_hooks';
++import type { Principal } from '../../auth/service.ts';
++import { BackendError } from '../../security/errors.ts';
++import type { Decision, LabProof } from '../contracts.ts';
++import { SubmissionRepository } from '../repository.ts';
++import { LabAttestor } from './observer.ts';
++import { classify } from './evidence-policy.ts';
++import { publicBinding, type SyntheticTransport, type Observation } from './contracts.ts';
++export type Barrier = 'INTENT_ACKED' | 'VALIDATED' | 'CAPABILITY_CONSUMED' | 'TRANSPORT_INVOKED' | 'OBSERVATION' | 'EVIDENCE_COMMITTED' | 'CAPABILITY_CLOSED';
++export interface LabHooks {
++    barrier?: (name: Barrier, data: Record<string, unknown>) => Promise<void>;
++}
++// Private to the module, one PID, no serialization/IPC/transfer/reconstruction.
++class Capability {
++    #state: 'UNUSED' | 'CONSUMED' | 'CLOSED' = 'UNUSED';
++    readonly pid = process.pid;
++    consume() { if (this.pid !== process.pid || this.#state !== 'UNUSED')
++        throw Error('LAB_CAPABILITY_UNAVAILABLE'); this.#state = 'CONSUMED'; }
++    closeUnused() { if (this.pid !== process.pid || this.#state !== 'UNUSED')
++        return false; this.#state = 'CLOSED'; return true; }
++}
++export class LabExecutor {
++    readonly repo: SubmissionRepository;
++    readonly attestor: LabAttestor;
++    constructor(repo: SubmissionRepository, attestor: LabAttestor) { this.repo = repo; this.attestor = attestor; }
++    async execute(p: Principal, input: Decision, transport: SyntheticTransport, hooks: LabHooks = {}) {
++        const barrier = async (name: Barrier, data: Record<string, unknown> = {}) => { await hooks.barrier?.(name, { operationId: receipt.commandReceipt.operationId, executionId: receipt.commandReceipt.executionId, ...data }); };
++        // No middleware retries this call or this block. An uncertain ACK escapes without
++        // minting a capability, even if the database actually committed the intention.
++        const authorizedEpoch = await this.repo.recovery.assertOpen();
++        const receipt = await this.repo.confirm(p, input);
++        if (receipt.replay || receipt.commandReceipt.result !== 'RECORDED')
++            return { receipt, dispatched: false };
++        const { operationId, executionId } = receipt.commandReceipt;
++        if (!operationId || !executionId)
++            throw Error('LAB_INTENT_REQUIRED');
++        const cap = new Capability();
++        let prepared = false;
++        try {
++            await barrier('INTENT_ACKED');
++            // Never adopt a new NORMAL epoch after the intention ACK (e.g. a restore).
++            await this.repo.recovery.assertSame(authorizedEpoch);
++            const binding = await this.repo.validateLabDispatch(p, input, operationId, executionId, authorizedEpoch);
++            const expires = binding.expiresMonotonicMs;
++            await barrier('VALIDATED');
++            await this.repo.recovery.assertSame(authorizedEpoch);
++            if (performance.now() >= expires)
++                throw new BackendError('LEASE_EXPIRED', 503);
++            cap.consume();
++            prepared = true;
++            // C13 intentionally pauses HERE: after all checks, before invocation. An old
++            // process can still cause one effect; potentialEffect forbids any replacement.
++            await barrier('CAPABILITY_CONSUMED');
++            await barrier('TRANSPORT_INVOKED');
++            for await (const observation of transport.observe(binding)) {
++                await barrier('OBSERVATION', { type: observation.type });
++                let proof: LabProof;
++                try {
++                    proof = classify(publicBinding(binding), observation);
++                }
++                catch {
++                    // A rejected response is not a negative proof. Persist only sanitized
++                    // INCONCLUSIVE, not the invalid caller-chosen binding/body.
++                    proof = classify(publicBinding(binding), { type: 'uncertain', reason: 'INVALID_RESPONSE' });
++                }
++                const evidenceCommandId = randomUUID();
++                // If persistence fails, expose proof/identity only to trusted test supervisor.
++                // No success, no CREATE retry. Caller may retry this SAME local observation.
++                try {
++                    await this.attestor.record(input, proof, evidenceCommandId);
++                }
++                catch (error) {
++                    return { receipt, dispatched: true, pending: { proof, commandId: evidenceCommandId }, error: error instanceof BackendError ? error.code : 'LEDGER_UNAVAILABLE' };
++                }
++                await barrier('EVIDENCE_COMMITTED', { evidenceId: proof.evidenceId, kind: proof.kind });
++            }
++            return { receipt, dispatched: true };
++        }
++        catch (error) {
++            if (prepared)
++                throw error; // Never claim NO_EFFECT after the capability was consumed.
++            const closed = cap.closeUnused();
++            await barrier('CAPABILITY_CLOSED', { closed, transportNotInvoked: true });
++            // 503/lease/hold/storage errors remain conservatively pending for the observer.
++            // A controlled pre-invocation fault or authorization denial has a closed local
++            // owner path. No deferred callback or transport task exists on this branch.
++            if (closed && (!(error instanceof BackendError) || error.status < 500)) {
++                const stored = await this.attestor.repo.read(this.attestor.principal, input.orderId, input.submissionId), s = stored.projection.submission;
++                if (!s)
++                    throw error;
++                const proof: LabProof = { evidenceId: randomUUID(), operationId, executionId, source: 'LAB_ATTESTATION', businessHash: s.businessHash, requestHash: s.requestHash, account: s.account, generation: 1, kind: 'NO_EFFECT', transportNotInvoked: true, executionFenced: true, details: JSON.stringify({ producer: 'LAB_EXECUTOR', mechanism: 'OWNER_PATH_CLOSED_BEFORE_CAPABILITY_CONSUMPTION', pid: process.pid, operationId, executionId }) };
++                await this.attestor.record(input, proof);
++            }
++            return { receipt, dispatched: false, error: error instanceof BackendError ? error.code : 'PRE_INVOCATION_FAULT' };
++        }
++    }
++}
++export const emptyObservation: Observation = { type: 'uncertain', reason: 'INVALID_RESPONSE' };
+diff --git a/backend/submissions/lab/observer.ts b/backend/submissions/lab/observer.ts
+new file mode 100644
+index 0000000..88a814d
+--- /dev/null
++++ b/backend/submissions/lab/observer.ts
+@@ -0,0 +1,20 @@
++import { randomUUID } from 'node:crypto';
++import type { Principal } from '../../auth/service.ts';
++import type { Decision, LabProof } from '../contracts.ts';
++import { SubmissionRepository } from '../repository.ts';
++export class LabAttestor {
++    readonly repo: SubmissionRepository;
++    readonly principal: Principal;
++    constructor(repo: SubmissionRepository, principal: Principal) { if (principal.role !== 'ADMIN')
++        throw Error('LAB_ADMIN_REQUIRED'); this.repo = repo; this.principal = principal; }
++    async record(input: Decision, proof: LabProof, commandId = randomUUID()) {
++        // IDs passed to record must be retained by caller when retrying LOCAL persistence.
++        return this.repo.recordLabEvidence(this.principal, { ...input, commandId }, proof);
++    }
++    async abandon(input: Decision) {
++        const stored = await this.repo.read(this.principal, input.orderId, input.submissionId), s = stored.projection.submission;
++        if (s?.state !== 'SUBMITTING')
++            return stored.projection;
++        return this.repo.abandon(this.principal, { ...input, commandId: randomUUID(), expectedLedgerRevision: s.ledgerRevision });
++    }
++}
+diff --git a/backend/submissions/lab/transport.ts b/backend/submissions/lab/transport.ts
+new file mode 100644
+index 0000000..d13eea7
+--- /dev/null
++++ b/backend/submissions/lab/transport.ts
+@@ -0,0 +1,74 @@
++import net from 'node:net';
++import { bindingSchema, publicBinding, type DispatchBinding, type Observation, type SyntheticTransport } from './contracts.ts';
++// Test-only local Unix socket. No URL/headers/provider from an order, HTTP redirect,
++// retry middleware, connection fallback or resume. Timeout is NOT lease expiration.
++export class UnixSyntheticTransport implements SyntheticTransport {
++    readonly path: string;
++    readonly timeoutMs: number;
++    readonly lateWindowMs: number;
++    readonly onInvoke?: () => void;
++    constructor(path: string, timeoutMs = 1000, lateWindowMs = 3000, onInvoke?: () => void) {
++        if (!path.startsWith('/') || Buffer.byteLength(path) > 100 || timeoutMs < 1 || lateWindowMs < timeoutMs || lateWindowMs > 15000)
++            throw Error('LAB_TRANSPORT_CONFIG');
++        this.path = path;
++        this.timeoutMs = timeoutMs;
++        this.lateWindowMs = lateWindowMs;
++        this.onInvoke = onInvoke;
++    }
++    async *observe(b: DispatchBinding): AsyncIterable<Observation> {
++        bindingSchema.parse(publicBinding(b));
++        const queue: Observation[] = [];
++        let wake: () => void = () => { }, ended = false, buffer = '', uncertain = false, received = false;
++        const push = (o: Observation) => { queue.push(o); wake(); };
++        const fail = (reason: 'TRANSPORT_TIMEOUT' | 'TRANSPORT_CLOSED' | 'INVALID_RESPONSE') => { if (!uncertain) {
++            uncertain = true;
++            push({ type: 'uncertain', reason });
++        } };
++        this.onInvoke?.();
++        const socket = net.createConnection({ path: this.path });
++        const deadline = setTimeout(() => fail('TRANSPORT_TIMEOUT'), this.timeoutMs);
++        // Keep the same socket briefly for a direct late response, never send again.
++        const final = setTimeout(() => { fail('TRANSPORT_CLOSED'); socket.destroy(); }, this.lateWindowMs);
++        socket.once('connect', () => socket.write(JSON.stringify({ binding: publicBinding(b), request: b.request }) + '\n'));
++        socket.on('data', chunk => {
++            if (received)
++                return;
++            buffer += chunk.toString('utf8');
++            if (Buffer.byteLength(buffer) > 65536) {
++                fail('INVALID_RESPONSE');
++                socket.destroy();
++                return;
++            }
++            const index = buffer.indexOf('\n');
++            if (index < 0)
++                return;
++            received = true;
++            clearTimeout(deadline);
++            clearTimeout(final);
++            try {
++                push({ type: 'response', response: JSON.parse(buffer.slice(0, index)) });
++            }
++            catch {
++                fail('INVALID_RESPONSE');
++            }
++            socket.destroy(); // Receipt is complete; no unbounded half-open peer wait.
++        });
++        socket.on('error', () => fail('TRANSPORT_CLOSED'));
++        socket.on('close', () => { if (!received && !uncertain)
++            fail('TRANSPORT_CLOSED'); ended = true; wake(); });
++        try {
++            while (!ended || queue.length) {
++                if (queue.length) {
++                    yield queue.shift()!;
++                    continue;
++                }
++                await new Promise<void>(resolve => { wake = resolve; });
++            }
++        }
++        finally {
++            clearTimeout(deadline);
++            clearTimeout(final);
++            socket.destroy();
++        }
++    }
++}
+diff --git a/backend/submissions/repository.ts b/backend/submissions/repository.ts
+index cabd711..2885b79 100644
+--- a/backend/submissions/repository.ts
++++ b/backend/submissions/repository.ts
+@@ -7,6 +7,8 @@ import { SubmissionProtection } from './protection.ts';
+ import { RecoveryGate } from './recovery.ts';
+ import { CANONICAL,MAPPER,commandIdSchema,validateBytes,type Admission,type Decision,type CommandResult,type Projection,type LabProof } from './contracts.ts';
+ import { z } from 'zod';
++import type { DispatchBinding } from './lab/contracts.ts';
++import {performance} from 'node:perf_hooks';
+ 
+ type Sql=import('postgres').TransactionSql;
+ interface Stored {projection:Projection;origin:string;snapshot:string|null;request:string|null;events:Record<string,unknown>[];evidence:(Record<string,unknown>&{evidence_id:string;details_hash:string;envelope:string})[];communications:Record<string,unknown>[]}
+@@ -72,6 +74,34 @@ export class SubmissionRepository {
+     const epoch=await this.recovery.assertOpen();const {commandId,...body}=input;
+     const result=await this.apply(sql,p,commandId,'CONFIRM',{...body,recoveryEpoch:epoch});await this.recovery.assertSame(epoch);return result;
+   });}
++  // A read/replay barrier, never a claim or permission to reconstruct dispatch on boot.
++  // The executor separately requires its private capability from an ACKed, NEW confirm.
++  async validateLabDispatch(p:Principal,input:Decision,operationId:string,executionId:string,epoch:string):Promise<DispatchBinding> {
++    parsed(base,input);parsed(commandIdSchema,operationId);parsed(commandIdSchema,executionId);
++    return this.transaction(p,async sql=>{
++      await this.recovery.assertSame(epoch);
++      const {commandId,...body}=input;
++      // SQL checks current OPERADOR/session/owner under authorization + anchor locks,
++      // even on replay. It returns the original receipt without another event.
++      const result=await this.apply(sql,p,commandId,'CONFIRM',{...body,recoveryEpoch:epoch});
++      const stored=await this.readLocked(sql,p,input.orderId,input.submissionId),s=stored.projection.submission;
++      const c=stored.communications.find(c=>c.operation_id===operationId);
++      const sampledAt=performance.now();
++      const [clock]=await sql`SELECT clock_timestamp() AS now`;
++      if(!result.replay||result.commandReceipt.operationId!==operationId||result.commandReceipt.executionId!==executionId||!s||s.state!=='SUBMITTING'||s.releasedAt||s.conflictHold||stored.projection.conflictHold||stored.projection.recoveryHold||!c||c.kind!=='CREATE'||c.execution_id!==executionId||c.authorized_by!==p.userId||c.authorized_session_id!==p.sessionId||c.abandoned||c.safe_closed_at||!c.potential_effect||c.outcome!=='PENDING')fail('DISPATCH_BLOCKED',503);
++      const remainingMs=new Date(c.lease_until as string).getTime()-new Date(clock.now).getTime();
++      if(remainingMs<=0)fail('LEASE_EXPIRED',503);
++      const context={organizationId:p.organizationId,orderId:input.orderId,submissionId:input.submissionId};
++      const business=this.protection.open(stored.snapshot!,{...context,kind:'snapshot',digest:s.businessHash});
++      validateBytes(business,s.businessHash);
++      const request=this.protection.open(stored.request!,{...context,kind:'request',digest:s.requestHash});
++      const dto=JSON.parse(request);
++      if(dto.mapper!==MAPPER||dto.account!==s.account||dto.business!==business||s.account!=='lab:'+p.organizationId||s.generation!==1)fail('INTEGRITY_ERROR',503);
++      await this.recovery.assertSame(epoch);
++      // Conservatively charge query/commit/decryption time to the remaining lease.
++      return {version:1,organizationId:p.organizationId,orderId:input.orderId,submissionId:input.submissionId,operationId,executionId,account:s.account,generation:1,businessHash:s.businessHash,requestHash:s.requestHash,mapper:MAPPER,canonical:CANONICAL,contract:'submission-ledger-v1',request,remainingMs,expiresMonotonicMs:sampledAt+remainingMs};
++    });
++  }
+   async abandon(p:Principal,input:Decision) {parsed(base,input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'ABANDON',body));}
+   async lookup(p:Principal,input:Decision) {parsed(base,input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'LOOKUP',body));}
+   async archive(p:Principal,input:Decision & {expectedOrderRevision:number}) {parsed(base.extend({expectedOrderRevision:z.number().int().positive()}).strict(),input);const {commandId,...body}=input;return this.transaction(p,sql=>this.apply(sql,p,commandId,'ARCHIVE',body));}
+diff --git a/backend/tests/stage7b4c/control.mjs b/backend/tests/stage7b4c/control.mjs
+new file mode 100644
+index 0000000..09acadc
+--- /dev/null
++++ b/backend/tests/stage7b4c/control.mjs
+@@ -0,0 +1,55 @@
++import { execFile } from 'node:child_process';
++import { promisify } from 'node:util';
++import assert from 'node:assert/strict';
++import postgres from 'postgres';
++const run = promisify(execFile);
++export function testUrl(name) { const url = new URL(process.env[name] ?? ''); assert.equal(process.env.BACKEND_TEST_DATABASE_APPROVED, 'yes'); assert.ok(['localhost', '127.0.0.1'].includes(url.hostname)); assert.match(url.pathname, /^\/atram_test[a-z0-9_-]*$/i); return url; }
++export async function checkInfrastructure() {
++    const app = testUrl('BACKEND_TEST_DATABASE_URL'), sim = testUrl('SIM_TEST_DATABASE_URL');
++    assert.notEqual(app.port, sim.port, 'Two independent PostgreSQL instances are required');
++    const pools = [app, sim].map(u => postgres(u.href, { max: 1, connect_timeout: 2, onnotice: () => { } }));
++    try {
++        const identifiers = await Promise.all(pools.map(async (sql) => { const [r] = await sql `SELECT system_identifier::text id FROM pg_control_system()`; return r.id; }));
++        assert.notEqual(...identifiers, 'PostgreSQL system identifiers must differ');
++        await run('pg_dump', ['--version']);
++        await run('pg_restore', ['--version']);
++        await containers();
++        return { identifiers };
++    }
++    finally {
++        await Promise.all(pools.map(p => p.end({ timeout: 2 })));
++    }
++}
++async function containers() {
++    assert.equal(process.env.LAB_POSTGRES_INTERRUPTION_APPROVED, 'yes', 'Only explicitly approved disposable PostgreSQL containers may be interrupted');
++    const ids = [process.env.APP_TEST_POSTGRES_CONTAINER, process.env.SIM_TEST_POSTGRES_CONTAINER];
++    assert.ok(ids.every(id => /^[a-f0-9]{12,64}$/.test(id ?? '')));
++    assert.notEqual(...ids);
++    for (const [i, id] of ids.entries()) {
++        const { stdout } = await run('docker', ['inspect', id]);
++        const [c] = JSON.parse(stdout);
++        assert.match(c.Config.Image, /^postgres:16(?:$|@)/);
++        assert.equal(c.Config.Env.find(x => x.startsWith('POSTGRES_DB=')), i === 0 ? 'POSTGRES_DB=atram_test_ci' : 'POSTGRES_DB=atram_test_sim_ci');
++        const ports = c.NetworkSettings.Ports['5432/tcp'];
++        assert.ok(ports.some(p => p.HostPort === (i === 0 ? testUrl('BACKEND_TEST_DATABASE_URL') : testUrl('SIM_TEST_DATABASE_URL')).port), 'Container must match configured test database port');
++    }
++    return ids;
++}
++export async function stopDatabase(kind, log) { const ids = await containers(), id = ids[kind === 'app' ? 0 : 1]; await run('docker', ['stop', '--time', '1', id]); log.push({ event: 'DATABASE_STOPPED', kind, containerId: id, at: new Date().toISOString() }); }
++export async function startDatabase(kind, log) { const id = process.env[kind === 'app' ? 'APP_TEST_POSTGRES_CONTAINER' : 'SIM_TEST_POSTGRES_CONTAINER']; await run('docker', ['start', id]); const u = testUrl(kind === 'app' ? 'BACKEND_TEST_DATABASE_URL' : 'SIM_TEST_DATABASE_URL'); let last; for (let n = 0; n < 100; n++) {
++    const sql = postgres(u.href, { max: 1, connect_timeout: 1, onnotice: () => { } });
++    try {
++        await sql `SELECT 1`;
++        log.push({ event: 'DATABASE_RESTARTED', kind, at: new Date().toISOString() });
++        return;
++    }
++    catch (e) {
++        last = e;
++        await new Promise(r => setTimeout(r, 100));
++    }
++    finally {
++        await sql.end({ timeout: 1 });
++    }
++} throw last; }
++export async function dump(url, path) { testUrl('BACKEND_TEST_DATABASE_URL'); assert.match(new URL(url).pathname, /^\/atram_test_/); await run('pg_dump', ['--dbname=' + url, '--format=custom', '--file=' + path]); }
++export async function restore(url, path) { assert.match(new URL(url).pathname, /^\/atram_test_/); await run('pg_restore', ['--dbname=' + url, '--clean', '--if-exists', '--no-owner', path]); }
+diff --git a/backend/tests/stage7b4c/execution.test.mjs b/backend/tests/stage7b4c/execution.test.mjs
+new file mode 100644
+index 0000000..7001f40
+--- /dev/null
++++ b/backend/tests/stage7b4c/execution.test.mjs
+@@ -0,0 +1,160 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { hash } from '../../security/crypto.ts';
++import { writeFile, rm } from 'node:fs/promises';
++import { join } from 'node:path';
++import { fixture } from './harness.mjs';
++import { stopDatabase, startDatabase, dump, restore, checkInfrastructure } from './control.mjs';
++import { database } from '../../db/client.ts';
++import { SubmissionRepository } from '../../submissions/repository.ts';
++import { publicBinding } from '../../submissions/lab/contracts.ts';
++import { classify } from '../../submissions/lab/evidence-policy.ts';
++import { UnixSyntheticTransport } from '../../submissions/lab/transport.ts';
++import { PostgreSQLERPLedger } from './postgresql-erp-ledger.ts';
++const id = randomUUID;
++await checkInfrastructure(); // No skips/pass surrogate when real infrastructure is missing.
++function scenario(n, fn, profiles = [false, true]) { test('C' + String(n).padStart(2, '0'), { timeout: 180000 }, async () => { for (const idempotent of profiles) {
++    const f = await fixture();
++    const label = 'C' + String(n).padStart(2, '0') + '-' + (idempotent ? 'idempotent' : 'non-idempotent');
++    let error;
++    try {
++        await fn(f, idempotent);
++        await f.manifest(label, 'PASSED');
++    }
++    catch (e) {
++        error = e;
++        await f.manifest(label, 'FAILED', e);
++        throw e;
++    }
++    finally {
++        for (const kind of ['app', 'sim']) {
++            const stops = f.log.filter(x => x.kind === kind && x.event === 'DATABASE_STOPPED').length, starts = f.log.filter(x => x.kind === kind && x.event === 'DATABASE_RESTARTED').length;
++            if (stops > starts)
++                await startDatabase(kind, f.log);
++        }
++        await f.cleanup();
++        if (error)
++            console.error(label + ' failed; inspect its sanitized manifest');
++    }
++} }); }
++async function launch(f, idempotent, options = {}, workerOptions = {}) { const a = await f.setup(), sim = await f.simulator({ idempotent, ...options }), w = await f.worker(a, sim, workerOptions); w.start(); return { a, sim, w }; }
++async function normal(f, idempotent, options = {}) { const r = await launch(f, idempotent, options); assert.ok((await r.w.result()).result); return r; }
++async function noReplacement(f) { const p = await f.state(); await assert.rejects(f.repo.confirm(f.op, { ...f.active.confirm, commandId: id(), expectedLedgerRevision: p.submission.ledgerRevision }), e => ['OUTCOME_BLOCKED', 'STATE_FORBIDDEN', 'RECOVERY_HOLD'].includes(e.code)); }
++async function leaseExpired(f) { await f.db.client `UPDATE submission_communications SET lease_until=clock_timestamp()+interval '100 milliseconds' WHERE submission_id=${f.active.input.submissionId}`; let expired = false; for (let n = 0; n < 100; n++) {
++    const [r] = await f.db.client `SELECT lease_until<clock_timestamp() expired FROM submission_communications WHERE submission_id=${f.active.input.submissionId}`;
++    if (r.expired) {
++        expired = true;
++        break;
++    }
++    await new Promise(resolve => setTimeout(resolve, 20));
++} assert.equal(expired, true); f.log.push({ event: 'LEASE_EXPIRATION_CONFIRMED', fixtureDurationInjectedMs: 100, clock: 'POSTGRESQL_CLOCK_TIMESTAMP' }); }
++async function direct(f, sim, b) { f.log.push({ event: 'HARNESS_AUXILIARY_CREATE' }); const observations = []; for await (const o of new UnixSyntheticTransport(sim.path).observe(b))
++    observations.push(o); return observations; }
++scenario(1, async (f, mode) => { await normal(f, mode); await f.assertCounts([1, 1, 1, 1, 2, 1]); assert.equal((await f.state()).submission.state, 'SUBMITTED'); });
++scenario(2, async (f, mode) => { const a = await f.setup(), sim = await f.simulator({ idempotent: mode }), workers = await Promise.all([f.worker(a, sim, { repeat: 50 }), f.worker(a, sim, { repeat: 50 })]); workers.forEach(w => w.start()); for (const w of workers)
++    assert.ok((await w.result()).result); await f.assertCounts([1, 1, 1, 1, 2, 1]); });
++scenario(3, async (f, mode) => { const { a, sim } = await normal(f, mode, { profile: 'lost' }); const workers = await Promise.all([f.worker(a, sim, { repeat: 500 }), f.worker(a, sim, { repeat: 500 })]); workers.forEach(w => w.start()); for (const w of workers)
++    assert.equal((await w.result()).result.dispatched, false); await noReplacement(f); await f.assertCounts([1, 1, 1, 1, 2, 1]); assert.equal((await f.state()).submission.state, 'UNKNOWN'); });
++scenario(4, async (f, mode) => { const { w } = await launch(f, mode, {}, { fault: 'BEFORE_COMMIT' }); assert.equal((await w.result()).error, 'LEDGER_UNAVAILABLE'); await f.assertCounts([0, 0, 0, 0, 0, 0]); assert.equal((await f.state()).submission.state, 'READY'); });
++scenario(5, async (f, mode) => { const { a, w } = await launch(f, mode, {}, { fault: 'LOST_ACK' }); assert.equal((await w.result()).error, 'LEDGER_UNAVAILABLE'); await f.attestor.abandon(a.confirm); await noReplacement(f); await f.assertCounts([0, 0, 0, 1, 2, 0]); });
++scenario(6, async (f, mode) => { const { w } = await launch(f, mode, {}, { fault: 'INTENT_ACKED' }); assert.equal((await w.result()).result.dispatched, false); assert.ok(w.messages.some(m => m.barrier === 'CAPABILITY_CLOSED' && m.closed === true)); assert.equal(w.exited.code, 0); await f.assertCounts([0, 0, 0, 1, 2, 1]); assert.equal((await f.state()).submission.certainty, 'NO_EFFECT'); });
++scenario(7, async (f) => { const a = await f.setup(), w = await f.worker(a, { path: join(f.dir, 'absent.sock') }); w.start(); assert.ok((await w.result()).result); await f.assertCounts([1, 0, 0, 1, 2, 1]); await noReplacement(f); });
++scenario(8, async (f, mode) => { await normal(f, mode, { profile: 'lost' }); await noReplacement(f); await f.assertCounts([1, 1, 1, 1, 2, 1]); });
++scenario(9, async (f, mode) => { const { a, sim, w } = await launch(f, mode, {}, { pause: 'OBSERVATION' }); await sim.child.barrier('SIM_EFFECT_COMMITTED'); await w.barrier('OBSERVATION'); await w.signal('SIGKILL'); await f.attestor.abandon(a.confirm); const reboot = await f.worker(a, sim); reboot.start(); assert.equal((await reboot.result()).result.dispatched, false); await f.assertCounts([1, 1, 1, 1, 2, 0]); await noReplacement(f); });
++scenario(10, async (f, mode) => { const { w } = await launch(f, mode, { profile: 'delay', delayMs: 300 }, { timeoutMs: 50, lateWindowMs: 1000 }); assert.ok((await w.result()).result); await f.assertCounts([1, 1, 1, 1, 3, 2]); assert.deepEqual(f.log.filter(x => x.barrier === 'EVIDENCE_COMMITTED').map(x => x.kind), ['INCONCLUSIVE', 'ACCEPTED']); assert.equal((await f.state()).submission.state, 'SUBMITTED'); });
++scenario(11, async (f, mode) => { const { a } = await normal(f, mode), b = publicBinding(await f.binding()), original = (await f.state()).submission.externalId; await f.attestor.record(a.confirm, classify(b, { type: 'uncertain', reason: 'INVALID_RESPONSE' })); const p = await f.state(); assert.equal(p.submission.state, 'SUBMITTED'); assert.equal(p.submission.externalId, original); assert.equal(p.conflictHold, true); await f.assertCounts([1, 1, 1, 1, 3, 2]); await noReplacement(f); });
++scenario(12, async (f, mode) => { const { a, w } = await launch(f, mode, {}, { pause: 'INTENT_ACKED' }), barrier = await w.barrier('INTENT_ACKED'); await w.signal('SIGSTOP'); await leaseExpired(f); await f.attestor.abandon(a.confirm); await noReplacement(f); await w.signal('SIGCONT'); w.release(barrier); assert.equal((await w.result()).result.dispatched, false); await f.assertCounts([0, 0, 0, 1, 2, 0]); });
++scenario(13, async (f, mode) => { const { a, w } = await launch(f, mode, {}, { pause: 'CAPABILITY_CONSUMED' }), barrier = await w.barrier('CAPABILITY_CONSUMED'); await w.signal('SIGSTOP'); await leaseExpired(f); await f.attestor.abandon(a.confirm); await noReplacement(f); await w.signal('SIGCONT'); w.release(barrier); assert.equal((await w.result()).result.dispatched, true); await f.assertCounts([1, 1, 1, 1, 3, 1]); assert.equal((await f.state()).submission.state, 'SUBMITTED'); });
++scenario(14, async (f, mode) => { const a = await f.setup(), sim = await f.simulator({ idempotent: mode }); await stopDatabase('app', f.log); const w = await f.worker(a, sim); w.start(); assert.equal((await w.result()).error, 'LEDGER_UNAVAILABLE'); await startDatabase('app', f.log); await f.assertCounts([0, 0, 0, 0, 0, 0]); assert.equal((await f.state()).submission.state, 'READY'); });
++scenario(15, async (f, mode) => { const { a, w } = await launch(f, mode, {}, { pause: 'INTENT_ACKED' }), barrier = await w.barrier('INTENT_ACKED'); await stopDatabase('app', f.log); w.release(barrier); assert.equal((await w.result()).result.dispatched, false); await startDatabase('app', f.log); await f.attestor.abandon(a.confirm); await f.assertCounts([0, 0, 0, 1, 2, 0]); await noReplacement(f); });
++scenario(16, async (f, mode) => { const { a, w } = await launch(f, mode, {}, { pause: 'OBSERVATION' }), barrier = await w.barrier('OBSERVATION'); await stopDatabase('app', f.log); w.release(barrier); const r = (await w.result()).result; assert.equal(r.error, 'LEDGER_UNAVAILABLE'); assert.ok(r.pending); await startDatabase('app', f.log); assert.equal((await f.state()).submission.state, 'SUBMITTING'); await f.attestor.abandon(a.confirm); await f.attestor.record(a.confirm, r.pending.proof, r.pending.commandId); await f.attestor.record(a.confirm, r.pending.proof, r.pending.commandId); await f.assertCounts([1, 1, 1, 1, 3, 1]); assert.equal((await f.state()).submission.state, 'SUBMITTED'); });
++scenario(17, async (f, mode) => { const { a, sim, w } = await launch(f, mode, {}, { pause: 'INTENT_ACKED' }); await w.barrier('INTENT_ACKED'); await w.signal('SIGKILL'); const reboot = await f.worker(a, sim); reboot.start(); assert.equal((await reboot.result()).result.dispatched, false); await f.attestor.abandon(a.confirm); await f.assertCounts([0, 0, 0, 1, 2, 0]); await noReplacement(f); });
++scenario(18, async (f, mode) => { const a = await f.setup(), sim = await f.simulator({ idempotent: mode }); for (let n = 0; n < 2; n++) {
++    const w = await f.worker(a, sim, { action: 'read' });
++    w.start();
++    assert.equal((await w.result()).result.projection.submission.state, 'READY');
++} await f.assertCounts([0, 0, 0, 0, 0, 0]); assert.equal((await f.state()).currentSubmissionId, a.input.submissionId); });
++scenario(19, async (f, mode) => { const a = await f.setup(), sim = await f.simulator({ idempotent: mode }); for (const value of [JSON.stringify({ ...f.open, state: 'RECOVERY_HOLD' }), 'invalid', null]) {
++    if (value === null)
++        await rm(f.gatePath);
++    else
++        await writeFile(f.gatePath, value);
++    const w = await f.worker(a, sim);
++    w.start();
++    assert.equal((await w.result()).error, 'RECOVERY_HOLD');
++} await f.assertCounts([0, 0, 0, 0, 0, 0]); });
++async function gateChanged(f, mode, state) { const { a, w } = await launch(f, mode, {}, { pause: 'VALIDATED' }), b = await w.barrier('VALIDATED'); await writeFile(f.gatePath, JSON.stringify({ ...f.open, state, epoch: id() })); w.release(b); assert.equal((await w.result()).result.dispatched, false); await f.attestor.abandon(a.confirm); await f.assertCounts([0, 0, 0, 1, 2, 0]); }
++scenario(20, async (f, mode) => { await gateChanged(f, mode, 'RECOVERY_HOLD'); assert.equal(await f.gate.assertOpen().catch(e => e.code), 'RECOVERY_HOLD'); const g = await fixture(); try {
++    await gateChanged(g, mode, 'NORMAL');
++    await g.manifest('C20-normal-epoch-' + mode, 'PASSED');
++}
++catch (e) {
++    await g.manifest('C20-normal-epoch-' + mode, 'FAILED', e);
++    throw e;
++}
++finally {
++    await g.cleanup();
++} });
++scenario(21, async (f, mode) => { const a = await f.setup(), file = join(f.dir, 'ready.dump'); await dump(f.url, file); const sim = await f.simulator({ idempotent: mode }), w = await f.worker(a, sim, { pause: 'OBSERVATION' }); w.start(); await w.barrier('OBSERVATION'); await f.assertCounts([1, 1, 1, 1, 1, 0]); await w.signal('SIGKILL'); await sim.child.close(); await writeFile(f.gatePath, JSON.stringify({ ...f.open, state: 'RECOVERY_HOLD', windowStart: 'backup', windowEnd: 'restore' })); f.log.push({ event: 'QUIESCED_AND_EXTERNAL_HOLD' }); await f.runtime.close(); await restore(f.url, file); f.log.push({ event: 'LEDGER_RESTORED', before: [1, 1, 1, 1, 1, 0] }); const db = database(f.runtimeUrl), repo = new SubmissionRepository(db, f.protection, f.gate); try {
++    assert.equal((await repo.read(f.op, a.orderId, a.input.submissionId)).projection.submission.state, 'READY');
++    await assert.rejects(repo.confirm(f.op, a.confirm), e => e.code === 'RECOVERY_HOLD');
++    await f.assertCounts([1, 1, 1, 0, 0, 0]);
++}
++finally {
++    await db.close();
++} });
++async function revoked(f, mode, membership) { const { w } = await launch(f, mode, {}, { pause: 'INTENT_ACKED' }), b = await w.barrier('INTENT_ACKED'); if (membership)
++    await f.db.client `UPDATE organization_memberships SET status='INACTIVE' WHERE organization_id=${f.op.organizationId} AND user_id=${f.op.userId}`;
++else
++    await f.db.client `UPDATE sessions SET revoked_at=clock_timestamp() WHERE id=${f.op.sessionId}`; w.release(b); assert.equal((await w.result()).result.dispatched, false); assert.ok(w.messages.some(x => x.barrier === 'CAPABILITY_CLOSED' && x.closed)); await f.assertCounts([0, 0, 0, 1, 2, 1]); assert.equal((await f.state()).submission.certainty, 'NO_EFFECT'); }
++scenario(22, async (f, mode) => { await revoked(f, mode, false); const g = await fixture(); try {
++    await revoked(g, mode, true);
++    await g.manifest('C22-membership-' + mode, 'PASSED');
++}
++catch (e) {
++    await g.manifest('C22-membership-' + mode, 'FAILED', e);
++    throw e;
++}
++finally {
++    await g.cleanup();
++} });
++scenario(23, async (f, mode) => { const { w } = await launch(f, mode, {}, { pause: 'INTENT_ACKED' }), b = await w.barrier('INTENT_ACKED'), p = await f.state(); await f.repo.owner(f.admin, { commandId: id(), orderId: f.active.orderId, ownerId: f.op2.userId, expectedAnchorRevision: p.anchorRevision, reason: 'Synthetic ownership transfer' }); w.release(b); assert.equal((await w.result()).result.dispatched, false); await f.assertCounts([0, 0, 0, 1, 3, 1]); assert.equal((await f.state()).submission.certainty, 'NO_EFFECT'); });
++scenario(24, async (f, mode) => { const { sim } = await normal(f, mode, { profile: 'reject' }), b = await f.binding(); await sim.child.close(); await stopDatabase('sim', f.log); await startDatabase('sim', f.log); const reboot = await f.simulator({ idempotent: mode }); const o = await direct(f, reboot, b); assert.equal(o.at(-1).response.kind, 'REJECTED_FINAL'); await f.assertCounts([1, 2, 0, 1, 2, 1]); assert.equal((await f.state()).submission.certainty, 'REJECTED_FINAL'); });
++scenario(25, async (f, mode) => { await normal(f, mode, { profile: '500-empty' }); await noReplacement(f); await f.assertCounts([1, 1, 0, 1, 2, 1]); for (const profile of ['500-effect', 'invalid', '200-no-id']) {
++    const g = await fixture();
++    try {
++        await normal(g, mode, { profile });
++        await noReplacement(g);
++        await g.assertCounts([1, 1, 1, 1, 2, 1]);
++        await g.manifest('C25-' + profile + '-' + mode, 'PASSED');
++    }
++    finally {
++        await g.cleanup();
++    }
++} });
++scenario(26, async (f) => { const organizationId = f.op.organizationId, business = 'Synthetic calibration only', request = JSON.stringify({ mapper: 'fixture-identity-v1', account: 'lab:' + organizationId, business }), binding = { version: 1, organizationId, orderId: id(), submissionId: id(), operationId: id(), executionId: id(), account: 'lab:' + organizationId, generation: 1, businessHash: hash(business), requestHash: hash(request), mapper: 'fixture-identity-v1', canonical: 'legacy-order-canonical-v1', contract: 'submission-ledger-v1', request, remainingMs: 30000, expiresMonotonicMs: 0 }, sim = await f.simulator({ idempotent: false }); await direct(f, sim, binding); await direct(f, sim, binding); await sim.child.close(); await stopDatabase('sim', f.log); await startDatabase('sim', f.log); await f.simulator({ idempotent: false }); await f.assertCounts([0, 2, 2, 0, 0, 0]); const g = await fixture(); try {
++    const idem = await g.simulator({ idempotent: true });
++    await direct(g, idem, binding);
++    await direct(g, idem, binding);
++    await g.assertCounts([0, 2, 1, 0, 0, 0]);
++    await g.manifest('C26-idempotent-calibration', 'PASSED');
++}
++finally {
++    await g.cleanup();
++} const ledger = new PostgreSQLERPLedger(f.simUrl); try {
++    const r = { submissionId: id(), orderId: id(), erpOrderId: 'synthetic', payload: 'synthetic' };
++    assert.deepEqual(await ledger.create(r), r);
++    assert.deepEqual(await ledger.create({ ...r, erpOrderId: 'ignored' }), r);
++    await assert.rejects(ledger.create({ ...r, payload: 'different' }));
++}
++finally {
++    await ledger.close();
++} }, [false]);
++scenario(27, async (f, mode) => { const { a, sim, w } = await launch(f, mode, {}, { fault: 'INTENT_ACKED' }); await w.result(); const p = await f.state(); a.confirm = { ...a.confirm, commandId: id(), expectedLedgerRevision: p.submission.ledgerRevision }; const next = await f.worker(a, sim); next.start(); assert.ok((await next.result()).result); await f.assertCounts([1, 1, 1, 2, 4, 2]); });
++scenario(28, async (f, mode) => { const { a } = await normal(f, mode), binding = publicBinding(await f.binding()), proof = classify(binding, { type: 'response', response: { binding, status: 200, kind: 'ACCEPTED', externalId: (await f.state()).submission.externalId } }); const audit = async () => { const [r] = await f.db.client `SELECT count(*)::int n FROM audit_events WHERE action='SUBMISSION_DENIED'`; return r.n; }; const before = await audit(); for (const key of ['organizationId', 'account', 'businessHash', 'executionId'])
++    assert.throws(() => classify(binding, { type: 'response', response: { binding: { ...binding, [key]: key === 'businessHash' ? 'f'.repeat(64) : id() }, status: 200, kind: 'ACCEPTED', externalId: 'forged' } })); await assert.rejects(f.repo.recordLabEvidence(f.admin, { ...a.confirm, commandId: id() }, { ...proof, evidenceId: 'invalid' })); assert.equal(await audit(), before); f.log.push({ event: 'PRETRANSACTION_REJECTIONS', auditDelta: 0 }); let expected = before; for (const patch of [{ executionId: id() }, { account: 'lab:other' }, { businessHash: 'f'.repeat(64) }]) {
++    await assert.rejects(f.repo.recordLabEvidence(f.admin, { ...a.confirm, commandId: id() }, { ...proof, evidenceId: id(), ...patch }), e => e.code === 'EVIDENCE_INVALID');
++    assert.equal(await audit(), ++expected);
++} await assert.rejects(f.repo.recordLabEvidence(f.other, { ...a.confirm, commandId: id() }, { ...proof, evidenceId: id() }), e => e.code === 'RESOURCE_UNAVAILABLE'); assert.equal(await audit(), ++expected); await assert.rejects(f.repo.confirm(f.admin, a.confirm), e => e.code === 'FORBIDDEN'); assert.equal(await audit(), ++expected); f.log.push({ event: 'TRANSACTION_DENIALS', auditDelta: expected - before }); await f.assertCounts([1, 1, 1, 1, 2, 1]); });
++scenario(29, async (f, mode) => { const { a, sim } = await normal(f, mode, { profile: 'lost' }); await sim.child.close(); await stopDatabase('sim', f.log); await startDatabase('sim', f.log); const reboot = await f.simulator({ idempotent: mode }), w = await f.worker(a, reboot); w.start(); assert.equal((await w.result()).result.dispatched, false); const b = publicBinding(await f.binding()); assert.throws(() => classify(b, { type: 'response', response: null })); assert.equal(classify(b, { type: 'uncertain', reason: 'INVALID_RESPONSE' }).kind, 'INCONCLUSIVE'); await noReplacement(f); await f.assertCounts([1, 1, 1, 1, 2, 1]); });
+diff --git a/backend/tests/stage7b4c/harness.mjs b/backend/tests/stage7b4c/harness.mjs
+new file mode 100644
+index 0000000..2c1337a
+--- /dev/null
++++ b/backend/tests/stage7b4c/harness.mjs
+@@ -0,0 +1,83 @@
++import '../stage7b4b/no-network.mjs';
++import { fork, execFileSync } from 'node:child_process';
++import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import assert from 'node:assert/strict';
++import postgres from 'postgres';
++import { randomUUID } from 'node:crypto';
++import { fixture as ledgerFixture } from '../stage7b4b/fixtures.mjs';
++import { testUrl } from './control.mjs';
++import { SimulatorStore, simulatorDDL } from './simulator-store.ts';
++import { LabAttestor } from '../../submissions/lab/observer.ts';
++export class Child {
++    constructor(file, env, log) { this.messages = []; this.waiters = new Set(); this.log = log; this.process = fork(fileURLToPath(new URL(file, import.meta.url)), [], { env: { PATH: process.env.PATH, ...env }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] }); this.stderr = ''; this.process.stderr.on('data', b => { this.stderr += b.toString(); }); this.process.on('message', m => { this.messages.push(m); log.push({ pid: this.process.pid, at: new Date().toISOString(), ...m }); this.notify(); }); this.exit = new Promise(resolve => this.process.once('exit', (code, signal) => { this.exited = { code, signal }; log.push({ event: 'PROCESS_EXIT', pid: this.process.pid, code, signal }); this.notify(); resolve(this.exited); })); this.process.on('error', () => this.notify()); }
++    notify() { for (const resolve of this.waiters)
++        resolve(); this.waiters.clear(); }
++    async wait(predicate, ms = 20000) { const deadline = Date.now() + ms; for (;;) {
++        const found = this.messages.find(predicate);
++        if (found)
++            return found;
++        if (this.exited)
++            throw Error('CHILD_EXITED_BEFORE_EXPECTED_BARRIER');
++        if (Date.now() >= deadline)
++            throw Error('CHILD_BARRIER_TIMEOUT');
++        await new Promise(resolve => { this.waiters.add(resolve); const t = setTimeout(() => { this.waiters.delete(resolve); resolve(); }, 50); t.unref(); });
++    } }
++    async ready() { await this.wait(m => m.ready); return this; }
++    async barrier(name) { return this.wait(m => m.barrier === name); }
++    release(message) { this.process.send({ release: message.n }); }
++    start() { this.process.send({ start: true }); }
++    async result() { const m = await this.wait(m => Object.hasOwn(m, 'result') || m.error, 40000); await this.exit; return m; }
++    async signal(signal) { assert.ok(!this.exited); assert.equal(this.process.kill(signal), true); this.log.push({ event: 'SIGNAL_SENT', pid: this.process.pid, signal }); if (signal === 'SIGSTOP') {
++        const { readFile } = await import('node:fs/promises');
++        for (let i = 0; i < 100; i++) {
++            const s = await readFile('/proc/' + this.process.pid + '/status', 'utf8');
++            if (/^State:\s+[Tt]/m.test(s)) {
++                this.log.push({ event: 'PROCESS_STOP_CONFIRMED', pid: this.process.pid });
++                return;
++            }
++            await new Promise(r => setTimeout(r, 10));
++        }
++        throw Error('SIGSTOP_NOT_CONFIRMED');
++    } if (signal === 'SIGKILL')
++        assert.equal((await this.exit).signal, 'SIGKILL'); }
++    async close() { if (!this.exited) {
++        this.process.kill('SIGCONT');
++        this.process.kill('SIGKILL');
++        await this.exit;
++    } }
++}
++export async function fixture() {
++    const app = await ledgerFixture(), dir = await mkdtemp(join(tmpdir(), 'atram-c-')), u = testUrl('SIM_TEST_DATABASE_URL'), control = postgres(u.href, { max: 1, connect_timeout: 3, onnotice: () => { } }), name = 'atram_test_sim_' + randomUUID().replaceAll('-', '');
++    let store;
++    try {
++        await control `CREATE DATABASE ${control(name)}`;
++        u.pathname = '/' + name;
++        store = new SimulatorStore(u.href);
++        await store.sql.unsafe(simulatorDDL);
++        const log = [], children = [], attestor = new LabAttestor(app.repo, app.admin);
++        const f = { ...app, dir, simUrl: u.href, store, log, children, attestor, active: null,
++            async simulator(options = {}) { const path = join(dir, 'sim-' + randomUUID().slice(0, 8) + '.sock'); const child = new Child('./simulator.mjs', { SIM_WORKER_CONFIG: JSON.stringify({ url: u.href, path, ...options }) }, log); children.push(child); await child.ready(); return { child, path }; },
++            async worker(a, sim, options = {}) { const child = new Child('./worker.mjs', { EXEC_WORKER_CONFIG: JSON.stringify({ url: app.runtimeUrl, gatePath: app.gatePath, admin: app.admin, principal: app.op, input: a.confirm, path: sim.path, ...options }) }, log); children.push(child); await child.ready(); return child; },
++            async setup() { const a = await app.admitted(); a.confirm = app.decision(a); f.active = a; return a; },
++            async counts(a = f.active) { const sim = await store.counts(); if (!a)
++                return [log.filter(x => x.invoked).length, sim.received, sim.created, 0, 0, 0]; const [r] = await app.db.client `SELECT (SELECT count(*)::int FROM submission_communications WHERE submission_id=${a.input.submissionId} AND kind='CREATE') o,(SELECT count(*)::int FROM submission_events WHERE order_id=${a.orderId})-2 e,(SELECT count(*)::int FROM submission_evidence WHERE submission_id=${a.input.submissionId}) v`; return [log.filter(x => x.invoked).length, sim.received, sim.created, r.o, r.e, r.v]; },
++            async assertCounts(expected) { const actual = await f.counts(); log.push({ event: 'COUNTS', I_R_P_O_E_V: actual }); assert.deepEqual(actual, expected); },
++            async state() { return (await app.repo.read(app.admin, f.active.orderId, f.active.input.submissionId)).projection; },
++            async binding() { const r = await app.repo.read(app.admin, f.active.orderId, f.active.input.submissionId), s = r.projection.submission, c = r.communications.at(-1), request = app.protection.open(r.request, { organizationId: app.org ?? app.op.organizationId, orderId: f.active.orderId, submissionId: f.active.input.submissionId, kind: 'request', digest: s.requestHash }); return { version: 1, organizationId: app.op.organizationId, orderId: f.active.orderId, submissionId: f.active.input.submissionId, operationId: c.operation_id, executionId: c.execution_id, account: s.account, generation: 1, businessHash: s.businessHash, requestHash: s.requestHash, mapper: s.mapperVersion ?? 'fixture-identity-v1', canonical: 'legacy-order-canonical-v1', contract: 'submission-ledger-v1', request, remainingMs: 30000, expiresMonotonicMs: 0 }; },
++            async manifest(id, status, error) { await mkdir('test-results/7b4c', { recursive: true }); const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(); await writeFile('test-results/7b4c/' + id + '.json', JSON.stringify({ id, status, sha, error: error ? 'ASSERTION_OR_INFRASTRUCTURE_FAILURE' : null, log }, null, 2)); },
++            async cleanup() { for (const c of children)
++                await c.close(); await store.close(); await control `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=${name} AND pid<>pg_backend_pid()`; await control `DROP DATABASE ${control(name)}`; await control.end(); await app.cleanup(); await rm(dir, { recursive: true, force: true }); } };
++        return f;
++    }
++    catch (error) {
++        if (store)
++            await store.close();
++        await control.end();
++        await app.cleanup();
++        await rm(dir, { recursive: true, force: true });
++        throw error;
++    }
++}
+diff --git a/backend/tests/stage7b4c/postgresql-erp-ledger.ts b/backend/tests/stage7b4c/postgresql-erp-ledger.ts
+new file mode 100644
+index 0000000..723b028
+--- /dev/null
++++ b/backend/tests/stage7b4c/postgresql-erp-ledger.ts
+@@ -0,0 +1,35 @@
++import postgres from 'postgres';
++import type { ERPLedger } from '../../../integrations/erp-ledger.ts';
++import { sameReceipt } from '../../../integrations/erp-ledger.ts';
++import { ERPFailure, type ERPReceipt, type ERPRejection } from '../../../integrations/ERPProvider.ts';
++export class PostgreSQLERPLedger implements ERPLedger {
++    readonly sql: ReturnType<typeof postgres>;
++    constructor(url: string) { const u = new URL(url); if (!['127.0.0.1', 'localhost'].includes(u.hostname) || !/^\/atram_test_sim/.test(u.pathname))
++        throw Error('SYNTHETIC_DATABASE_REQUIRED'); this.sql = postgres(url, { max: 4, onnotice: () => { } }); }
++    async find(id: string) { const [r] = await this.sql `SELECT receipt FROM mock_receipts WHERE submission_id=${id}`; return r?.receipt as ERPReceipt ?? null; }
++    async findRejection(id: string) { const [r] = await this.sql `SELECT rejection FROM mock_rejections WHERE submission_id=${id}`; return r?.rejection as ERPRejection ?? null; }
++    async create(incoming: ERPReceipt) { return this.mutate(incoming, true) as Promise<ERPReceipt>; }
++    async reject(incoming: ERPRejection) { return this.mutate(incoming, false); }
++    private async mutate(incoming: ERPReceipt | ERPRejection, create: boolean) {
++        return this.sql.begin(async (sql) => {
++            await sql `SELECT pg_advisory_xact_lock(44002)`;
++            const [r] = await sql `SELECT receipt FROM mock_receipts WHERE submission_id=${incoming.submissionId} OR order_id=${incoming.orderId}`;
++            if (r)
++                return sameReceipt(r.receipt, { ...incoming, erpOrderId: r.receipt.erpOrderId });
++            const [rejected] = await sql `SELECT rejection FROM mock_rejections WHERE submission_id=${incoming.submissionId}`;
++            if (rejected) {
++                if (!create && rejected.rejection.orderId === incoming.orderId && rejected.rejection.payload === incoming.payload)
++                    return rejected.rejection;
++                if (rejected.rejection.orderId !== incoming.orderId || rejected.rejection.payload !== incoming.payload)
++                    throw new ERPFailure('Synthetic identity conflict', 'unknown');
++                throw new ERPFailure('Synthetic final rejection', 'rejected', 0, 'validation');
++            }
++            if (create)
++                await sql `INSERT INTO mock_receipts VALUES(${incoming.submissionId},${incoming.orderId},${sql.json(incoming as never)})`;
++            else
++                await sql `INSERT INTO mock_rejections VALUES(${incoming.submissionId},${sql.json(incoming as never)})`;
++            return incoming;
++        }) as Promise<ERPReceipt | ERPRejection>;
++    }
++    async close() { await this.sql.end({ timeout: 3 }); }
++}
+diff --git a/backend/tests/stage7b4c/preflight.mjs b/backend/tests/stage7b4c/preflight.mjs
+new file mode 100644
+index 0000000..964b49b
+--- /dev/null
++++ b/backend/tests/stage7b4c/preflight.mjs
+@@ -0,0 +1,15 @@
++import { mkdir, writeFile } from 'node:fs/promises';
++import { execFileSync } from 'node:child_process';
++import { checkInfrastructure } from './control.mjs';
++await mkdir('test-results/7b4c', { recursive: true });
++const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
++try {
++    const infrastructure = await checkInfrastructure();
++    await writeFile('test-results/7b4c/preflight.json', JSON.stringify({ sha, status: 'READY', ...infrastructure }, null, 2));
++    console.log('7B.4C infrastructure verified: two independent test PostgreSQL instances and disposable interruption controls');
++}
++catch {
++    await writeFile('test-results/7b4c/preflight.json', JSON.stringify({ sha, status: 'BLOCKED', reason: 'REAL_POSTGRESQL_AND_APPROVED_INTERRUPTION_CONTROLS_UNAVAILABLE', cases: Array.from({ length: 29 }, (_, i) => ({ id: 'C' + String(i + 1).padStart(2, '0'), status: 'NOT_EXECUTED', counts: null })) }, null, 2));
++    console.error('7B.4C BLOCKED: real PostgreSQL, pg_dump/pg_restore and approved disposable Docker controls required. C01–C29 NOT EXECUTED.');
++    process.exitCode = 1;
++}
+diff --git a/backend/tests/stage7b4c/simulator-store.ts b/backend/tests/stage7b4c/simulator-store.ts
+new file mode 100644
+index 0000000..cf1650a
+--- /dev/null
++++ b/backend/tests/stage7b4c/simulator-store.ts
+@@ -0,0 +1,47 @@
++import postgres from 'postgres';
++import { randomUUID } from 'node:crypto';
++import { bindingSchema, type Binding, type Response } from '../../submissions/lab/contracts.ts';
++import { hash } from '../../security/crypto.ts';
++// DDL exclusively in a synthetic simulator database; NEVER an application migration.
++export const simulatorDDL = `
++ CREATE TABLE sim_received(id bigserial PRIMARY KEY,request_id uuid NOT NULL,binding jsonb NOT NULL,request text NOT NULL,received_at timestamptz NOT NULL DEFAULT now());
++ CREATE TABLE sim_effects(id uuid PRIMARY KEY,binding jsonb NOT NULL,request text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
++ CREATE TABLE sim_rejections(id uuid PRIMARY KEY,account text NOT NULL,submission_id uuid NOT NULL,binding jsonb NOT NULL,UNIQUE(account,submission_id));
++ CREATE TABLE mock_receipts(submission_id text PRIMARY KEY,order_id text NOT NULL UNIQUE,receipt jsonb NOT NULL);
++ CREATE TABLE mock_rejections(submission_id text PRIMARY KEY,rejection jsonb NOT NULL);`;
++export class SimulatorStore {
++    readonly sql: ReturnType<typeof postgres>;
++    constructor(url: string) { const u = new URL(url); if (!['localhost', '127.0.0.1'].includes(u.hostname) || !/^\/atram_test_sim/.test(u.pathname))
++        throw Error('SYNTHETIC_DATABASE_REQUIRED'); this.sql = postgres(url, { max: 4, connect_timeout: 3, onnotice: () => { } }); }
++    async receive(binding: Binding, request: string) { bindingSchema.parse(binding); if (hash(request) !== binding.requestHash || binding.account !== 'lab:' + binding.organizationId)
++        throw Error('SIM_BINDING_INVALID'); const dto = JSON.parse(request); if (dto.mapper !== binding.mapper || dto.account !== binding.account || hash(dto.business) !== binding.businessHash)
++        throw Error('SIM_BYTES_INVALID'); await this.sql `INSERT INTO sim_received(request_id,binding,request) VALUES(${randomUUID()},${this.sql.json(binding)},${request})`; }
++    async effect(b: Binding, request: string, idempotent: boolean, reject = false): Promise<Response> {
++        return this.sql.begin(async (sql) => {
++            // Serializes rejection vs effect in this controlled simulator. It is NOT a
++            // claim shared with the application. Normal non-idempotent mode always inserts.
++            await sql `SELECT pg_advisory_xact_lock(hashtextextended(${b.account},44001))`;
++            const [t] = await sql `SELECT * FROM sim_rejections WHERE account=${b.account} AND submission_id=${b.submissionId}`;
++            if (t)
++                return { binding: b, status: 400, kind: 'REJECTED_FINAL', tombstone: { id: t.id, submissionId: b.submissionId, pastEffects: 0, futureDeliveriesBlocked: true } };
++            const prior = await sql `SELECT * FROM sim_effects WHERE binding->>'account'=${b.account} AND (binding->>'submissionId'=${b.submissionId} OR binding->>'orderId'=${b.orderId})`;
++            if (reject) {
++                if (prior.length)
++                    return { binding: b, status: 500, kind: 'INCONCLUSIVE' };
++                const id = randomUUID();
++                await sql `INSERT INTO sim_rejections(id,account,submission_id,binding) VALUES(${id},${b.account},${b.submissionId},${sql.json(b)})`;
++                return { binding: b, status: 400, kind: 'REJECTED_FINAL', tombstone: { id, submissionId: b.submissionId, pastEffects: 0, futureDeliveriesBlocked: true } };
++            }
++            if (idempotent && prior.length) {
++                if (prior.length !== 1 || prior[0].request !== request)
++                    return { binding: b, status: 409, kind: 'INCONCLUSIVE' };
++                return { binding: b, status: 200, kind: 'ACCEPTED', externalId: prior[0].id };
++            }
++            const id = randomUUID();
++            await sql `INSERT INTO sim_effects(id,binding,request) VALUES(${id},${sql.json(b)},${request})`;
++            return { binding: b, status: 200, kind: 'ACCEPTED', externalId: id };
++        }) as Promise<Response>;
++    }
++    async counts() { const [r] = await this.sql `SELECT (SELECT count(*)::int FROM sim_received) received,(SELECT count(*)::int FROM sim_effects) created`; return r; }
++    async close() { await this.sql.end({ timeout: 3 }); }
++}
+diff --git a/backend/tests/stage7b4c/simulator.mjs b/backend/tests/stage7b4c/simulator.mjs
+new file mode 100644
+index 0000000..1f629ac
+--- /dev/null
++++ b/backend/tests/stage7b4c/simulator.mjs
+@@ -0,0 +1,65 @@
++import '../stage7b4b/no-network.mjs';
++import net from 'node:net';
++import { SimulatorStore } from './simulator-store.ts';
++import {MAX_WIRE_BYTES} from '../../submissions/lab/contracts.ts';
++const config = JSON.parse(process.env.SIM_WORKER_CONFIG), store = new SimulatorStore(config.url);
++const paused = new Map();
++let sequence = 0;
++async function barrier(name, data = {}) { const n = ++sequence; process.send?.({ barrier: name, n, ...data }); if (config.pause === name)
++    await new Promise(resolve => paused.set(n, resolve)); }
++process.on('message', m => { if (m.release)
++    paused.get(m.release)?.(); });
++const server = net.createServer(socket => {
++    let buffer = '', handled = false;
++    socket.on('error', () => { });
++    socket.on('data', async (chunk) => {
++        if (handled)
++            return;
++        buffer += chunk.toString();
++        if (Buffer.byteLength(buffer) > MAX_WIRE_BYTES) {
++            socket.destroy();
++            return;
++        }
++        const i = buffer.indexOf('\n');
++        if (i < 0)
++            return;
++        handled = true;
++        try {
++            const { binding, request } = JSON.parse(buffer.slice(0, i));
++            await barrier('SIM_BEFORE_RECEIVE');
++            await store.receive(binding, request);
++            await barrier('SIM_RECEIVED', { executionId: binding.executionId });
++            if (config.profile === '500-empty') {
++                socket.end(JSON.stringify({ binding, status: 500, kind: 'INCONCLUSIVE' }) + '\n');
++                return;
++            }
++            const response = await store.effect(binding, request, config.idempotent === true, config.profile === 'reject');
++            await barrier('SIM_EFFECT_COMMITTED', { externalId: response.externalId ?? null });
++            if (config.profile === 'lost') {
++                socket.destroy();
++                return;
++            }
++            if (config.profile === 'delay')
++                await new Promise(resolve => setTimeout(resolve, config.delayMs ?? 200));
++            if (config.profile === '500-effect') {
++                response.status = 500;
++                response.kind = 'INCONCLUSIVE';
++                delete response.externalId;
++            }
++            if (config.profile === 'invalid') {
++                socket.end('{bad\n');
++                return;
++            }
++            if (config.profile === '200-no-id') {
++                delete response.externalId;
++            }
++            socket.end(JSON.stringify(response) + '\n');
++        }
++        catch {
++            socket.destroy();
++            process.send?.({ error: 'SIM_OPERATION_FAILED' });
++        }
++    });
++});
++server.listen(config.path, () => process.send?.({ ready: true }));
++process.on('SIGTERM', () => { server.close(); void store.close().finally(() => process.exit(0)); });
+diff --git a/backend/tests/stage7b4c/unit.test.mjs b/backend/tests/stage7b4c/unit.test.mjs
+new file mode 100644
+index 0000000..c6c4e03
+--- /dev/null
++++ b/backend/tests/stage7b4c/unit.test.mjs
+@@ -0,0 +1,141 @@
++// U tests exercise policy, process-local control and real Unix sockets/signals.
++// The coordinator double is explicitly NOT PostgreSQL or durable-ledger evidence.
++import '../stage7b4b/no-network.mjs';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { performance } from 'node:perf_hooks';
++import { classify } from '../../submissions/lab/evidence-policy.ts';
++import { publicBinding } from '../../submissions/lab/contracts.ts';
++import { LabExecutor } from '../../submissions/lab/executor.ts';
++import { LabAttestor } from '../../submissions/lab/observer.ts';
++import { BackendError } from '../../security/errors.ts';
++function binding() { return { version: 1, organizationId: randomUUID(), orderId: randomUUID(), submissionId: randomUUID(), operationId: randomUUID(), executionId: randomUUID(), account: 'lab:synthetic', generation: 1, businessHash: 'a'.repeat(64), requestHash: 'b'.repeat(64), mapper: 'fixture-identity-v1', canonical: 'legacy-order-canonical-v1', contract: 'submission-ledger-v1', request: 'synthetic', remainingMs: 30000, expiresMonotonicMs: performance.now() + 30000 }; }
++const observe = (b, r) => ({ type: 'response', response: { binding: publicBinding(b), ...r } });
++function double() { const b = binding(), proofs = [], calls = { confirm: 0, validate: 0, I: 0 }; let confirmed = false; const repo = { recovery: { async assertOpen() { return 'epoch'; }, async assertSame() { } }, async confirm() { calls.confirm++; const replay = confirmed; confirmed = true; return { replay, commandReceipt: { result: 'RECORDED', operationId: b.operationId, executionId: b.executionId } }; }, async validateLabDispatch() { calls.validate++; return b; }, async read() { return { projection: { submission: { businessHash: b.businessHash, requestHash: b.requestHash, account: b.account } } }; }, async recordLabEvidence(p, input, proof) { proofs.push({ p, input, proof }); return {}; } }; const admin = { role: 'ADMIN' }, attestor = new LabAttestor(repo, admin), executor = new LabExecutor(repo, attestor), transport = { async *observe() { calls.I++; yield observe(b, { status: 200, kind: 'ACCEPTED', externalId: 'synthetic' }); } }; return { b, proofs, calls, repo, attestor, executor, transport }; }
++test('U01 accepted requires complete exact binding', () => {
++    const b = binding();
++    assert.equal(classify(publicBinding(b), observe(b, { status: 200, kind: 'ACCEPTED', externalId: 'synthetic' })).kind, 'ACCEPTED');
++    for (const k of ['organizationId', 'orderId', 'submissionId', 'operationId', 'executionId', 'account', 'businessHash', 'requestHash']) {
++        const other = { ...b, [k]: k.endsWith('Hash') ? 'c'.repeat(64) : randomUUID() };
++        assert.throws(() => classify(publicBinding(b), observe(other, { status: 200, kind: 'ACCEPTED', externalId: 'forged' })));
++    }
++});
++test('U02 timeout, close and empty response cannot establish NO_EFFECT', () => {
++    const b = binding();
++    for (const reason of ['TRANSPORT_TIMEOUT', 'TRANSPORT_CLOSED', 'INVALID_RESPONSE'])
++        assert.equal(classify(publicBinding(b), { type: 'uncertain', reason }).kind, 'INCONCLUSIVE');
++    assert.throws(() => classify(publicBinding(b), { type: 'response', response: null }));
++});
++test('U03 status 500, 400 and 200 without ID are inconclusive', () => {
++    const b = binding();
++    for (const status of [500, 400, 429, 200])
++        assert.equal(classify(publicBinding(b), observe(b, { status, kind: 'ACCEPTED' })).kind, 'INCONCLUSIVE');
++});
++test('U04 controlled rejection requires tombstone and exact key', () => { const b = binding(), t = { id: randomUUID(), submissionId: b.submissionId, pastEffects: 0, futureDeliveriesBlocked: true }; assert.equal(classify(publicBinding(b), observe(b, { status: 400, kind: 'REJECTED_FINAL', tombstone: t })).kind, 'REJECTED_FINAL'); assert.equal(classify(publicBinding(b), observe(b, { status: 400, kind: 'REJECTED_FINAL', tombstone: { ...t, submissionId: randomUUID() } })).kind, 'INCONCLUSIVE'); assert.throws(() => classify(publicBinding(b), observe(b, { status: 400, kind: 'REJECTED_FINAL', tombstone: { ...t, pastEffects: 1 } }))); });
++test('U05 ADMIN observer exposes no confirm or execute', () => { const f = double(); assert.equal(f.attestor.confirm, undefined); assert.equal(f.attestor.execute, undefined); assert.throws(() => new LabAttestor(f.repo, { role: 'OPERADOR' })); });
++test('U06 1000 replays do not reconstruct capability (coordinator double)', async () => {
++    const f = double();
++    await f.executor.execute({}, {}, f.transport);
++    for (let i = 0; i < 1000; i++)
++        assert.equal((await f.executor.execute({}, {}, f.transport)).dispatched, false);
++    assert.deepEqual([f.calls.I, f.calls.validate, f.proofs.length], [1, 1, 1]);
++});
++test('U07 lost ACK never mints a capability (injected adapter)', async () => { const f = double(); f.repo.confirm = async () => { throw new BackendError('LEDGER_UNAVAILABLE', 503); }; await assert.rejects(f.executor.execute({}, {}, f.transport)); assert.deepEqual([f.calls.I, f.proofs.length], [0, 0]); });
++test('U08 controlled pre-invocation failure closes owner path', async () => {
++    const f = double(), barriers = [];
++    const result = await f.executor.execute({}, {}, f.transport, { async barrier(name, data) {
++            barriers.push({ name, ...data });
++            if (name === 'INTENT_ACKED')
++                throw Error('controlled');
++        } });
++    assert.equal(result.dispatched, false);
++    assert.equal(f.calls.I, 0);
++    assert.equal(f.proofs[0].proof.kind, 'NO_EFFECT');
++    assert.ok(barriers.some(x => x.name === 'CAPABILITY_CLOSED' && x.closed));
++    assert.equal((await f.executor.execute({}, {}, f.transport)).dispatched, false);
++});
++test('U09 failure after consumption never creates negative proof', async () => {
++    const f = double();
++    await assert.rejects(f.executor.execute({}, {}, f.transport, { async barrier(name) {
++            if (name === 'CAPABILITY_CONSUMED')
++                throw Error('controlled');
++        } }));
++    assert.deepEqual([f.calls.I, f.proofs.length], [0, 0]);
++});
++test('U10 hold/lease/storage errors before invocation stay pending', async () => {
++    for (const code of ['RECOVERY_HOLD', 'LEASE_EXPIRED', 'LEDGER_UNAVAILABLE']) {
++        const f = double();
++        f.repo.validateLabDispatch = async () => { throw new BackendError(code, 503); };
++        const r = await f.executor.execute({}, {}, f.transport);
++        assert.equal(r.dispatched, false);
++        assert.deepEqual([f.calls.I, f.proofs.length], [0, 0]);
++    }
++});
++test('U11 elapsed validation/commit time is not added to lease', async () => { const f = double(); f.b.expiresMonotonicMs = performance.now() - 1; assert.equal((await f.executor.execute({}, {}, f.transport)).error, 'LEASE_EXPIRED'); assert.deepEqual([f.calls.I, f.proofs.length], [0, 0]); });
++test('U12 evidence failure returns stable local proof without retrying transport', async () => { const f = double(); f.repo.recordLabEvidence = async () => { throw new BackendError('LEDGER_UNAVAILABLE', 503); }; const r = await f.executor.execute({}, {}, f.transport); assert.equal(r.error, 'LEDGER_UNAVAILABLE'); assert.equal(r.pending.proof.kind, 'ACCEPTED'); assert.match(r.pending.commandId, /^[a-f0-9-]+$/); assert.equal(f.calls.I, 1); assert.equal((await f.executor.execute({}, {}, f.transport)).dispatched, false); });
++test('U13 invalid response becomes sanitized INCONCLUSIVE', async () => { const f = double(); f.transport = { async *observe() { f.calls.I++; yield { type: 'response', response: { binding: publicBinding({ ...f.b, account: 'foreign' }), status: 200, kind: 'ACCEPTED', externalId: 'forged' } }; } }; await f.executor.execute({}, {}, f.transport); assert.equal(f.proofs[0].proof.kind, 'INCONCLUSIVE'); assert.ok(!f.proofs[0].proof.details.includes('foreign')); });
++test('U14 residual window remains visible after last check (coordinator double)', async () => {
++    const f = double();
++    await f.executor.execute({}, {}, f.transport, { async barrier(name) {
++            if (name === 'CAPABILITY_CONSUMED') {
++                f.b.expiresMonotonicMs = performance.now() - 1;
++                f.repo.recovery.assertSame = async () => { throw new BackendError('RECOVERY_HOLD', 503); };
++            }
++        } });
++    assert.equal(f.calls.I, 1);
++    assert.equal((await f.executor.execute({}, {}, f.transport)).dispatched, false);
++});
++test('U19 epoch change during intention ACK cannot be silently adopted', async () => {
++    const f = double();
++    let epoch = 'authorized';
++    f.repo.recovery.assertOpen = async () => epoch;
++    f.repo.recovery.assertSame = async (expected) => {
++        if (expected !== epoch)
++            throw new BackendError('RECOVERY_HOLD', 503);
++    };
++    const original = f.repo.confirm;
++    f.repo.confirm = async () => { const r = await original(); epoch = 'new-normal'; return r; };
++    const r = await f.executor.execute({}, {}, f.transport);
++    assert.equal(r.error, 'RECOVERY_HOLD');
++    assert.deepEqual([f.calls.I, f.calls.validate, f.proofs.length], [0, 0, 0]);
++});
++// Independent child with no PostgreSQL/socket use. Confirms environment boundary and exit only.
++test('U20 executor children do not inherit privileged database credentials; SIGKILL exit observed', async () => {
++    const { Child } = await import('./harness.mjs');
++    const originalApp = process.env.BACKEND_TEST_DATABASE_URL, originalSim = process.env.SIM_TEST_DATABASE_URL;
++    const log = [];
++    let child;
++    try {
++        process.env.BACKEND_TEST_DATABASE_URL = 'synthetic-privileged-app-sentinel';
++        process.env.SIM_TEST_DATABASE_URL = 'synthetic-privileged-sim-sentinel';
++        child = await new Child('./wire-child.mjs', { WIRE_CHILD_CONFIG: JSON.stringify({ path: '/tmp/atram-unused.sock', binding: binding(), timeoutMs: 1000, lateWindowMs: 3000 }) }, log).ready();
++        assert.equal(child.messages.find(m => m.ready).privilegedEnvironmentPresent, false);
++        await child.signal('SIGKILL');
++        assert.ok(log.some(m => m.event === 'PROCESS_EXIT' && m.signal === 'SIGKILL'));
++        const { mkdir, writeFile } = await import('node:fs/promises');
++        await mkdir('test-results/7b4c', { recursive: true });
++        await writeFile('test-results/7b4c/U20-process-isolation.json', JSON.stringify({ status: 'PASSED', scope: 'ENVIRONMENT_BOUNDARY_AND_EXIT_ONLY_NO_POSTGRESQL_OR_CREATE', log }, null, 2));
++    }
++    finally {
++        if (child)
++            await child.close();
++        if (originalApp === undefined)
++            delete process.env.BACKEND_TEST_DATABASE_URL;
++        else
++            process.env.BACKEND_TEST_DATABASE_URL = originalApp;
++        if (originalSim === undefined)
++            delete process.env.SIM_TEST_DATABASE_URL;
++        else
++            process.env.SIM_TEST_DATABASE_URL = originalSim;
++    }
++});
++test('U21 packet budget preserves maximum frozen bytes through two JSON escaping layers', async()=>{
++ const {MAX_WIRE_BYTES}=await import('../../submissions/lab/contracts.ts');
++ const {MAX_BYTES}=await import('../../submissions/contracts.ts');
++ const b=binding(),business='\\'.repeat(MAX_BYTES),request=JSON.stringify({mapper:b.mapper,account:b.account,business});
++ const packet=JSON.stringify({binding:publicBinding(b),request})+'\n';
++ assert.ok(Buffer.byteLength(packet)>MAX_BYTES);
++ assert.ok(Buffer.byteLength(packet)<=MAX_WIRE_BYTES);
++ assert.equal(JSON.parse(JSON.parse(packet).request).business,business);
++});
+diff --git a/backend/tests/stage7b4c/verify-local.mjs b/backend/tests/stage7b4c/verify-local.mjs
+new file mode 100644
+index 0000000..48417b5
+--- /dev/null
++++ b/backend/tests/stage7b4c/verify-local.mjs
+@@ -0,0 +1,24 @@
++// Read-only validation of implementation. Outputs stay local; never starts CI/deploy.
++import { spawn, execFileSync } from 'node:child_process';
++import { mkdir, writeFile, readFile } from 'node:fs/promises';
++import { createHash } from 'node:crypto';
++const root = 'test-results/7b4c';
++await mkdir(root, { recursive: true });
++const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
++const checks = [['L01', 'check:data'], ['L02', 'check:stage2'], ['L03', 'check:stage3'], ['L04', 'check:stage4'], ['L05', 'check:stage5'], ['L06', 'check:stage6'], ['L07', 'check:stage7b1'], ['L08', 'check:stage7b2:unit'], ['L09', 'typecheck'], ['L10', 'lint'], ['L11', 'build'], ['L12', 'check:backend-boundary'], ['U01-U14-U19-U21', 'check:stage7b4c:unit'], ['U15-U18', 'check:stage7b4c:wire'], ['C01-C29', 'check:stage7b4c']];
++const results = [];
++async function run(label, args) { let output = ''; const start = new Date().toISOString(), child = spawn('node', args, { env: { ...process.env, NEXT_PUBLIC_BASE_PATH: '/pedidosAtram', NEXT_TELEMETRY_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] }); child.stdout.on('data', b => { output += b; }); child.stderr.on('data', b => { output += b; }); const { exitCode, signal } = await new Promise(resolve => { child.once('exit', (exitCode, signal) => resolve({ exitCode, signal })); child.once('error', () => resolve({ exitCode: null, signal: 'SPAWN_ERROR' })); }); const log = label + '.log'; await writeFile(root + '/' + log, output); const row = { label, command: ['node', ...args], sha, dirtyAtStart: Boolean(dirty), start, end: new Date().toISOString(), exitCode, signal, log, logHash: createHash('sha256').update(output).digest('hex') }; results.push(row); console.log(label + ': ' + (exitCode === 0 ? 'PASS' : 'FAIL/BLOCKED') + ' (exit ' + exitCode + ')'); }
++const npm = execFileSync('which', ['npm'], { encoding: 'utf8' }).trim();
++for (const [label, script] of checks)
++    await run(label, [npm, 'run', script]);
++await run('7B3-unit', ['--test', 'backend/tests/stage7b3/client.test.mjs', 'backend/tests/stage7b3/mappers.test.mjs', 'backend/tests/stage7b3/pagination.test.mjs']);
++const original = await readFile('docs/etapa7B3/PERFORMANCE-NODE.json');
++try {
++    await run('7B3-performance-node', [npm, 'run', 'check:stage7b3:performance']);
++    await writeFile(root + '/performance-node.json', await readFile('docs/etapa7B3/PERFORMANCE-NODE.json'));
++}
++finally {
++    await writeFile('docs/etapa7B3/PERFORMANCE-NODE.json', original);
++}
++await writeFile(root + '/local-checks.json', JSON.stringify({ sha, dirtyAtStart: Boolean(dirty), results, postgresqlCases: 'NOT_EXECUTED_UNLESS_PREFLIGHT_AND_SUITE_SUCCEED', browserHomologation: false, remoteCiExecuted: false }, null, 2));
++process.exitCode = results.some(r => r.exitCode !== 0) ? 1 : 0;
+diff --git a/backend/tests/stage7b4c/wire-child.mjs b/backend/tests/stage7b4c/wire-child.mjs
+new file mode 100644
+index 0000000..c121553
+--- /dev/null
++++ b/backend/tests/stage7b4c/wire-child.mjs
+@@ -0,0 +1,13 @@
++import '../stage7b4b/no-network.mjs';
++import { UnixSyntheticTransport } from '../../submissions/lab/transport.ts';
++const c = JSON.parse(process.env.WIRE_CHILD_CONFIG);
++process.on('message', async (m) => { if (!m.start)
++    return; try {
++    for await (const observation of new UnixSyntheticTransport(c.path, c.timeoutMs, c.lateWindowMs, () => process.send({ invoked: true })).observe(c.binding))
++        process.send({ observation });
++    process.send({ result: true });
++}
++finally {
++    process.disconnect();
++} });
++process.send({ ready: true, privilegedEnvironmentPresent: Boolean(process.env.BACKEND_TEST_DATABASE_URL || process.env.SIM_TEST_DATABASE_URL) });
+diff --git a/backend/tests/stage7b4c/wire.test.mjs b/backend/tests/stage7b4c/wire.test.mjs
+new file mode 100644
+index 0000000..207ab1b
+--- /dev/null
++++ b/backend/tests/stage7b4c/wire.test.mjs
+@@ -0,0 +1,60 @@
++// U tests exercise policy, process-local control and real Unix sockets/signals.
++// The coordinator double is explicitly NOT PostgreSQL or durable-ledger evidence.
++import '../stage7b4b/no-network.mjs';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { performance } from 'node:perf_hooks';
++import net from 'node:net';
++import { mkdtemp, rm } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { publicBinding } from '../../submissions/lab/contracts.ts';
++import { UnixSyntheticTransport } from '../../submissions/lab/transport.ts';
++import { Child } from './harness.mjs';
++function binding() { return { version: 1, organizationId: randomUUID(), orderId: randomUUID(), submissionId: randomUUID(), operationId: randomUUID(), executionId: randomUUID(), account: 'lab:synthetic', generation: 1, businessHash: 'a'.repeat(64), requestHash: 'b'.repeat(64), mapper: 'fixture-identity-v1', canonical: 'legacy-order-canonical-v1', contract: 'submission-ledger-v1', request: 'synthetic', remainingMs: 30000, expiresMonotonicMs: performance.now() + 30000 }; }
++async function socketTest(run) { const dir = await mkdtemp(join(tmpdir(), 'atram-u-')), path = join(dir, 'wire.sock'), sockets = new Set(); let server; try {
++    const create = async (handler) => { server = net.createServer(s => { sockets.add(s); s.on('close', () => sockets.delete(s)); s.on('error', () => { }); handler(s); }); await new Promise((resolve, reject) => { server.once('error', reject); server.listen(path, resolve); }); };
++    await run({ path, create });
++}
++finally {
++    for (const s of sockets)
++        s.destroy();
++    if (server?.listening)
++        await new Promise(resolve => server.close(resolve));
++    await rm(dir, { recursive: true, force: true });
++} }
++test('U15 real Unix socket: timeout followed by same-socket late proof, one packet', async () => socketTest(async ({ path, create }) => { const b = binding(); let packets = 0, I = 0; await create(s => s.once('data', () => { packets++; setTimeout(() => s.end(JSON.stringify({ binding: publicBinding(b), status: 200, kind: 'ACCEPTED', externalId: 'late' }) + '\n'), 100); })); const o = []; for await (const x of new UnixSyntheticTransport(path, 20, 500, () => I++).observe(b))
++    o.push(x); assert.deepEqual(o.map(x => x.type), ['uncertain', 'response']); assert.equal(o[0].reason, 'TRANSPORT_TIMEOUT'); assert.deepEqual([I, packets], [1, 1]); }));
++test('U16 real Unix socket: lost response cannot establish absence', async () => socketTest(async ({ path, create }) => { let packets = 0; await create(s => s.once('data', () => { packets++; s.destroy(); })); const o = []; for await (const x of new UnixSyntheticTransport(path, 50, 100).observe(binding()))
++    o.push(x); assert.equal(packets, 1); assert.equal(o[0].type, 'uncertain'); }));
++test('U17 actual independent child SIGKILL after packet; no response evidence', async () => socketTest(async ({ path, create }) => { const log = []; let packets = 0; await create(s => s.once('data', () => { packets++; })); const child = await new Child('./wire-child.mjs', { WIRE_CHILD_CONFIG: JSON.stringify({ path, binding: binding(), timeoutMs: 1000, lateWindowMs: 3000 }) }, log).ready(); try {
++    child.start();
++    await child.wait(m => m.invoked);
++    for (let i = 0; i < 100 && packets === 0; i++)
++        await new Promise(r => setTimeout(r, 10));
++    assert.equal(packets, 1);
++    await child.signal('SIGKILL');
++    assert.equal(child.messages.filter(x => x.observation).length, 0);
++    assert.ok(log.some(x => x.event === 'PROCESS_EXIT' && x.signal === 'SIGKILL'));
++}
++finally {
++    await child.close();
++} }));
++test('U18 actual SIGSTOP/SIGCONT/SIGKILL with confirmed process state', async () => { const log = [], child = await new Child('./wire-child.mjs', { WIRE_CHILD_CONFIG: JSON.stringify({ path: '/tmp/atram-unit-absent.sock', binding: binding(), timeoutMs: 1000, lateWindowMs: 3000 }) }, log).ready(); let status = 'FAILED', error; try {
++    await child.signal('SIGSTOP');
++    assert.ok(log.some(x => x.event === 'PROCESS_STOP_CONFIRMED'));
++    await child.signal('SIGCONT');
++    await child.signal('SIGKILL');
++    status = 'PASSED';
++}
++catch (e) {
++    error = e.code ?? 'PROCESS_STATE_UNVERIFIED';
++    throw e;
++}
++finally {
++    await child.close();
++    const { mkdir, writeFile } = await import('node:fs/promises');
++    await mkdir('test-results/7b4c', { recursive: true });
++    await writeFile('test-results/7b4c/U18-process-control.json', JSON.stringify({ status, error, scope: 'PROCESS_CONTROL_ONLY_NO_POSTGRESQL_OR_CREATE', log }, null, 2));
++} });
+diff --git a/backend/tests/stage7b4c/worker.mjs b/backend/tests/stage7b4c/worker.mjs
+new file mode 100644
+index 0000000..a0fcbbf
+--- /dev/null
++++ b/backend/tests/stage7b4c/worker.mjs
+@@ -0,0 +1,48 @@
++import '../stage7b4b/no-network.mjs';
++import { database } from '../../db/client.ts';
++import { Vault } from '../../security/crypto.ts';
++import { SubmissionProtection } from '../../submissions/protection.ts';
++import { SubmissionRepository } from '../../submissions/repository.ts';
++import { RecoveryGate } from '../../submissions/recovery.ts';
++import { LabExecutor } from '../../submissions/lab/executor.ts';
++import { LabAttestor } from '../../submissions/lab/observer.ts';
++import { UnixSyntheticTransport } from '../../submissions/lab/transport.ts';
++import { BackendError } from '../../security/errors.ts';
++const c = JSON.parse(process.env.EXEC_WORKER_CONFIG), db = database(c.url);
++const repo = new SubmissionRepository(db, new SubmissionProtection(new Vault(new Map([['lab-v1', Buffer.alloc(32, 17)]]), 'lab-v1')), new RecoveryGate(c.gatePath, 'synthetic-lab'));
++const attestor = new LabAttestor(repo, c.admin), executor = new LabExecutor(repo, attestor);
++if (c.fault === 'BEFORE_COMMIT')
++    repo.recovery.assertSame = async () => { throw new BackendError('LEDGER_UNAVAILABLE', 503); };
++if (c.fault === 'LOST_ACK') {
++    const confirm = repo.confirm.bind(repo);
++    repo.confirm = async (...args) => { await confirm(...args); throw new BackendError('LEDGER_UNAVAILABLE', 503); };
++}
++const paused = new Map();
++let seq = 0, started = false;
++const barrier = async (name, data) => { const n = ++seq; process.send?.({ barrier: name, n, ...data }); if (c.fault === name)
++    throw Error('INJECTED_PRE_INVOCATION_FAULT'); if (c.pause === name)
++    await new Promise(resolve => paused.set(n, resolve)); };
++const transport = new UnixSyntheticTransport(c.path, c.timeoutMs ?? 1000, c.lateWindowMs ?? 3000, () => process.send?.({ invoked: true }));
++process.on('message', async (m) => {
++    if (m.release) {
++        paused.get(m.release)?.();
++        return;
++    }
++    if (!m.start || started)
++        return;
++    started = true;
++    try {
++        let result;
++        for (let i = 0; i < (c.repeat ?? 1); i++)
++            result = c.action === 'confirm' ? await repo.confirm(c.principal, c.input) : c.action === 'read' ? await repo.read(c.principal, c.input.orderId, c.input.submissionId) : await executor.execute(c.principal, c.input, transport, { barrier });
++        process.send?.({ result });
++    }
++    catch (error) {
++        process.send?.({ error: error.code ?? error.message });
++    }
++    finally {
++        await db.close();
++        process.disconnect?.();
++    }
++});
++process.send?.({ ready: true, privilegedEnvironmentPresent: Boolean(process.env.BACKEND_TEST_DATABASE_URL || process.env.SIM_TEST_DATABASE_URL) });
+diff --git a/docs/etapa7B4A/CONTRATOS-ETAPA-7B4A.md b/docs/etapa7B4A/CONTRATOS-ETAPA-7B4A.md
+new file mode 100644
+index 0000000..4ee3744
+--- /dev/null
++++ b/docs/etapa7B4A/CONTRATOS-ETAPA-7B4A.md
+@@ -0,0 +1,453 @@
++# Atram Comercial — contratos da Etapa 7B.4A
++
++**Entrega documental para aceite da gestão de produto. Não autoriza a implementação da 7B.4B.**
++
++Data: 09/10/2026, America/Sao_Paulo. Versão do contrato: proposta `submission-ledger-v1`. Baseline local e main remota conferidas: `0dc5404cd913f7ad35653e422dab5b5ebb884953`. Repositório: [pedidosAtram](https://github.com/kaue-cauin/pedidosAtram/tree/0dc5404cd913f7ad35653e422dab5b5ebb884953).
++
++Base: documento aprovado `PLANEJAMENTO-ETAPA-7B4.md`, versão atual consultada integralmente. Esta fase especifica regras futuras; não cria tabelas, rotas, migrations, código de produção ou testes de integração. Nada foi alterado no repositório, Pages ou Tiny/Olist. Contratos normativos abaixo valem para o futuro caminho backend de laboratório, não como descrição de funcionalidades já implementadas.
++
++## 1. Decisões incorporadas e alcance
++
++| Classificação | Conteúdo |
++|---|---|
++| Aprovado expressamente | Executar somente 7B.4A; preservar MVP e contratos anteriores; monólito modular; infraestrutura exclusivamente sintética; não iniciar 7B.4B/7C |
++| Obrigatório pela autorização | UNKNOWN bloqueado até prova conclusiva; nenhum reenvio automático por timeout, HTTP genérico, lease ou consulta vazia; nenhuma nova criação enquanto execução antiga puder produzir efeito |
++| Orientação de produto incorporada | ADMIN consulta/resolve pendências da organização; OPERADOR prepara/confirma pedidos autorizados; VENDEDOR acessa somente pedidos sob sua responsabilidade |
++| Formalização técnica para aceite deste documento | Identidade e revisões das seções 2–4; contratos de comandos, evidência, imutabilidade e recuperação; preservação do mock por caminho separado |
++| Recomendação ainda não aprovada operacionalmente | Responsáveis, tempos de atendimento/escalonamento, retenção, RPO/RTO, compartilhamento de conta ERP, extensão dos poderes de ADMIN/VENDEDOR e valores finais de limites |
++
++A aprovação da arquitetura não aprovou automaticamente todos os números ou políticas sugeridos no planejamento. O quadro da seção 12 identifica os pontos que precisam de confirmação. Nenhuma dúvida operacional concede licença para despachar resultado incerto.
++
++Garantia delimitada: o backend coordena submissões **do mesmo pedido autoritativo**, impede execuções concorrentes e replays inseguros e preserva prova. Não garante deduplicação comercial entre pedidos com identidades distintas nem execução externa exatamente uma vez sem contrato externo comprovado. Um sistema externo pode aceitar e perder a resposta; PostgreSQL não torna seu commit atômico com o ERP.
++
++## 2. Identidade, revisão e concorrência
++
++### 2.1 Identificadores
++
++| Campo | Autoridade e regra |
++|---|---|
++| `localOrderId` | Valor `Order.orderId` no IndexedDB atual. Identifica o rascunho/origem local; não comprova organização, ownership ou existência backend |
++| `authoritativeOrderId` | UUID atribuído pelo servidor a uma âncora na organização autenticada. É o `order_id` das futuras tabelas; distinto semanticamente e, nesta proposta, também em valor do localOrderId |
++| `originLocalOrderId` | Identidade local original vinculada à âncora, imutável. Unicidade organização/origem evita que repetir o cadastro do mesmo rascunho crie outra âncora. Não é uma credencial de acesso |
++| `submissionId` | UUID estável gerado/persistido pelo cliente antes da admissão; servidor valida e vincula à organização/âncora. Identifica um snapshot/destino, não uma chamada de rede. Não muda depois de timeout |
++| `commandId` | UUID por comando lógico, reutilizado no retry HTTP. Unicidade na organização, com tipo, recurso, ator e digest da requisição registrados. Um operador diferente usa seu próprio comando, mas continua disputando a mesma âncora/submissão. Novo commandId não libera outra criação |
++| `operationId` / `executionId` | UUIDs do servidor para comunicação e executor. Um comando confirm pode apontar para uma comunicação já existente; não atribuir nova execução em cada replay |
++| ID externo | Identidade retornada pelo simulador/ERP, vinculada à conta e à prova. Número comercial apresentado não substitui esse ID |
++
++Cadastro futuro de âncora é uma operação de identidade, sem upload contínuo de rascunhos. Cliente guarda a associação local→backend em envelope de laboratório separado. Retry do cadastro usa o mesmo commandId/originLocalOrderId; perda da resposta não gera novo UUID autoritativo. Se a origem já existe, retornar sua âncora somente após autorização por recurso; não transferir ownership a quem adivinhou o UUID.
++
++Dois operadores identificam o mesmo pedido mediante **a mesma referência backend obtida por consulta autorizada ou compartilhamento explícito**, incluindo a origem local. Não atribuir identidade por cliente/valor/data nem sincronizar rascunhos colaborativamente. Para o laboratório, uma fixture/exportação explícita entrega a mesma origem e referência aos dois operadores; alterações locais divergentes competem na admissão. Uma cópia com outro localOrderId não é anexada silenciosamente à âncora: conflito exige recuperar a origem correta ou revisar uma importação ainda DRAFT antes de congelá-la. Snapshots já iniciados nunca são reescritos para ajustar identidade.
++
++O payload canônico legado continua contendo o **orderId local original**. O envelope backend acrescenta authoritativeOrderId e organização derivada da sessão; não substitui esse campo dentro de bytes já revisados. Servidor exige `payload.orderId = originLocalOrderId` da âncora. Recibo mock continua usando esse valor legado; as FKs backend usam authoritativeOrderId. Isso evita quebrar `assertSubmissionIntegrity` e os recibos aprovados.
++
++### 2.2 Revisões
++
++Três contadores independentes, sem uso intercambiável:
++
++- `sourceLocalRevision`: revisão CAS do IndexedDB, informativa no backend. Dois browsers podem ter valores iguais para conteúdos diferentes.
++- `orderRevision`: servidor inicia em 0 ao cadastrar âncora; admissão nova exige expectedOrderRevision atual e incrementa para 1. Arquivamento/correção incrementa de novo; nova admissão incrementa novamente. Replay exato não incrementa. Não mede cada tecla nem muda por leitura/ownership.
++- `ledgerRevision`: começa em 1 ao admitir a tentativa; incrementa em cada transição ou mudança de guardas decisória, na mesma transação dos eventos. LOOKUP solicitado/concluído, conflito e resolução mudam a revisão; GET/replay não. `anchorRevision` separado protege mudança de ownership/ponteiros, sem alterar o snapshot.
++
++Exemplo: âncora orderRevision=0 → admissão A=1; rejeição e arquivamento=2 → admissão B=3. Não aceitar B com expected=1. A conserva orderRevision=1 para sempre. expectedLedgerRevision da confirmação não é sourceLocalRevision.
++
++Replay autenticado é reconhecido **antes** de comparar revisão atual: o comando existente precisa ter o mesmo ator, recurso e corpo/digest original, inclusive expected revision. Pode devolver seu recibo original e a projeção atual mesmo se a revisão avançou. Novo comando com revisão antiga dá 409. Reutilização de commandId em outro recurso/tipo/conteúdo/ator dá conflito sanitizado, sem executar.
++
++### 2.3 Invariantes
++
++| ID | Regra obrigatória |
++|---|---|
++| I01 | Toda identidade, FK, consulta, CAS e evento tem organizationId proveniente da sessão, nunca autoridade do corpo |
++| I02 | Uma âncora tem no máximo uma tentativa ocupante; SUBMITTED/UNKNOWN/SUBMITTING não liberam o pedido |
++| I03 | Mesma submissionId tem exatamente uma âncora, revisão de admissão, conteúdo e destino; conflito não sobrescreve |
++| I04 | Bytes/hashes/versões/binding congelados na admissão; conteúdo iniciado não é editável |
++| I05 | Intenção e autorização duráveis precedem qualquer chamada externa; transação não inclui rede |
++| I06 | CREATE inconclusivo ou ainda capaz de efeito impede outro CREATE, qualquer que seja a chave/comando/processo |
++| I07 | Lease vencido indica abandono, não ausência de efeito. Fencing local não cancela requisição já no sistema externo |
++| I08 | SUBMITTED exige evidência vinculada e commit durável; sucesso HTTP do nosso backend não equivale a sucesso ERP |
++| I09 | UNKNOWN só é resolvido por prova; lookup vazio e decurso de tempo não são provas negativas |
++| I10 | Arquivamento permite nova tentativa somente após rejeição definitiva de conteúdo e ausência de execução antiga capaz de efeito |
++| I11 | Eventos/evidências não se apagam ou se editam para liberar unicidade. Respostas antigas não restauram sessão/credenciais/conexão |
++| I12 | Digitação, autocomplete, totais e autosave não dependem do ledger/rede; offline não envia automaticamente ao reconectar |
++
++Pedidos diferentes que representam a mesma venda continuam um risco comercial. Não bloquear duas vendas legítimas porque seu hash coincide. Não oferecer “duplicar UNKNOWN para reenviar” como escape. Cadastro compartilhado completo e deduplicação semântica permanecem fora do escopo.
++
++## 3. Matriz formal dos sete estados
++
++### 3.1 Autoridade e matriz completa
++
++DRAFT/VALIDATING são preparação local; READY local é revisão transitória. A tentativa backend nasce em READY somente quando admitida. Não criar artificialmente linhas backend DRAFT/VALIDATING para todo rascunho. Estado local pode estar SUBMITTING enquanto o backend ainda está READY por perda de confirmação: consulta e envelope explicam essa diferença, sem projetar READY inválido no IndexedDB legado.
++
++Destino nas colunas; `—` proibido; `P` preparação; `F` falha pré-despacho; `X` intenção; `A` aceitação; `R` prova sem efeito; `U` incerteza; `C` arquivar/corrigir **projeção do pedido**, não reescrever tentativa; `S` mesma situação sem novo CREATE. Cada célula permitida depende das regras abaixo. Esta matriz é normativa para o novo backend; o mock atual conserva seu comportamento homologado.
++
++| Origem \ destino | DRAFT | VALIDATING | READY | SUBMITTING | SUBMITTED | ERROR | UNKNOWN |
++|---|---|---|---|---|---|---|---|
++| DRAFT | S | P | — | — | — | — | — |
++| VALIDATING | P | S | P | — | — | — | — |
++| READY | — | — | S | X | — | F | — |
++| SUBMITTING | — | — | — | S | A | R | U |
++| SUBMITTED | — | — | — | — | S | — | — |
++| ERROR | C | — | — | X | A | S | U |
++| UNKNOWN | — | — | — | — | A | R | S |
++
++READY admitido não pode voltar a DRAFT para editar/cancelar. Revogação de preparação exigiria um novo protocolo; excluída da v1. Admissão deverá ocorrer somente depois da revisão/confirmar do operador, reduzindo esse intervalo. ERROR→SUBMITTING é **novo comando explícito**, mesma tentativa, bytes e binding; nunca replay automático de HTTP.
++
++### 3.2 Eventos, pré-condições e prova
++
++| Código / transição | Pré-condição | Evento/evidência durável |
++|---|---|---|
++| P: DRAFT→VALIDATING | Pedido editável; revisão local capturada | Preparação local; nenhum CREATE/backend obrigatório |
++| P: VALIDATING→DRAFT | Validação falhou ou conteúdo mudou antes da admissão | Mensagens locais; rever conteúdo |
++| P: VALIDATING→READY | Schema/negócio válidos e revisão mostrada | READY transitório local; admissão cria `ADMITTED` backend com bytes, versões, ator e ordem revisões |
++| F: READY→ERROR | Falha de confirmação comprovadamente anterior à intenção/possível efeito | `PRE_DISPATCH_BLOCKED`, código e prova NO_EFFECT; snapshot não libera automaticamente |
++| X: READY/ERROR→SUBMITTING | Permissão, CAS, binding, flags sintéticas, recovery gate liberado, nenhuma operação capaz/incerta; ERROR tem prova segura e prazo cumprido | `DISPATCH_INTENT`, execução única; commit confirmado antes da rede |
++| A: SUBMITTING/UNKNOWN/ERROR→SUBMITTED | Aceitação exata compatível, ID externo e checks, sem contradição pendente | `ACCEPTANCE_COMMITTED` + evidenceId; recibo e estado no mesmo commit |
++| R: SUBMITTING/UNKNOWN→ERROR | Prova NO_EFFECT ou REJECTED_FINAL e nenhuma execução antiga capaz; não inferida de HTTP/lookup vazio | `NO_EFFECT_PROVEN` ou `REJECTION_PROVEN`; reason/retryAt/operationId |
++| U: SUBMITTING→UNKNOWN | Timeout, comunicação abandonada, resposta inválida, banco falhou após possível envio | `OUTCOME_UNCERTAIN`; preservar intenção e bloqueio |
++| U: ERROR→UNKNOWN | Prova usada para ERROR perdeu validade/consulta de correção falhou ou contradição sem aceitação resolvida | `EVIDENCE_INVALIDATED`/`CONFLICT_DETECTED`; nenhum retry |
++| C: ERROR→DRAFT da projeção | REJECTED_FINAL de conteúdo, checks renovados, nenhum CREATE antigo capaz, CAS e autorização | `REJECTION_ARCHIVED`; releasedAt + revisão da âncora + histórico; tentativa antiga continua ERROR e não despacha |
++| S: auto-transição | GET/replay não muda revisão; LOOKUP/nota/prova nova pode gerar evento sem criar | `LOOKUP_REQUESTED/COMPLETED`, `NOTE_ADDED`, `CONFLICT_DETECTED` quando aplicável |
++
++Estados recuperáveis: READY aguarda confirmação explícita; ERROR seguro permite retry explícito da mesma tentativa ou correção de conteúdo; SUBMITTING abandonado vira UNKNOWN; UNKNOWN permite só investigação/resolução. SUBMITTED é terminal. ERROR arquivado é terminal **para despacho**, não licença para ignorar evidência contraditória posterior.
++
++Se aparecer aceitação depois de uma rejeição arquivada, guardar prova, colocar âncora e todas as tentativas relacionadas em guarda de conflito e abrir incidente; nenhum novo CREATE. Se já houve nova tentativa, investigar ambas. Só ADMIN pode confirmar aceitação histórica comprovada por protocolo de incidente, sem reativar CREATE antigo. Refinamento do planejamento: “arquivado terminal” proíbe execução e edição, mas não suprime a verdade de um efeito externo posteriormente comprovado. Não afirmar prevenção absoluta quando a prova externa de rejeição era falsa.
++
++SUBMITTED com evidência posterior contraditória **não regride** para UNKNOWN: mantém estado/recibo, recebe conflictHold e bloqueio administrativo; não substituir o ID pelo candidato mais recente. Resolução de conflito exige prova e auditoria, não last-write-wins. Requisição inválida rejeitada antes de admissão deixa DRAFT, não inventa ERROR backend.
++
++## 4. Resultado, evidências e autorização de nova execução
++
++### 4.1 Semântica interna
++
++| Resultado | Significado | Consequência |
++|---|---|---|
++| `NO_EFFECT` | Nosso transporte comprovadamente não foi invocado; execução definitivamente encerrada, sem possibilidade futura | ERROR; retry explícito pode ser elegível |
++| `REJECTED_FINAL` | Rejeição de submissão comprovada exclui criação passada **e aceitação tardia**; comunicação encerrada | ERROR; conteúdo rejeitado permite arquivamento/correção |
++| `ACCEPTED` | Recibo/evidência identificam efeito exato na conta/destino/execução | SUBMITTED após commit |
++| `INCONCLUSIVE` | Nenhuma prova suficiente, inclusive candidato ausente, timeout, corpo incompleto ou intenção abandonada | UNKNOWN; bloqueio de CREATE |
++| `CONFLICT` | Evidências incompatíveis, conta/bytes divergentes, múltiplos candidatos ou IDs contraditórios | UNKNOWN + conflictHold; se já SUBMITTED manter terminal + hold |
++
++Não usar uma única flag `rejected` para representar essas distinções. Comunicação separa outcome, `potentialEffect` e `safeClosedAt`. safeClosedAt é prova da extinção da possibilidade, não finishedAt/leaseUntil. Finishing um timeout não fecha seu potencial efeito. Uma aceitação conhecida já bloqueia novas criações pela tentativa/pedido, mesmo com comunicação encerrada.
++
++Classificação é do servidor/política de evidência, nunca enviada pelo cliente como autoridade. HTTP 400/401/429 não basta para REJECTED_FINAL; no mock controlado pode haver prova contratual. HTTP 500, timeout antes ou depois percebido e sucesso sem ID são INCONCLUSIVE. Retry-After define quando investigar/confirmar um ERROR seguro, não autoriza replay de CREATE. Refresh legítimo não implica retry de escrita.
++
++### 4.2 Estrutura e validade de evidência
++
++Evidência contém organização, âncora, submissionId, operationId/executionId quando houver, origem, observedAt/receivedAt do servidor, conta/geração, IDs externos, hashes/versões, checks executados, referência protegida dos detalhes e autoria/justificativa manual. Não guardar Authorization, cookies ou tokens. Payload bruto arbitrário não pode ser anexado como prova sem validar schema, tamanho e acesso.
++
++Aceitação de resposta direta exige comunicação registrada, identidade/conta compatíveis e recibo completo. Lookup exige identificação inequívoca e dados compatíveis com o snapshot/mapper. Similaridade de cliente/data/total não comprova identidade. Ausência, 404, paginação incompleta ou atraso de indexação não comprovam não execução. Um candidato único não é garantia de unicidade externa.
++
++O contrato interno de reconciliação retorna ACCEPTED/REJECTED_FINAL/INCONCLUSIVE/CONFLICT e evidências, em vez de atribuir a `null` a certeza de ausência. A 7B.4 consulta somente simuladores. Capacidade da API Tiny real continua não homologada; não acrescentar pressuposto de Idempotency-Key, filtros conclusivos ou referência comercial única. A consulta pública histórica citada no planejamento não autoriza acesso real nem comprova garantias de execução.
++
++Uma prova negativa somente pode liberar a operação se excluir também executores suspensos/requisições antigas pendentes. Abortar socket/processo ou ver lease vencido não comprova rejeição de requisição já aceita externamente. Administrador não pode substituir prova por “acredito que não foi”.
++
++## 5. Compatibilidade e vetores de contrato
++
++### 5.1 Fronteira com o MVP
++
++| Contrato atual | Regra de introdução futura |
++|---|---|
++| `SubmissionCoordinator.reconcile()` | Mock mantém null→ERROR/not-found aprovado. O backend usa serviço conservador separado; não conectar seu INCONCLUSIVE a esse ramo. Não usar `submit()` atual como máquina backend sem adapter/política específica |
++| `ERPProvider` / `ERPFailure` | Fachada permanece inalterada; comentário de atomic binding não prova capacidade Tiny. DTO interno de execução/evidência enriquece certeza, sem estender silenciosamente significado de rejected/null |
++| `MockERPProvider` / `ERPLedger` | Reutilizar cenários e interface para simulador idempotente; distinguir ledger do ERP fictício do ledger da aplicação. Simulador não idempotente tem contrato próprio de laboratório, não viola a promessa do ERPLedger atual |
++| `assertOrderTransition` | Continua protegendo formatos locais/histórico/recibo. Não representa matriz completa nem autorização backend; regras novas operam em módulo separado e em constraints de banco |
++| `validateDraft` / IndexedDB 1/2/3 | Sem alteração nesta fase. DRAFT/SUBMITTING/SUBMITTED/ERROR/UNKNOWN são persistíveis; READY/VALIDATING backend não são gravados como status legado. Dados antigos não são apagados nem promovidos automaticamente |
++| Bytes canônicos | `submissionPayload` ordena recursivamente chaves, preserva ordem dos arrays e strings, exclui somente status/submissionId/submission/submissionHistory/submissionEvents. Não presumir RFC 8785, normalização Unicode ou DTO comercial Tiny |
++| `connection_generation` | Binding captura connectionId, organização, provider, conta verificada e geração. token_version pode variar por refresh sem invalidar identidade. Troca/desconexão muda geração; nunca remapear tentativa para conta nova |
++| Autosave/catálogo | Fila local e catálogo A/B intocados. Envelope de laboratório só escrito após revisão/consulta, fora do caminho de entrada; no Pages, provider mock permanece padrão |
++
++Interface de laboratório futura precisa guardar, em namespace separado, associação autoritativa, mode, revisões, binding, commandIds e status durável. Ela não chama reconcile legado para interpretar ausência backend e não importa UNKNOWN/SUBMITTED mock como tentativa real. Validar projeção com os contratos legados; se um estado backend não cabe com segurança, manter status local congelado e apresentar detalhe pelo envelope. A 7B.4B não implementa esse adapter de UI, previsto em fase posterior.
++
++### 5.2 Bytes, hashes e admissibilidade
++
++Contrato `legacy-order-canonical-v1`: serialização efetiva de submissionPayload na baseline, UTF-8, SHA-256 em hex minúsculo; sem newline final nos bytes, sem BOM. Hash é índice de integridade, não assinatura nem chave de deduplicação comercial. Replay exige **bytes iguais**, contexto igual e versão igual, não apenas hash. Novas admissões rejeitam undefined, campos desconhecidos, objetos não JSON, NaN/Infinity, números de preço fora de safe integer e formato inválido antes da canonicalização; não “corrigir” snapshots antigos.
++
++Vetores abaixo foram **calculados nesta fase com Node v24.19.0 chamando a função existente e SHA-256**, sem escrever código de produção. V01–V05 são recortes mínimos de serialização, não pedidos válidos para admissão. V06 é pedido mock completo existente. Essa verificação documental não equivale a testes PostgreSQL, concorrência, integração ou navegador.
++
++| ID | Bytes canônicos esperados | UTF-8 | SHA-256 |
++|---|---|---:|---|
++| V01 | `{"items":[{"productId":"p-1","quantity":1}],"notes":"ação","orderId":"o-1"}` | 77 | `717c5a8b9c62219481aa56487bde85c6b5dc2d08d8ccb45c948f7ccbc8484b74` |
++| V02 | Exatos bytes de V01, mesmo alterando ordem das chaves e campos excluídos de controle | 77 | `717c5a8b9c62219481aa56487bde85c6b5dc2d08d8ccb45c948f7ccbc8484b74` |
++| V03 | `{"items":[{"productId":"p-1","quantity":2}],"notes":"ação","orderId":"o-1"}` | 77 | `1397986323d03313dc61d49c3e522d5c14d32d4531d00407fabb1a25d387b599` |
++| V04 | `{"items":[],"notes":"é","orderId":"o-1"}`; é = U+00E9 | 41 | `f338760ebf241e0e8661919f7ab176675a1f710cc71e5d77fc8e4eddceb2b228` |
++| V05 | Mesmo recorte, notes = U+0065 U+0301, visualmente é | 42 | `d0c7498df8b44e32ef1ee7d3827dd601612c0e1db63bd9f27ed7003f01e58b67` |
++| V06 | submissionPayload de `demoOrder` exportado por domain/mock-data.ts no SHA fixado, sem override | 3025 | `21bef1a4ecbeb24f23b348fc2ef8e2c98edff14b081cf4ece389ba2ce0e16d55` |
++
++V02 usa notes/items/orderId em ordem inversa, com status UNKNOWN, submissionId s-1, submission payload ignored e history/events vazios; todos esses controles excluídos não mudam V01. Arrays invertidos mudam bytes; UTF-8 não normaliza V04/V05. Não alterar canonicalizador para tornar equivalentes sem nova versão e revisão explícita. business_hash cobre bytes legados; request_hash cobre bytes do DTO sintético congelado, com mapperVersion separada.
++
++### 5.3 Vetores normativos de identidade/replay (testes futuros)
++
++| ID | Entrada/concorrência | Resultado obrigatório |
++|---|---|---|
++| V07 | org A, âncora O, origin L, submission S, bytes P, expectedOrderRevision 0; registrar duas vezes | Uma tentativa em revisão1; segunda retorna associação existente, sem CREATE |
++| V08 | Mesmos S/O/L/P, revisão backend já avançou; replay do commandId original com corpo original | Recibo do comando + estado atual; sem incremento/evento/CREATE novo |
++| V09 | Mesmo S, P alterado ou O/destino/versão diferente | 409; preservar P original, sem novo efeito |
++| V10 | O com S ocupante; outra aba registra T | 409 ORDER_OCCUPIED; não importar snapshot T sobre S |
++| V11 | org B reutiliza strings O/S de A | Nunca acessa A; recursos só existem no namespace B, autorização independente |
++| V12 | Dois novos confirm com mesma ledgerRevision em processos distintos | Um registra intenção; outro recebe execução atual ou conflito, sem segunda chamada |
++| V13 | UNKNOWN, novo commandId e lease expirado | CREATE bloqueado; só consultar/reconciliar |
++| V14 | ERROR REJECTED_FINAL arquivado em revisão2; nova admissão expected1 | 409; expected2 e conteúdo corrigido admite revisão3; antiga nunca despacha |
++| V15 | Mesmo binding, token_version incrementou por refresh | Identidade preservada; mudança só em geração/conta invalida despacho |
++| V16 | Dois orderIds autoritativos distintos com P semelhante | Não fundir vendas; registrar limite de duplicidade comercial |
++
++## 6. Contratos das APIs futuras
++
++Nomes de rotas propostos para implementação posterior. B implementará primeiramente repositórios/transações; a disponibilidade HTTP e execução simulada terão autorização própria. Todos os POST usam sessão, Origin/Host e CSRF existentes. Campos desconhecidos ou organização/papel/modo/URL/headers arbitrários são rejeitados; modo FIXTURE definido no servidor. IDs de destino selecionáveis apenas dentre fixtures autorizadas.
++
++### 6.1 Envelope comum
++
++Comandos recebem commandId, versão de contrato e revisão esperada pertinente; servidor computa requestDigest sobre o comando validado, registra ator e alvo. Resposta contém commandReceipt (commandId, tipo, recurso, resultado durável original, operationId se houver), projection (estado **atual**, revisões, certeza, conflictHold, nextAction) e correlationId. Replay pode ter projection mais recente; nunca apresentar recibo inicial 202 como aceitação ERP.
++
++200 = recurso/comando existente ou consulta; 201 = cadastro/admissão inédita; 202 = operação duravelmente registrada, resultado pendente; 409 = conflito de bytes/revisão/ocupação; 401/403 = sessão/permissão/CSRF; 404 uniforme = recurso fora do escopo/inexistente; 413 = tamanho; 422 = validação de negócio; 503 = banco/serviço indisponível. HTTP 500/503/timeout não informa certeza de efeito ERP. Resposta de falha contém código sanitizado e orientação para consultar a **mesma identidade**, sem rotacioná-la.
++
++| Operação proposta | Entrada específica e efeito |
++|---|---|
++| POST `/api/submission-orders` | originLocalOrderId + commandId; cria/recupera âncora autorizada e ownership derivado. Não admite snapshot nem chama provider |
++| POST `/api/submission-orders/{orderId}/submissions` | submissionId, expectedOrderRevision, sourceLocalRevision, canonicalVersion, bytes revisados/hash, alvo fixture permitido. Revalidar schema/origem/hash; congelar DTO sintético/mapper; admitir READY em transação. Repetição exata por S retorna existente; divergence dá409 |
++| POST `/api/submissions/{submissionId}/confirm` | expectedLedgerRevision; nenhum payload novo. READY ou ERROR seguro pode registrar execução. Repetição consulta o mesmo commandReceipt/operação; UNKNOWN/SUBMITTED nunca originam CREATE |
++| GET `/api/submissions/{submissionId}` | Projeção autorizada; nenhum despacho, nenhuma consulta ERP implícita. Recurso alheio não vaza IDs, bytes ou estado |
++| POST `/api/submissions/{submissionId}/reconcile` | expectedLedgerRevision; registra uma LOOKUP e vínculo idempotente. Uma investigação ativa por tentativa; replay retorna mesma operação. Somente simulador nesta etapa |
++| POST `/api/submissions/{submissionId}/archive-rejection` | expectedLedgerRevision e expectedOrderRevision; REJECTED_FINAL de conteúdo + ausência de execução capaz. Libera âncora atomicamente, conserva snapshot/tombstone; nova revisão requer conteúdo alterado, como mock |
++| POST `/api/admin/submissions/{submissionId}/resolve` | expectedLedgerRevision, evidenceIds válidos, decisão ACCEPTED ou REJECTED_FINAL, justificativa limitada. ADMIN; serviço verifica prova e CAS. Não existe decisão “reenviar apesar de dúvida” |
++| POST `/api/admin/submission-orders/{orderId}/owner` | novo membro ativo da mesma organização, expectedAnchorRevision, justificativa. Não altera binding/bytes/autoria histórica nem reinicia comunicação |
++
++Registro de comando deve ser atômico com evento/efeito local. GET não executa comandos. Reconcile permite retry limitado de **LOOKUP**, com nova operação identificada após falha; um replay do mesmo comando não refaz rede. Client HTTP pode repetir admissão/confirm usando mesma chave; executor CREATE jamais usa middleware de retry automático.
++
++Confirm de ERROR requer comando novo e explícito, prova sem efeito válida, safeClosedAt em todas as execuções anteriores, retryAt cumprido, flags/autoridade/binding válidos e ausência de conflito. Novos commandIds em SUBMITTING devolvem a execução ativa sem despachar; em SUBMITTED devolvem recibo; em UNKNOWN devolvem bloqueio com ação consultar. Corrigir nunca reutiliza submissionId arquivada.
++
++## 7. Autorização, ownership e auditoria
++
++### 7.1 Política mínima, sem poderes implícitos
++
++| Ação | ADMIN | OPERADOR | VENDEDOR |
++|---|---|---|---|
++| Consultar pedido/status permitido | Toda organização | Pedidos explicitamente autorizados | Somente sob sua responsabilidade |
++| Cadastrar/preparar/confirmar | Não concedido só pelo papel de resolver; delegação operacional pendente | Sim, no escopo permitido | Poder de envio não inferido de “acesso”; pendente de confirmação de produto |
++| Reconciliar/encaminhar | Sim | No recurso permitido, consulta simulada | Consulta/encaminhamento próprios; poder de iniciar trabalho backend pendente |
++| Resolver conflito/arquivar prova administrativa | Sim, com evidência/CAS | Não pode forçar resolução | Não |
++| Transferir ownership | Sim, membro ativo, motivo/CAS | Não | Não |
++
++Para retirar ambiguidade técnica enquanto essas extensões não forem decididas: **deny por padrão** nas células pendentes. No laboratório, OPERADOR só opera âncoras de que é owner ou que lhe foram explicitamente delegadas. A primeira versão não exige tabela de ACL geral: ownership + transferência administrativa; compartilhamento amplo entre operadores exige decisão separada, não presumir “qualquer pedido da organização”. Âncora criada pelo operador tem owner=Principal.userId. Fixture administrativa pode ser atribuída explicitamente com auditoria.
++
++VENDEDOR responsável é usuário da membership, não simples sellerId comercial do payload. Nome do vendedor/dados HTTP não conferem ownership. ADMIN pode consultar/resolver toda sua organização, mas não organizações vizinhas. Troca de owner não transfere autoria da confirmação nem remove trava; mudança durante READY/ERROR exige reautorização do próximo comando, durante intenção não cancela efeito possível.
++
++### 7.2 Revogação e concorrência de autorização
++
++Autenticar pelo mecanismo atual; revalidar sessão, usuário, organização, membership/papel e recurso dentro da transação decisória, com locks compartilhados dos registros de autorização; repetir checagem antes da invocação do transporte. A intenção registra ator/sessionId, sem token. Replay exige sessão atual autorizada: usuário revogado não lê resultado usando commandId antigo.
++
++Ponto de linearização da permissão é commit da intenção. Revogação concluída antes dele impede autorização; após esse commit a execução pode já estar em curso. Não prometer cancelamento atômico entre revogação e chamada externa: a janela entre última checagem e efeito existe. Detecção de revogação antes da chamada impede aquela execução; para classificá-la NO_EFFECT, executor deve encerrar com prova sem chamada. Processo perdido/suspenso sem essa prova mantém UNKNOWN. Logout não remove ledger, não restabelece sessão e não permite retry; resposta vinculada de uma execução já autorizada pode ser registrada internamente para preservar a verdade.
++
++### 7.3 Auditoria
++
++Registrar transições, admissões, confirmação, lookups, conflito, ownership, resolução/arquivamento, gate de recuperação e negativas relevantes. Evento: organização/recurso, sequência, comando, ator ou SYSTEM, correlação, data do banco, estado anterior/posterior, código/motivo e evidenceId. Eventos de commandId possuem digest e recibo durável original. Eventos de resultado interno usam identidade própria vinculada à operação, não reaproveitam o commandId HTTP.
++
++Transição + prova + evento + recibo local no mesmo commit. Append-only e sem DELETE/UPDATE pela role operacional; política de expurgo futura não pode apagar tombstone que habilitaria replay. Negativa anterior à existência da tentativa utiliza audit_events existente, sanitizada. Auditoria protege contra role operacional, não contra superusuário/root; acessos privilegiados e backups precisam de governança separada.
++
++## 8. Execução, reconciliação e recuperação
++
++### 8.1 Intenção e exclusão
++
++Comando confirm registra comunicação com DISPATCH_INTENT, operationId/executionId, estado SUBMITTING e potentialEffect=true, tudo em commit curto. Só o executor dessa intenção, após ACK do commit e checagens, pode fazer uma chamada. Não retomar CREATE de intenção encontrada no boot; outro processo só observa/reconcilia. O transporte não reenviará POST por redirect ou retry oculto. O pool/driver não deve repetir transação que inclui rede.
++
++Revalidação/fencing usa execução exata, revisão e binding; locks/constraints elegem um executor entre instâncias. Se lease expira, classificar abandono para UNKNOWN e manter potentialEffect. Uma instância suspensa pode retomar antes da última checagem ou depois dela; portanto nunca dar segunda execução por expiração. Estado UNKNOWN normalmente faz a checagem tardia falhar, mas não elimina janela já autorizada externa. Só prova de extinção de **todas** as execuções capazes permite outro CREATE.
++
++### 8.2 Protocolo por fronteira de falha
++
++| Situação | Recuperação obrigatória |
++|---|---|
++| Queda antes do commit da intenção, rollback confirmado | Nenhum transporte; READY ou ERROR pré-despacho. Nova confirmação explícita é possível se não houver intenção anterior |
++| Commit intenção pode ter ocorrido, sem ACK ao executor | Executor não chama transporte. Recuperar por chave; intenção existente vira conservadoramente UNKNOWN se não houver encerramento seguro. Não redispatchar |
++| Commit concluído, resposta HTTP ao cliente perdida | Cliente consulta/replay da mesma chave; comando/operação existentes, não outro CREATE |
++| Suspensão depois da intenção | Abandono→UNKNOWN; bloqueio persiste. Retomada só pode registrar resultado válido ou comprovar encerramento sem efeito, não disputar nova execução |
++| Queda após possível criação | UNKNOWN; investigar vínculo exato no simulador. Não converter ausência em ERROR seguro |
++| PostgreSQL falha depois de efeito externo | Recibo pode ser conhecido em memória, mas não declarar confirmação durável sem commit. Quando banco retorna, anexar prova à execução ou reconciliar; não repetir CREATE |
++| Resposta tardia após lookup/outro processo | Guardar evidenceId append-only; aplicar política sob lock da âncora/operação exata. CAS stale não descarta prova; reavaliar estado atual sem sobrescrever recibo terminal |
++| Conta/generation trocada | Sem despacho anterior: ERROR seguro/binding bloqueado, não remapear. Com intenção: UNKNOWN. Evidência velha permanece na tentativa antiga; aceitação histórica exige ADMIN/prova; nenhuma restauração de tokens |
++| Reinício normal do backend | READY não envia; SUBMITTING sem resultado é verificado e classificado; ERROR/UNKNOWN/SUBMITTED preservados; somente LOOKUP elegível pode ser retomado, nunca CREATE |
++| Restore anterior a submissões | Gate global de recuperação e interrupção dos executores antigos; não confiar em “registro inexistente”. Reconstituir janela perdida antes de liberar operação; ver abaixo |
++
++NO_EFFECT só é seguro quando o transporte não foi invocado e a execução deixou de poder ser invocada no futuro. “Processo morreu” depois de enviar não satisfaz isso. Prova tombstone REJECTED_FINAL no simulador deve excluir também aceitação tardia da chave. Risco residual de rejeição externa falsa vai para incidente, não pode ser ocultado pelo modelo.
++
++### 8.3 Reconciliação
++
++1. Registrar comando LOOKUP idempotente, deadline e execução separados do CREATE. Bloquear consultas concorrentes redundantes; comunicação anterior incerta continua impedindo envio.
++2. Consultar apenas conta/destino congelados, usando simulador. Guardar escopo, resultado, paginação quando aplicável e checks; nenhum candidato não vira prova negativa.
++3. Sob lock/CAS, anexar evidência e concluir ACCEPTED ou REJECTED_FINAL somente com os critérios da seção4. Caso contrário, manter UNKNOWN/hold e próxima ação administrativa.
++4. Consultas interrompidas podem ser retomadas por nova operação identificada/backoff; elas não criam pedidos. Replay do comando antigo apenas informa sua situação.
++5. Resolução manual repete os checks, exige evidência/justificativa e não permite override de dúvida. Duas resoluções divergentes competem por ledgerRevision; uma vence e outra recebe409.
++
++### 8.4 Restauração e janela perdida
++
++Restore de backup é diferente de restart. O gate deve ser acionado pelo procedimento de restauração/deployment **fora do estado restaurado do banco**; uma flag NORMAL dentro de backup antigo não protege. Operação começa em RECOVERY_HOLD antes de conectar executores. Desligar/isolar instâncias antigas e registrar ponto restaurado, intervalo potencialmente perdido, chaves e conta/destino. Se não for possível provar limite da janela ou encerrar executores antigos, bloquear todos os despachos afetados.
++
++Reunir backups/WAL disponíveis, manifestos de operação e envelopes locais como pistas; dado local não prova efeito externo. Recuperar ledger/provas de fontes íntegras ou reconciliar no simulador independente. Quando o backup não contém a tentativa, reconstituir sua identidade/evidência sob comando administrativo; **não admitir como novo READY** para “tentar novamente”. Tombstones de perda/hold de âncora impedem evasão por ausência de linha; casos sem identidade enumerável exigem hold da organização/ambiente.
++
++Liberação do gate exige checklist técnico de integridade/chaves, inventário da janela, resultados provados ou bloqueios persistentes para cada caso incerto e aprovação administrativa auditada. Não declarar que o sistema detecta automaticamente todo restore antigo: garantia depende desse runbook e controle externo de inicialização, a testar. RPO/RTO não definidos; restaurar e obter readiness SQL não significa estar seguro para criar.
++
++## 9. Simuladores necessários em fases posteriores
++
++Dois adaptadores distintos: (a) ERPLedger PostgreSQL idempotente preserva recibos/rejeições aprovados; (b) simulador não idempotente cria **um efeito por chamada**, inclusive mesma submissionId, sem unique em chave/pedido. Ambos são sintéticos, sem credenciais/rotas Tiny, com armazenamento independente do ledger da aplicação.
++
++Simulador não idempotente registra em commit separado: effectId, contador por chamada, conta fixture, bytes recebidos, requestId e instante; não devolve consulta conclusiva por padrão. Controle de laboratório permite pausar antes de receber, antes/depois de criar, antes de responder e atrasar resposta. O harness observa efeitos reais do simulador, mas aplicação recebe somente o contrato configurado, não um “oráculo” secreto de teste.
++
++Perfis: timeout antes sem prova visível (UNKNOWN mesmo com contador zero); timeout após efeito (UNKNOWN com contador1); consulta sempre inconclusiva; rejeição definitiva com tombstone que impeça aceitação tardia; resposta/candidato conflitante; conta trocada; resposta atrasada. Separar número de CREATE recebidos de efeitos criados: um teste de idempotência do ERP não comprova que nosso backend chamou apenas uma vez.
++
++Prova futura: dois processos backend, 100 confirmações concorrentes e 1000 replays depois do timeout devem conservar uma intenção ocupante e nenhum segundo CREATE. Crash/restart e suspensão usam barreiras determinísticas; não sleeps como prova. As fases B/C terão gates separados: B prova persistência sem rede; C prova efeitos do simulador. Nenhum desses testes foi executado agora.
++
++## 10. Plano restrito para 7B.4B — não executar
++
++### 10.1 Modelo indispensável
++
++Conservar as cinco tabelas propostas; identidade e recibos de comandos enriquecem âncora/eventos, sem um segundo ledger/outbox. B não necessita executor, UI, simulador externo nem scheduler.
++
++| Tabela conceitual | Dados/constraints mínimos |
++|---|---|
++| `submission_orders` | PK org/order; FK organization; UNIQUE org/originLocalOrderId; origem imutável; owner/member FK composta; orderRevision/anchorRevision; current/accepted ponteiros FKs org/order/submission; conflictHold/recoveryHold; timestamps |
++| `order_submissions` | PK org/submission; UNIQUE org/order/submission; FK âncora; snapshot bytes/hash/versões, revisões, binding e modo; estado/certeza/recibo; UNIQUE parcial org/order onde releasedAt nulo; released só ERROR rejeição arquivada; destino sintético permitido, REAL inexecutável |
++| `submission_communications` | PK org/operation; FK org/order/submission; UNIQUE org/submission/sequence e executionId no contexto; tipo/outcome/potentialEffect/safeClosedAt; UNIQUE parcial CREATE por submissão enquanto potentialEffect=true ou outcome inconclusivo; lease não participa da liberação |
++| `submission_events` | PK org/event; FK recurso; UNIQUE org/submission/seq para tentativas; commandId opcional com UNIQUE org/commandId, tipo/recurso/ator/digest/recibo durável. Eventos de cadastro/ownership podem referenciar só âncora, com CHECK de contexto explícito; sequência de auditoria da âncora com UNIQUE org/order/eventSequence inclui todos os eventos, alocada sob lock da âncora. Uma linha âncora de comando, demais eventos vinculados sem reutilizar commandId |
++| `submission_evidence` | PK org/evidence; FK composta tentativa/operação quando aplicável; fonte/binding/digest/checks/conclusão/autoria/justificativa protegidos; append-only; referência usada em transição deve apontar ao mesmo tenant/pedido/tentativa |
++
++Cross-table constraints: aceitar referência exige estado SUBMITTED e evidência ACCEPTED compatível; arquivar exige REJECTED_FINAL conteúdo, nenhum CREATE capaz e hold ausente. FKs sozinhas não provam essas relações; transições guardadas no banco e testes SQL direto. FK connectionId futura exige UNIQUE org/id em erp_connections, sem alterar seu provider=TINY; fixture usa connectionId nulo, identidade de simulador obrigatória. Binding REAL pode ser modelado para futuro, sem execução nem configuração real.
++
++Unicidade externa: org/provider/targetAccount/externalOrderId quando comprovado. Não habilitar compartilhamento da mesma conta ERP entre organizações antes de decisão; fixture evita compartilhamento por padrão. Ordem/digest nunca são chave global de deduplicação de venda.
++
++Bytes BYTEA UTF-8 são autoridade imutável; JSONB derivado opcional não os substitui. Guardar hash validado no caminho de admissão e testar recálculo. Cifra/AAD pode envolver bytes em repouso: digest é do plaintext canônico; rotação de envelope criptográfico não altera conteúdo. Decidir estratégia de proteção antes da migration autorizada, usando a infraestrutura de vault existente sem alegar sua homologação de payload comercial.
++
++### 10.2 Proteção de banco e locks
++
++Imutáveis desde admissão: organização, order/submission/origem, orderRevision, bytes/hashes, canonical/contract/mapperVersion, destino/conta/conexão/generation, autoria inicial. role operacional não pode apagar eventos/evidências/intenção ou editar snapshot; triggers/regras guardadas impedem também SQL direto. Campos atualizáveis restringem-se a estado/metadados/revisão por transição válida com evento/evidência. SUBMITTED é monotônico, releasedAt não se desfaz; comunicação safeClosedAt exige prova, não update livre. Checks locais não substituem verificação de relações/evento no mesmo commit. Não usar superusuário nos testes de proteção operacional.
++
++Ordem única de locks: registros de autorização (organização→usuário(s) ordenados→membership(s) ordenadas→sessão) → conexão/fixture quando necessária → âncora → submissão → comunicação → anexar evidências/eventos. Repositórios SYSTEM omitem sessão mas mantêm mesma ordem restante. Evitar ordem inversa em callbacks/ownership/refresh; alinhar previamente com módulos existentes. Updates concorrentes de segurança/conexão devem usar ordem compatível ou ser serializados antes do módulo novo. Guardas autônomas de isolamento cobrem todas as queries.
++
++READ COMMITTED + row locks/constraints/CAS basta à escala inicial. Cadastro inexistente usa INSERT/unique e recuperação controlada do conflito antes de lock da âncora; não confiar em SELECT de linha ausente. Deadlock/serialization retry somente de transação **puramente local**, com commandId preservado; nunca embutir transporte. Duração/lock timeout limitados e mensuráveis, valores finais técnicos em B.
++
++Transações indispensáveis: cadastrar âncora+comando; admitir snapshot+revisão+ponteiro+evento; persistir intenção simulada sem despacho; aplicar resultado/prova+transição+evento; anexar lookup+comando; arquivar rejeição+liberação+revisões; ownership; resolução/hold. B testa esses commits diretamente, sem invocar ERP.
++
++Índices mínimos além das uniques/FKs: org/order/createdAt para histórico; org/state/updatedAt para pendências; org/owner para escopo; org/submission/sequence para comunicações/eventos; intenção CREATE incerta para recovery; org/provider/conta/ID externo para vínculo. Paginar fila/auditoria. Não indexar payload completo ou adicionar infraestrutura distribuída.
++
++### 10.3 Migração, rollback e arquivos previstos
++
++Migrations apenas aditivas após autorização: criar tabelas/guardas/índices e FK composta necessária, sem importar mock ou alterar formatos IndexedDB. Migration numa transação quando suportada e validada pelo runner; planejar locks/tempo e backup do ambiente de teste. Nenhum DDL foi produzido nesta fase.
++
++Rollback de aplicação: desligar módulo/flags do laboratório, conservar tabelas/provas e executar versão compatível; não DROP nem truncar para “voltar”. Se houver intenção registrada, manter hold mesmo com módulo desligado. Migration falha antes de commit deve deixar schema antigo íntegro; incompatibilidade estrutural interrompe avanço. Restore segue seção8.4, não migração reversa. B não despacha, mas não assumir que ambientes posteriores estarão sem efeitos.
++
++| Arquivo/módulo futuro | Alteração prevista em B |
++|---|---|
++| backend/db/schema.ts e backend/db/migrations | Modelo aditivo, índices/FKs/checks/guardas, metadados de migration; sem alterar tabelas legadas sem necessidade |
++| backend/submissions/contracts.ts (novo) | Tipos internos de identidade/certeza/command/projection; versões e validação de envelopes |
++| backend/submissions/policy.ts (novo) | Matriz completa e pré-condições; critérios de prova/correção/hold |
++| backend/submissions/repository.ts (novo) | Comandos locais idempotentes, locks/CAS, snapshots, eventos e evidências |
++| backend/submissions/authorization.ts (novo) | Autoridade por recurso, revalidação e ownership; reutilizar AuthService |
++| backend/security/crypto.ts / errors.ts | Reutilizar; extensão específica de cifra/códigos só se necessária e testada, sem credenciais reais |
++| backend/tests/stage7b4b/* (novo) | PostgreSQL real, barreiras e assertions de constraints/transações |
++| scripts e workflow de CI backend | Executar suíte B e regressões, banco isolado; nenhuma publicação backend |
++| backend/server/http.ts, services/hooks/UI | Rotas/adapter/executor são posteriores; B não muda fluxo homologado ou limite HTTP global |
++
++Nomes novos são plano, não arquivos criados. Não iniciar API completa/executor ao implementar persistência B. Separar futuras fases C/D/E para evitar expansão do gate.
++
++## 11. Matriz de testes e bloqueios de aprovação
++
++**Planejados para 7B.4B, não executados.** PostgreSQL real de CI, role operacional restrita, dois processos/pools onde necessário, fixtures sintéticas e egress externo bloqueado. Um assert em memória não substitui essas evidências.
++
++| ID | Teste B | Bloqueio de aceite |
++|---|---|---|
++| B01 | Cadastro repetido/perda de resposta, mesma origem | Uma âncora; revisão e ownership consistentes |
++| B02 | 100 admissões simultâneas mesma S/corpo/comando | Uma tentativa/comando; nenhum evento duplicado |
++| B03 | IDs/chaves distintas para mesma âncora, dois operadores/processos | Uma ocupante; perdedora409, sem sobrescrita |
++| B04 | commandId reaproveitado em outro tipo/recurso/ator/corpo | Conflito; nenhuma alteração; sem vazar resultado |
++| B05 | Replay original após ledgerRevision avançar vs comando stale novo | Replay seguro; novo stale409 |
++| B06 | Enumerar 49 pares no contrato; subset persistível no banco e preparação local na política | Proibidos bloqueados; transições válidas exigem provas/events; não criar DRAFT/VALIDATING backend artificialmente |
++| B07 | UNKNOWN, lease vencido, finishedAt, ABANDONED | Nenhum método de persistência cria segunda intenção capaz |
++| B08 | Mutação SQL direta em snapshot/origem/binding/recibo terminal/history | Rejeição pela role/guardas do banco; bytes intactos |
++| B09 | V01–V06 e arrays/números/Unicode/schema inválido | Hash/bytes exatamente especificados; admissão inválida rejeitada |
++| B10 | LocalRevision igual e conteúdo diferente; backend revision stale | Não atribuir autoridade à revisão local;409 |
++| B11 | Tenant B adivinha IDs A; FKs/queries/owner/conexão/evidence | Nenhum vínculo/leitura/mutação cruzada |
++| B12 | Sessão/membership/owner revogados durante admissão/intenção | Linearização definida; nenhuma autorização de comando posterior à revogação |
++| B13 | Resolução/correção concorrentes e replay administrativo | Uma decisão consistente; provas/eventos/CAS atômicos |
++| B14 | Arquivar ERROR seguro, nova revisão, replay de tentativa liberada | Antiga jamais registra nova intenção; nova revisão exige conteúdo alterado |
++| B15 | Rejeição contradita/aceitação atrasada/recibo externo já usado | Hold/incidente, sem regredir terminal nem trocar ID livremente |
++| B16 | Commit rollback/sem ACK antes e depois de efetivar | Recuperação por chave, nenhum efeito inventado; eventos/transições juntos |
++| B17 | Reinício real de processo preservando banco | Estado, snapshot, comandos, revisões e guardas recuperados |
++| B18 | Bancodown/locktimeout/deadlock durante comandos locais | Rollback consistente; erro sanitizado; retry local não duplica |
++| B19 | Restore antigo + gate externo ativo | Nenhum novo READY/confirm contorna hold; janela perdida explícita |
++| B20 | SQL operacional altera safeClosedAt sem prova ou remove tombstone | Bloqueado; constraints não dependem de lease |
++| B21 | FK circular/current/accepted aponta a outro pedido/estado/evidência | Rejeitado; ponteiros coerentes após rollback |
++| B22 | Payload300 e limites de strings/tamanho de admissão | Fixture válida preservada, excesso rejeitado sem commit parcial; medição não é UI benchmark |
++| B23 | Migration aditiva interrompida e rollback de aplicação | Schema antigo íntegro ou novo compatível; ledger nunca apagado |
++| B24 | Auditoria/commandReceipt/anonimização de logs | Ator/seq/prova íntegros; segredos ausentes, acesso escopado |
++
++Regressões como gate de B: Etapas2–6, 7B.1/7B.2/7B.3, typecheck, lint, build, boundary e suítes PostgreSQL existentes. Snapshot da árvore frontend e exports deve permanecer funcionalmente equivalente; mudanças backend não entram no bundle. Não atribuir CI aprovado antes de execução na branch futura.
++
++Gates de C, ainda fora de B: simulador não idempotente independente, 1000 replays, timeout antes/depois, crash após efeito, DB down após efeito, suspensão/lease, resposta tardia e troca de conta. B prova que o banco impede segunda intenção; C precisa provar contagem de chamadas/efeitos. Não antecipar homologação de ponta a ponta apenas por B verde.
++
++Performance: B preserva frontend e testes atuais; na futura fachada E repetir 36 cenários, 48 lotes, 900 produtos e 10/50/100/150/200/300 itens, autosave ligado, catálogo background, teclado, recarga/reabertura/offline real e Network sem busca por tecla. Registrar UI e persistência separadas, mesma máquina baseline/comparação. Alvo histórico <50ms; critério adicional >20% e >5ms de regressão continua proposta para aceite, não medição atual.
++
++### Verificação realmente realizada na 7B.4A
++
++- Leitura da versão atual do planejamento e inspeção dos contratos/fontes da baseline.
++- Conferência remota/local do SHA e ausência de mudanças no checkout.
++- Cálculo dos seis vetores canônicos/SHA-256 com função existente, Node24.19.0.
++- Revisão documental da matriz, fronteiras de crash, replays, FKs, compatibilidade e escopo das fases.
++
++Não executados nesta fase: PostgreSQL, CI nova, regressões completas, simuladores novos, benchmark ou homologação no navegador. Os resultados históricos da 7B.2/7B.3 permanecem históricos, incluindo 36 cenários/48 lotes e ressalva de identidade não comprovada do build Netlify. Nenhuma confirmação retroativa de build foi inventada.
++
++## 12. Operação pendente, mensagens e encerramento para revisão
++
++### 12.1 Fila administrativa e decisões pendentes
++
++Fila proposta: UNKNOWN e conflictHold da organização, mais SUBMITTING abandonado e casos de restore; ordenar por risco de conflito/janela de perda, depois idade. Cada registro mostra submissão/pedido, owner, destino sintético, última evidência/consulta, idade, motivo sanitizado, responsável e próxima ação. Paginação e filtros simples; uma atribuição administrativa não cria comunicação ERP.
++
++| Tema | Proposta | Autoridade necessária |
++|---|---|---|
++| Responsável principal/substituto | Dois usuários ADMIN nominais por organização, cobertura em ausência | Gestão designa pessoas; não há nomes aprovados |
++| Atendimento/escalonamento | Definir janela de atendimento, alerta por idade e encaminhamento ao substituto/gestão | Gestão define prazo/SLA; nenhum número já aprovado |
++| Escalonamento de conflito | Incidente prioritário, hold imediato, preservar ambas provas; não retry emergencial | Guarda técnica obrigatória; responsável/tempo operacionais pendentes |
++| Limites de payload | Até300 itens, bytes bounded por rota/admissão, sugestão inicial1MiB, strings/profundidade limitadas e413 | Medir fixture em B; tabela exata de limites na especificação autorizada; gestão valida limites de notas/itens |
++| Proteção de dados | Dados pessoais só necessários; cifra/AAD e least privilege; logs sem payload/tokens | Técnica fecha mecanismo; gestão valida classificação/acessos |
++| Retenção/expurgo | Separar provas detalhadas de tombstones mínimos; não apagar o bloqueio de replay | Gestão/assessoria define política; nenhum prazo assumido |
++| Backup/restore | Ledger+evidências+keyring/WAL conforme estratégia; ensaio independente e gate externo | Gestão define RPO/RTO e responsabilidade; técnica detalha procedimento |
++| Poder de envio de ADMIN/VENDEDOR e escopo OPERADOR | Deny em células pendentes; owner/transferência explícita na primeira versão | Confirmar política antes das rotas de operação |
++| Mesma conta ERP em organizações distintas | Não habilitar enquanto regra de exclusividade/IDs não aprovada | Produto/segurança, antes de REAL |
++| Cancelamento de READY admitido | Fora da v1; confirmar apenas na revisão final | Produto deve pedir protocolo específico se necessário |
++
++Questões operacionais não tornam a fase B autorização implícita de produção. Rate limit atrás de proxy, política de senhas, OAuth persistente homologado e backup/restauração de PostgreSQL/chaves continuam pendências comerciais anteriores.
++
++### 12.2 Mensagens ao operador
++
++| Situação | Mensagem proposta |
++|---|---|
++| UNKNOWN | “Resultado não confirmado. Não envie novamente. Consulte a submissão ou encaminhe para revisão.” |
++| SUBMITTING | “Envio registrado; aguardando confirmação. Fechar a tela não cancela a operação.” |
++| ERROR seguro | “Falha confirmada sem criação. Revise a orientação antes de confirmar novamente com a mesma submissão.” |
++| Rejeição de conteúdo | “Conteúdo rejeitado e confirmado. Arquive a tentativa antes de corrigir e revisar.” |
++| Conflito de operador/revisão | “Este pedido já tem outra revisão ou submissão. Suas alterações locais foram preservadas; consulte o registro atual.” |
++| Backend indisponível | “Pedido salvo localmente. Confirmação indisponível; consulte a mesma submissão quando o serviço retornar.” |
++| Offline | “Sem conexão. Continue montando o rascunho; nenhum envio será feito automaticamente ao reconectar.” |
++| Restore/hold | “Envios temporariamente bloqueados para verificar operações anteriores. Não copie pedidos pendentes para contornar o bloqueio.” |
++
++Mostrar IDs, timestamps e próxima ação segura; ocultar stack, credenciais e dados alheios. A mensagem não substitui autoridade durável do ledger nem autorização.
++
++### 12.3 Critério de prontidão da 7B.4A
++
++Este documento fecha o significado de identidade, revisão, replay, intenção, estado, evidência, concorrência, binding e recuperação. No caminho conservador, qualquer situação não coberta por prova segura termina em bloqueio/UNKNOWN, nunca em permissão implícita de CREATE. Matriz completa e vetores fornecem base para implementar/testar persistência B; decisões operacionais pendentes estão nomeadas com defaults restritivos.
++
++**Pronto para revisão documental, não homologado comercialmente nem implementado.** Solicita-se aceite dos contratos técnicos e confirmação ou manutenção dos defaults restritivos nas pendências de produto. A implementação da 7B.4B exige autorização separada; não avançar automaticamente.
++
++### Fontes e rastreabilidade
++
++Código no SHA fixado: types/order.ts; domain/submission.ts e mock-data.ts; services/submission-coordinator.ts; integrations/ERPProvider.ts, MockERPProvider.ts e erp-ledger.ts; repositories/draft-repository.ts; backend/auth/service.ts; backend/server/http.ts; backend/db/schema.ts; backend/integrations/tiny/service.ts (binding/refresh); package.json; scripts/check-stage-5.mjs. Arquitetura/autosave/catálogo e evidências anteriores: planejamento aprovado e documentos 7B.2/7B.3 da baseline. Não foram acessadas credenciais ou APIs Tiny reais.
++
++O documento-base permanece preservado como histórico aprovado. Esta formalização distingue refinamentos técnicos e restrições de execução das propostas operacionais ainda abertas; não altera comportamento do MVP. Nenhuma branch, migration, PR, publicação ou etapa7C foi criada.
++
++## Laudo técnico para a gestão de produto
++
++**Objeto:** formalização de contratos e garantias da Etapa7B.4A, exclusivamente documental.
++
++**Parecer:** favorável ao aceite documental, sujeito à revisão da gestão de produto. Os contratos definem autoridade por organização/pedido, revisões distintas, snapshot/destino imutáveis, confirmação idempotente separada de CREATE, bloqueio de UNKNOWN, prova de resultado, concorrência e recuperação conservadora. Não foi identificada, na revisão documental, regra que autorize nova criação enquanto uma execução anterior ainda possa produzir efeito.
++
++**Evidências desta entrega:** baseline local/remota conferida; planejamento vigente lido; código dos contratos inspecionado; seis vetores canônicos e hashes calculados com a função existente. O checkout permanece limpo. Nenhum teste PostgreSQL, CI nova, benchmark ou homologação de navegador foi executado nesta fase; esses ensaios constam como gates futuros e não são apresentados como aprovados.
++
++**Limitações materiais:** coordenação aplica-se à mesma identidade autoritativa; pedidos distintos da mesma venda exigem tratamento comercial. Sem garantia externa comprovada, execução exatamente uma vez não é assegurada. Restore antigo depende de gate operacional externo e investigação da janela perdida. Política de acesso ampliada, responsáveis/SLA, retenção e RPO/RTO permanecem pendentes, com defaults restritivos definidos.
++
++**Encaminhamento ao gerente de produto:** revisar e aceitar ou ajustar os contratos e as pendências da seção12. A aprovação da 7B.4A não libera produção, Tiny real ou integração comercial. A implementação da 7B.4B deve receber autorização explícita separada e cumprir sua matriz de testes antes de avançar.
++
++**Conclusão da atividade:** documentação entregue para revisão; código, migrations, main, PRs, Pages, backend e credenciais preservados. Não iniciadas 7B.4B/7C. Este é um parecer técnico do projeto, não certificação independente ou garantia comercial do ERP.
+diff --git a/docs/etapa7B4A/ORIGEM.md b/docs/etapa7B4A/ORIGEM.md
+new file mode 100644
+index 0000000..ed23a03
+--- /dev/null
++++ b/docs/etapa7B4A/ORIGEM.md
+@@ -0,0 +1,14 @@
++# Identificação da cópia normativa
++
++`CONTRATOS-ETAPA-7B4A.md` é cópia byte a byte do documento aprovado
++`CONTRATOS-ETAPA-7B4A(1).md`, de 09/10/2026, disponibilizado pela gestão
++como referência normativa `submission-ledger-v1` e localizado anteriormente
++com a identidade `libfile_de15912bbba4819197c3ec957b6d5871`.
++
++SHA-256 da cópia e do arquivo de origem:
++`324f4c412e7dab5de0dcda9e6da1de22a10353e15d7b5741a0653f43cdd4fd48`.
++Nenhum trecho, título histórico, plano futuro ou status antigo foi atualizado
++na cópia. As autorizações posteriores da gestão determinam o escopo atual;
++a cópia não autoriza execução das etapas futuras que descreve.
++
++A 7B.4C não altera este contrato, as migrations do ledger ou suas permissões.
+diff --git a/docs/etapa7B4C/IMPLEMENTACAO.md b/docs/etapa7B4C/IMPLEMENTACAO.md
+new file mode 100644
+index 0000000..db1bc24
+--- /dev/null
++++ b/docs/etapa7B4C/IMPLEMENTACAO.md
+@@ -0,0 +1,131 @@
++# Etapa 7B.4C — execução simulada local
++
++Baseline autorizada: `f246d1b1f002b9b9094dd5cc937eefd19bd90d5a`.
++Branch local exclusiva: `feat/etapa-7b4c-execucao-simulada`.
++A comparação GitHub baseline/main em 10/10/2026 retornou `identical`, zero
++commits/arquivos. A proposta aprovada está preservada em
++`PROPOSTA-ETAPA-7B4C.md`; seu status histórico “não implementada” descreve
++somente a preparação anterior. O contrato está copiado fielmente em
++`../etapa7B4A/CONTRATOS-ETAPA-7B4A.md`, com origem/hash em `ORIGEM.md`.
++
++Implementação local, **sem aceite de PostgreSQL nesta execução**. Consulte
++`VERIFICACAO.md` e `MATRIZ-C.md` para resultados reais, pendências e contagens.
++Nenhuma branch/PR foi publicada, CI remota executada, integração ou deploy
++realizado. O arquivo de Pages não foi editado e sua reativação continua vedada.
++
++## Executor e despacho
++
++`LabExecutor.execute()` é chamada explícita; não existe scheduler, fila de
++CREATE, retomada de intenção no boot ou endpoint. A intenção é confirmada
++pelo repositório existente antes de qualquer transporte. Somente o ACK de um
++CONFIRM inédito (`replay=false`, `result=RECORDED`) cria capacidade privada,
++volátil e vinculada à chamada/processo. Recibo recuperado, replay, restart e
++ACK perdido não criam capacidade. Não há exportação, serialização, spool,
++transferência por IPC ou clonagem dessa capacidade.
++
++A época autorizada é capturada antes do CONFIRM e conservada; outra época NORMAL
++não é adotada após o ACK. A validação interna faz replay exato de CONFIRM e leitura sob os locks SQL
++existentes. Revalida sessão, papel OPERADOR, organização, ownership, holds,
++operação/execução/autoria, estado SUBMITTING, potencial de efeito e lease.
++Abre envelopes com AAD, confere hashes/bytes e binding FIXTURE/SYNTHETIC,
++conta `lab:<org>`, geração 1 e versões aprovadas. A role restrita continua sem
++SELECT/DML direto no ledger; nenhum GRANT ou comando SQL novo foi adicionado.
++
++O deadline monotônico nasce na amostragem de `clock_timestamp()` PostgreSQL;
++o tempo de query, abertura dos envelopes, gate e commit é descontado
++conservadoramente. O processo verifica gate/época e deadline antes de consumir
++sincronamente a capacidade uma vez. O transporte só existe como tarefa após
++esse consumo e não tem retries, redirects ou destinos fornecidos pelo pedido.
++
++O estado consumido não é recuperável. Falha depois dele deixa incerteza, mesmo
++se I/R/P medidos pelo harness forem zero. Falha controlada antes dele pode
++fechar a capacidade UNUSED→CLOSED; somente este caminho definitivamente
++encerrado, sem tarefa de transporte criada ou callback de envio pendente,
++produz NO_EFFECT. A flag `executionFenced=true` registra o mecanismo de
++fechamento; não é o mecanismo nem uma promessa de fencing remoto.
++
++## Janela residual e tempos distintos
++
++Barreiras IPC: INTENT_ACKED, VALIDATED, CAPABILITY_CONSUMED,
++TRANSPORT_INVOKED, OBSERVATION, EVIDENCE_COMMITTED, CAPABILITY_CLOSED.
++O contador I usa a entrada efetiva de `transport.observe`, não o nome de uma
++barreira. A capacidade não é enviada pelo IPC. O IPC leva somente identidades/barreiras
++e resultados sintéticos ao supervisor confiável; o request vai só ao socket.
++
++C12 suspende antes da revalidação. Lease vencido/UNKNOWN impede transporte na
++retomada. C13 suspende **após a última checagem e o consumo**, antes da entrada
++no transporte. A execução antiga ainda pode criar; outra nunca a substitui.
++Não se promete exactly-once externo, cancelamento atômico ou proteção contra
++root/executor malicioso. O laboratório confia no executor conforme e no socket
++privado do harness. C12/C13 usam duração de lease de fixture de 100 ms e relógio
++real PostgreSQL; não alteram o lease de 30 segundos do contrato implementado.
++
++Timeout de transporte é deadline de observação (padrão 1 s). Gera INCONCLUSIVE
++e mantém a mesma conexão brevemente para resposta tardia (padrão 3 s, limite
++15 s). Não renova/vençe lease e não reenvia. Lease vencido impede um despacho
++que ainda passe pela checagem, mas não cancela um que já a ultrapassou. Timeout,
++HTTP 500 sintético e consulta vazia não provam ausência de efeito.
++
++## Evidência e ADMIN de fixture
++
++`LabAttestor` mantém o ADMIN existente, reautenticado em SQL. Não possui método
++CONFIRM/execute nem restaura sessão revogada do operador. A política exige
++binding completo; resposta inválida não vira prova terminal. ACCEPTED exige
++resposta direta 200 com ID; REJECTED_FINAL exige resposta controlada 400 com
++tombstone persistente que serializa rejeição/criação e barra entregas futuras.
++Não existe política terminal por status HTTP isolado. O simulador é a origem
++sintética confiável; esses campos não comprovam capacidades de Tiny/Olist.
++
++Evidência, evento e projeção são commitados pelo ledger existente antes de
++conclusão durável. Falha do commit não retorna sucesso durável: retorna prova
++local pendente e commandId/evidenceId estáveis ao supervisor confiável. É
++permitido repetir somente a persistência dessa observação, nunca transporte.
++Sem a observação sobrevivente, permanece SUBMITTING/UNKNOWN; ABANDON é ato
++supervisionado separado. Não há recuperação automática.
++
++Provas válidas tardias usam revisão informativa antiga como previsto em v1;
++contradição preserva recibo terminal e ativa conflictHold. C28 separa entradas
++rejeitadas antes da transação (zero auditoria SQL) de denegações autenticadas
++no SQL (auditoria SUBMISSION_DENIED após rollback). Não se mudou essa regra.
++
++## Dois PostgreSQL e fronteira do simulador
++
++`SimulatorStore` só aceita banco loopback `atram_test_sim*`. DDL está no próprio
++harness, não nas migrations. Recebimentos R são commitados separadamente dos
++efeitos P. `sim_effects` não possui UNIQUE por pedido/submissão/operação: modo
++normal não idempotente cria por entrega. Modo idempotente serializa e compara
++bytes. Tombstone de rejeição compartilha a serialização da criação e permanece
++após restart. `PostgreSQLERPLedger` é adapter de laboratório para a interface
++existente; não substitui IndexedDBERPLedger/MockERPProvider.
++
++O simulador não lê o banco da aplicação. O executor não consulta contadores. Os processos filhos recebem somente a
++configuração própria e PATH, sem herdar URLs administrativas da aplicação ou
++do simulador presentes no ambiente do harness.
++Acesso privilegiado, calibração direta e controle IPC são exclusivamente do
++harness. Os dois serviços têm system_identifiers distintos, bancos/pools e
++credenciais sintéticas próprios. O preflight exige isso e controles explícitos
++para interromper somente containers postgres:16 descartáveis do ensaio.
++
++C14–16 param realmente o PostgreSQL da aplicação via Docker, preservando o
++simulador. C24/C26/C29 reiniciam o segundo serviço preservando armazenamento.
++C09/C12/C13/C17 usam sinais reais, com confirmação de SIGSTOP via `/proc` e
++espera do exit por SIGKILL. Falhas BEFORE_COMMIT, LOST_ACK e perfis de resposta
++são **injeções**, não interrupções reais de processos/serviços.
++
++C21 faz backup/restore real **somente do banco descartável do teste**. Mata o
++executor e simulador antes, ativa RECOVERY_HOLD fora dos bancos e restaura o
++ledger antigo; efeitos externos permanecem. Mantém hold e manifesto das
++contagens antes/depois. Não implementa inventário, liberação/reconciliação D/E
++nem procedimento automático de recuperação de ambientes comerciais.
++
++## Escopo preservado e workflow
++
++Nenhuma migration do ledger, permissão, norma, frontend, MockERPProvider,
++IndexedDB, autosave, entrada rápida ou rota pública foi modificada. READY sem
++confirmar continua ocupante; não há cancelamento automático. A suíte B anterior
++permanece necessária para proteção criptográfica e role restrita.
++
++A edição local autorizada de `backend.yml` adiciona apenas o segundo serviço,
++C01–C29 e artifact always com logs/manifests/SHA. Gates anteriores permanecem.
++Não se acrescentou deploy nem se tocou Pages. **Esta edição não é CI executada.**
++A futura execução remota exige autorização separada de publicação e CI.
+diff --git a/docs/etapa7B4C/MATRIZ-C.md b/docs/etapa7B4C/MATRIZ-C.md
+new file mode 100644
+index 0000000..ee43460
+--- /dev/null
++++ b/docs/etapa7B4C/MATRIZ-C.md
+@@ -0,0 +1,69 @@
++# Matriz implementada C01–C29 — expectativas, sem execução PostgreSQL local
++
++I/R/P/O/E/V = entrada CREATE do executor / recebimentos persistidos pelo simulador /
++pedidos criados / operações CREATE do ledger / delta de submission_events desde READY /
++evidências duráveis. REGISTER + ADMIT não entram em E. Denegações auditadas são
++contadas separadamente. Nenhuma operação LOOKUP é criada.
++
++**Todas as contagens da tabela são esperadas, não medidas nesta entrega.**
++C01–C29 não entraram no corpo dos testes: infraestrutura indisponível. Os valores
++medidos são `null` no manifesto de preflight. São implementados em
++`backend/tests/stage7b4c/execution.test.mjs`, normalmente nos dois modos.
++C26 calibra separadamente não idempotente e idempotente.
++
++| Caso | Preparação e falha/barreira | Resultado esperado | I/R/P/O/E/V |
++|---|---|---|---|
++| C01 | READY; sucesso normal, commits independentes | SUBMITTED; recibo exato durável | 1/1/1/1/2/1 |
++| C02 | Dois processos, mesmo operador autorizado; 100 confirmações do mesmo comando/corpo/revisão | Um vencedor e uma capacidade; demais replays | 1/1/1/1/2/1 |
++| C03 | C08; 1.000 replays exatos após timeout, em dois processos | UNKNOWN; zero acréscimo em todas as contagens | 1/1/1/1/2/1 |
++| C04 | Falha injetada antes do commit da intenção; rollback confirmado | READY, zero despacho | 0/0/0/0/0/0 |
++| C05 | Descartar ACK após commit da intenção no adapter do teste | Sem capacidade; supervisor registra ABANDON; UNKNOWN | 0/0/0/1/2/0 |
++| C06 | Falha controlada após intenção e antes de consumir capacidade; fechamento/término demonstrados | ERROR/NO_EFFECT, snapshot ocupante | 0/0/0/1/2/1 |
++| C07 | Invocar transporte, falha injetada antes de entregar; sem prova negativa no protocolo | UNKNOWN mesmo com P=0 conhecido só pelo harness | 1/0/0/1/2/1 |
++| C08 | Simulador commita criação e descarta resposta | UNKNOWN, efeito externo persistente; nenhum reenvio | 1/1/1/1/2/1 |
++| C09 | SIGKILL real do executor após commit externo e antes de commit da prova | Após restart, ABANDON/UNKNOWN; contador conserva efeito | 1/1/1/1/2/0 |
++| C10 | Simulador cria e atrasa a resposta além do deadline; INCONCLUSIVE, depois resposta direta válida da mesma execução | UNKNOWN→SUBMITTED; duas provas preservadas | 1/1/1/1/3/2 |
++| C11 | Após aceitação C01, observação contraditória injetada e classificada INCONCLUSIVE | SUBMITTED/recibo preservados, conflictHold; sem outro CREATE | 1/1/1/1/3/2 |
++| C12 | SIGSTOP real antes da checagem final; lease vence; outro processo faz ABANDON; SIGCONT | Retomada bloqueada; UNKNOWN; lease não elege substituto | 0/0/0/1/2/0 |
++| C13 | SIGSTOP após a última checagem e consumo da capacidade, antes da chamada; vence lease/ABANDON; SIGCONT | Efeito antigo ainda pode ocorrer; nenhum substituto; resposta válida tardia conclui | 1/1/1/1/3/1 |
++| C14 | Parar realmente PostgreSQL da aplicação antes da confirmação; simulador continua ativo | Zero transporte; READY intacta após retorno | 0/0/0/0/0/0 |
++| C15 | Parar realmente PostgreSQL após intenção e antes da revalidação | Zero transporte; após retorno, ABANDON/UNKNOWN | 0/0/0/1/2/0 |
++| C16 | Parar PostgreSQL após efeito; recibo preservado no atestador; prova não commita | Sem sucesso durável durante falha; retorno: ABANDON e mesma prova concluem | 1/1/1/1/3/1 |
++| C17 | SIGKILL depois da intenção e antes de transporte; boot de processo novo | Não recuperar capacidade; ABANDON/UNKNOWN, mesmo P=0 | 0/0/0/1/2/0 |
++| C18 | Reiniciar com READY sem confirmação | READY abandonado permanece ocupante; nenhum cancelamento/CREATE | 0/0/0/0/0/0 |
++| C19 | Gate RECOVERY_HOLD, ausente ou inválido antes do CONFIRM; subcasos separados | Confirmação negada; nenhuma capacidade | 0/0/0/0/0/0 |
++| C20 | Ativar hold/mudar época após intenção e antes de checagem final | Zero despacho; ABANDON/UNKNOWN; não liberar gate | 0/0/0/1/2/0 |
++| C21 | Backup do ledger em READY; criar externamente; quiescer, hold, restore real do backup; simulador intacto | READY antiga sob hold global; operação perdida documentada, sem CREATE novo | 1/1/1/0/0/0* |
++| C22 | Revogar sessão/membership depois da intenção e antes de checagem; worker fecha capacidade não consumida comprovadamente | Zero transporte; ADMIN de fixture registra NO_EFFECT, sem restaurar sessão | 0/0/0/1/2/1 |
++| C23 | ADMIN transfere owner após intenção e antes da checagem; fechamento seguro do worker antigo | Zero transporte; OWNER auditado, NO_EFFECT; novo owner não recebe capacidade antiga | 0/0/0/1/3/1 |
++| C24 | Rejeição terminal com tombstone persistente; harness tenta entrega tardia da mesma submissão | ERROR/REJECTED_FINAL; ambas entregas sem efeito | 1/2/0/1/2/1** |
++| C25 | HTTP 500 sintético sem efeito (a) e após efeito (b), sem prova terminal; corpos inválidos/200 sem ID são subcasos próprios | UNKNOWN nos dois perfis; status não libera CREATE | a: 1/1/0/1/2/1; b: 1/1/1/1/2/1 |
++| C26 | Calibração direta do simulador não idempotente: duas chamadas iguais, sem executor/ledger; restart do simulador e seu PostgreSQL | Dois pedidos conservados; demonstrar ausência de deduplicação externa | 0/2/2/0/0/0** |
++| C27 | Depois de C06, novo CONFIRM explícito, mesma tentativa/bytes, nova operação; sucesso | Antiga definitivamente fechada; só a segunda invoca transporte | 1/1/1/2/4/2 |
++| C28 | Após C01: quatro bindings inválidos no classificador + schema inválido no repositório; depois três provas válidas em forma, com binding errado, e uma organização sem acesso; ADMIN tenta CONFIRM | Primeiros cinco: antes da transação, audit Δ=0; cinco denegações SQL: audit Δ=5. Recibo, bytes e evidências intactos | 1/1/1/1/2/1; auditoria separada |
++| C29 | C08; reiniciar realmente simulador e seu PostgreSQL, depois executor; testar isoladamente o classificador com observação vazia, sem gravar outra evidência | Contador mantém P=1; aplicação não consulta o oráculo nem libera CREATE; classificador retorna INCONCLUSIVE para vazio | 1/1/1/1/2/1 |
++
++
++C21 preserva contagens antes do restore 1/1/1/1/1/0 e, após restore,
++1/1/1/0/0/0. O gate externo não entra em E; só o ledger descartável é restaurado.
++C24 inclui uma chamada auxiliar; C26 inclui duas por modo, zero I, e uma fixture
++sem intenção no ledger. Calibração idempotente: 0/2/1/0/0/0. Chamadas auxiliares
++ficam identificadas nos manifestos; não são ocultadas em R.
++C25 adicionalmente tem `invalid` e `200-no-id`, ambos 1/1/1/1/2/1 esperados.
++C22 revoga sessão e membership em subcasos; C23 transfere responsabilidade.
++C19 cobre hold/ausente/inválido; C20 distingue hold de mudança de época NORMAL.
++
++C04 força falha do gate **dentro** da transação após o comando e antes do commit,
++para testar rollback real. C05 perde somente o ACK no adapter, não a conexão física.
++C06 fecha capacidade e espera exit do worker; C09/C17 exigem SIGKILL confirmado.
++C12/C13 exigem SIGSTOP comprovado em `/proc`, lease expirado pelo relógio
++PostgreSQL, ABANDON sem substituição e SIGCONT. Duração de lease da fixture: 100 ms.
++C14–16 exigem stop/start real do serviço da aplicação; C24/C26/C29 exigem restart
++real do PostgreSQL do simulador com retenção dos dados.
++
++Aceite: todos os casos/subcasos, contagens, estados e ausência de segundo CREATE
++incerto devem passar em PostgreSQL real com processos independentes e role
++restrita. Manifestos precisam identificar SHA, barreiras, sinais, exits,
++independência dos bancos e contagens antes/depois. B01–B24 e regressões 7B.1–3,
++Etapas 2–6, typecheck/lint/build/boundary permanecem obrigatórios. Testes Node com
++fake-indexeddb ou coordinator double não homologam interface no navegador.
+diff --git a/docs/etapa7B4C/PROPOSTA-ETAPA-7B4C.md b/docs/etapa7B4C/PROPOSTA-ETAPA-7B4C.md
+new file mode 100644
+index 0000000..d235076
+--- /dev/null
++++ b/docs/etapa7B4C/PROPOSTA-ETAPA-7B4C.md
+@@ -0,0 +1,179 @@
++# Atram Comercial — preparação técnica da 7B.4C
++
++Data: 10/10/2026, America/Sao_Paulo. Proposta para revisão de produto. **Não implementada; nenhum teste C executado.** A 7B.4B foi encerrada tecnicamente pela gestão no escopo de laboratório.
++
++## 1. Baseline e referências
++
++Main conferida pelo plugin GitHub: `f246d1b1f002b9b9094dd5cc937eefd19bd90d5a`. A comparação desse SHA com `main` retornou identical, zero commits e zero arquivos alterados. Não há avanço a avaliar. O checkout de inspeção está no head aprovado `244c3a1e4bbf9c42a405c9bcb906533ea66d67d3`, cuja árvore é idêntica à do merge; está limpo.
++
++- [PR #3 integrado](https://github.com/kaue-cauin/pedidosAtram/pull/3).
++- [CI pós-merge aprovada](https://github.com/kaue-cauin/pedidosAtram/actions/runs/38051229038).
++- [Registro pós-merge e limitações](https://github.com/kaue-cauin/pedidosAtram/pull/3#issuecomment-6097400652).
++- [IMPLEMENTACAO.md](https://github.com/kaue-cauin/pedidosAtram/blob/f246d1b1f002b9b9094dd5cc937eefd19bd90d5a/docs/etapa7B4B/IMPLEMENTACAO.md) e [VERIFICACAO.md](https://github.com/kaue-cauin/pedidosAtram/blob/f246d1b1f002b9b9094dd5cc937eefd19bd90d5a/docs/etapa7B4B/VERIFICACAO.md).
++
++Esses dois documentos versionados descrevem seu momento pré-integração. O registro do PR e o encerramento comunicado pela gestão atualizam o estado da etapa; suas restrições técnicas permanecem válidas.
++
++Foram localizados e lidos os documentos externos **PLANEJAMENTO-ETAPA-7B4.md** e **CONTRATOS-ETAPA-7B4A(1).md**, de 09/10/2026. Não estão no repositório. O segundo contém a especificação normativa `submission-ledger-v1`, incluindo as seções 7.2, 8.1–8.4 e 9. Nenhuma referência indispensável ficou sem acesso nesta preparação. Recomendo versionar uma cópia identificada dos contratos aprovados na futura branch de implementação, sem incorporar mudanças normativas. O nome “proposta” no documento histórico não concede autorização nova: o aceite informado pela gestão é a referência de aprovação.
++
++Pages conferido novamente: workflow 377535715, estado `disabled_manually`. Não foi reativado. Nenhuma alteração, branch, commit, PR, migration, CI nova ou publicação foi feita nesta preparação. B01–B24 e regressões citados são evidências da integração anterior.
++
++## 2. Arquitetura mínima recomendada
++
++**Executor explícito no processo que obtém a confirmação inédita, transporte sintético de uma única invocação, simulador em processo e PostgreSQL independentes, e atestador interno de laboratório.** Sem fila adicional, scheduler de CREATE, UI ou HTTP público.
++
++O executor consome a intenção já durável imediatamente após sua confirmação. Não busca intenções antigas para enviá-las. Isso segue o contrato aprovado: uma intenção encontrada no boot permite observação/abandono, nunca retomar CREATE.
++
++### Executor e exclusão
++
++`SubmissionRepository.confirm()` já persiste a comunicação CREATE, operationId/executionId, autoria, lease e SUBMITTING antes de retornar. A unicidade `submission_one_capable` ignora o lease. O recibo distingue confirmação inédita (`replay=false`, `result=RECORDED`) de replay e operação existente (`result=EXISTING`).
++
++Somente a chamada interna que recebeu o ACK da confirmação inédita poderá gerar uma capacidade volátil, privada e não serializável de despacho. Vincular a capacidade ao processo, organização/pedido/submissão, operação/execução e época do gate. Consumir uma vez; não exportar em resposta, IPC ou arquivo; não reconstruir de leitura/recibo recuperado. O worker não bifurca nem transfere essa capacidade. Duas chamadas locais com a mesma capacidade também devem competir por consumo síncrono, antes de qualquer await do transporte.
++
++Um replay recupera informação, nunca essa capacidade. ACK de commit perdido não gera capacidade. Crash a perde definitivamente. Este desenho prefere bloquear uma intenção potencialmente nunca enviada a redispará-la sem prova. A segurança pressupõe executores conformes ao módulo, não proteção contra root ou código malicioso com acesso direto ao simulador.
++
++Adicionar ao repositório somente uma validação interna de despacho, usando as funções SQL existentes na mesma transação: replay exato do CONFIRM original, para revalidar papel OPERADOR/autoridade sob locks, seguido de `submission_read` para checar operação e projeção atuais. Não criar novo comando/evento nessa validação. Revalidar sessão, organização, usuário, membership, ownership, holds, ausência de arquivamento, estado SUBMITTING, operação/execução autorizadas, lease não vencido, binding FIXTURE/SYNTHETIC, conta/geração e hashes. Consultar o relógio PostgreSQL para a avaliação do lease. Abrir os envelopes com AAD e comparar os bytes/hashes originais; não remapear payload.
++
++### Simulador independente
++
++Usar um segundo serviço PostgreSQL de teste, banco/pool/credenciais próprios, fora do backup e da falha do ledger. O simulador só conhece o pacote sintético recebido; não lê tabelas da aplicação. Cada efeito é commitado antes de responder. Reinícios de executor, simulador e PostgreSQL de teste preservam os volumes durante o ensaio; a destruição do ambiente de CI não representa retenção operacional.
++
++Dois adaptadores separados:
++
++1. **PostgreSQLERPLedger** de laboratório: implementar a interface existente de recibos/rejeições, preservando binding e unicidade do mock. Não substituir o IndexedDBERPLedger ou o MockERPProvider do MVP.
++2. **Simulador não idempotente**: contrato próprio, cria um pedido por CREATE recebido no perfil normal, mesmo repetindo submissionId, operationId e bytes. Não implementar a interface ERPLedger que promete deduplicação. Seu schema de efeitos não tem UNIQUE por submissão/pedido/operação. Uma calibração externa ao executor demonstrará dois efeitos para duas chamadas iguais.
++
++Persistir recebimentos CREATE e efeitos em registros separados: requestId/effectId, identidade sintética da conta, bytes/hash, IDs de correlação e instante. Não contar apenas recibos deduplicados. Recebimento durável sem efeito também precisa ser observável.
++
++Perfis determinísticos: aceitar; perder resposta antes da entrega; criar e perder resposta; HTTP 500 com/sem criação; resposta inválida; atraso; rejeição final com tombstone; resposta contraditória. Transporte restrito a socket local do laboratório, sem destino fornecido pelo payload, redirects ou retry automático. Um status 500 é campo do protocolo sintético e não implica uma rota HTTP pública. Se for usado HTTP nos testes, exclusivamente loopback com configuração fixa e isolada, sem adicionar rotas ao servidor comercial.
++
++O harness tem credenciais administrativas de teste para contar efeitos e controlar barreiras. O executor não recebe essas contagens nem consulta o armazenamento externo como oráculo. Consultas auxiliares e controle por IPC/socket são exclusivos dos testes. Não haverá pesquisa/reconciliação operacional, endpoints administrativos ou UI da 7B.4D/E.
++
++### Atestador e persistência
++
++Uma política nova valida observações de transporte antes de chamar `recordLabEvidence`; nenhuma flag enviada pelo cliente vira prova. Reutilizar fonte LAB_ATTESTATION, criptografia e transações existentes. IDs de observação/evidenceId e commandId interno de persistência ficam estáveis em retries puramente locais. Replay não repete transporte nem evento.
++
++A implementação atual só permite EVIDENCE/ABANDON a ADMIN e autentica a sessão em SQL. Recomendo manter essa regra: o atestador de teste usa **ADMIN de fixture explicitamente atribuído**, independente da sessão do operador. Registrar sua autoria real e o produtor sintético nos detalhes cifrados. Ele não confirma CREATE nem substitui o operador revogado. Não conceder SYSTEM, superusuário ou bypass de RBAC ao executor. Se o atestador também estiver indisponível/revogado, conservar a incerteza até poder registrar a prova; não afirmar sucesso. Essa escolha precisa de aprovação de produto.
++
++## 3. Sequência e fronteiras de falha
++
++1. Harness admite READY sob a identidade autorizada; snapshot e request permanecem cifrados e imutáveis.
++2. Confirmação explícita: transação existente grava intenção/IDs/estado/evento. Transporte ainda não foi invocado.
++3. Só após ACK do commit inédito, a chamada vencedora recebe a capacidade local. Resultado desconhecido do commit ou replay não a recebe.
++4. Revalidação transacional descrita acima; gate externo NORMAL e mesma época antes/depois. Nenhuma rede durante a transação.
++5. Nova checagem do gate e do deadline, consumo único da capacidade e uma invocação de transporte. Marcar a fronteira de entrada do transporte para os ensaios. Qualquer possibilidade de envio após essa fronteira será tratada como incerta até prova.
++6. Simulador registra recebimento e, quando aplicável, criação em commit independente. Pode falhar antes de devolver resposta.
++7. Política valida resposta e vínculo completo. Atestador grava evidência + evento + resultado/estado atomicamente. Somente após ACK desse commit existe confirmação durável SUBMITTED. Sucesso externo conhecido apenas em memória não é sucesso durável da aplicação.
++8. Timeout/500/corpo incompleto gera INCONCLUSIVE; abandono supervisionado gera UNKNOWN. Não escolher novo commandId ou submissionId para repetir CREATE. Persistência indisponível pode deixar SUBMITTING no banco até a recuperação; a intenção já bloqueia outra execução. A projeção de consumo deve tratar essa pendência como resultado não confirmado.
++
++**Processo suspenso.** Antes da última checagem, lease vencido/UNKNOWN/hold/revogação impedem o despacho na retomada. Se a suspensão ocorrer depois da última checagem, uma chamada antiga ainda pode produzir efeito, mesmo após o lease. O laboratório demonstrará essa janela. Outra instância nunca recebe autorização para criar: aguarda prova ou mantém UNKNOWN. Não afirmar fencing remoto, cancelamento atômico ou exactly-once externo.
++
++**NO_EFFECT demonstrável.** Exige fechamento da capacidade ainda não consumida, transporte não invocado e encerramento do caminho proprietário sem callback/tarefa/requisição pendente. O supervisor aguarda término real do worker quando necessário; replay/boot não podem reconstruir a capacidade. O relatório identifica a barreira e o mecanismo de fechamento. Se houve consumo da capacidade, falha abrupta, dúvida sobre tarefa pendente ou pedido possivelmente entregue, usar UNKNOWN. SIGKILL depois de possível envio não é prova negativa. Contador zero conhecido pelo harness não é prova para a aplicação.
++
++**ACCEPTED.** Recibo de resposta direta do simulador com externalId, vínculo exato de conta/geração/pedido/submissão/operação/execução, bytes/hash/versão e fonte validada. Gravar antes de declarar sucesso. Outra conta/hash/ID incompleto é observação inválida/inconclusiva, nunca aceitação. Recibo perdido num crash não será recuperado automaticamente por leitura do banco do simulador nesta fase.
++
++**REJECTED_FINAL.** Protocolo controlado exige commit de tombstone no simulador, sob a mesma serialização que a criação: nenhum efeito anterior compatível e toda entrega tardia da submissão rejeitada bloqueada. Validar resposta/prova vinculada e terminal. HTTP 400/401/429/500 sozinho não basta. O perfil de rejeição deliberadamente oferece essa garantia; o perfil não idempotente normal não a oferece. Rejeição falsa ou contraditória põe hold; não ocultar risco. Correção/arquivamento operacional fica fora de C.
++
++**Resposta tardia e contradição.** Prova válida tardia é preservada mesmo com revisão informativa antiga, usando o comportamento já aprovado. Aceitação compatível pode concluir UNKNOWN; contradição mantém recibo terminal e põe conflictHold. Evidência inválida não é promovida a ACCEPTED. Não criar nova execução para obter uma resposta.
++
++**Banco indisponível.** Antes do ACK da intenção, zero transporte. Após intenção e antes de revalidação, zero novo transporte e bloqueio conservador. Depois de efeito, não declarar sucesso nem reenviar; quando voltar, pode repetir apenas a persistência da mesma observação ainda disponível. Se a observação morreu com o processo, manter UNKNOWN. Não haverá spool/outbox de reenvio.
++
++**Restore.** Primeiro quiescer/isolar workers e requisições antigas; controlador ativa RECOVERY_HOLD fora dos dois bancos; depois restaurar somente o ledger. Simulador conserva efeitos. Nem readiness nem linha ausente autorizam envio. Gate ausente/inválido/época divergente também bloqueia. Este protocolo não detecta restore oculto nem cancela chamadas já admitidas; sem prova de quiescência e inventário, hold global permanece. Não implementar liberação de hold ou reconstituição/reconciliação operacional de D.
++
++## 4. Matriz C01–C29 proposta
++
++Todos os casos abaixo são **planejados**. Usar PostgreSQL real, role restrita no ledger, processos independentes e barreiras por IPC. Dois serviços PostgreSQL permitem derrubar o da aplicação sem derrubar o simulador. Rodar os casos pertinentes nos dois perfis; a segurança contra reenvio deve passar especialmente no não idempotente.
++
++Contagens: **I/R/P/O/E/V** = invocações de CREATE pelo executor / CREATE recebidos pelo simulador / pedidos externos criados / operações CREATE duráveis / novos eventos `submission_events` / evidências duráveis. Fixture padrão: uma READY, com REGISTER e ADMIT já existentes; E é o delta após essa preparação. READ, validação por replay e replays não adicionam E. Auditoria de denegação em `audit_events` é contada separadamente. Só ações de OWNER/CONFIRM/ABANDON/EVIDENCE efetivamente commitadas entram em E. Nenhuma operação LOOKUP é criada nesta matriz.
++
++| Caso | Preparação e falha/barreira | Resultado esperado | I/R/P/O/E/V |
++|---|---|---|---|
++| C01 | READY; sucesso normal, commits independentes | SUBMITTED; recibo exato durável | 1/1/1/1/2/1 |
++| C02 | Dois processos, mesmo operador autorizado; 100 confirmações do mesmo comando/corpo/revisão | Um vencedor e uma capacidade; demais replays | 1/1/1/1/2/1 |
++| C03 | C08; 1.000 replays exatos após timeout, em dois processos | UNKNOWN; zero acréscimo em todas as contagens | 1/1/1/1/2/1 |
++| C04 | Falha injetada antes do commit da intenção; rollback confirmado | READY, zero despacho | 0/0/0/0/0/0 |
++| C05 | Descartar ACK após commit da intenção no adapter do teste | Sem capacidade; supervisor registra ABANDON; UNKNOWN | 0/0/0/1/2/0 |
++| C06 | Falha controlada após intenção e antes de consumir capacidade; fechamento/término demonstrados | ERROR/NO_EFFECT, snapshot ocupante | 0/0/0/1/2/1 |
++| C07 | Invocar transporte, falha injetada antes de entregar; sem prova negativa no protocolo | UNKNOWN mesmo com P=0 conhecido só pelo harness | 1/0/0/1/2/1 |
++| C08 | Simulador commita criação e descarta resposta | UNKNOWN, efeito externo persistente; nenhum reenvio | 1/1/1/1/2/1 |
++| C09 | SIGKILL real do executor após commit externo e antes de commit da prova | Após restart, ABANDON/UNKNOWN; contador conserva efeito | 1/1/1/1/2/0 |
++| C10 | Simulador cria e atrasa a resposta além do deadline; INCONCLUSIVE, depois resposta direta válida da mesma execução | UNKNOWN→SUBMITTED; duas provas preservadas | 1/1/1/1/3/2 |
++| C11 | Após aceitação C01, observação contraditória injetada e classificada INCONCLUSIVE | SUBMITTED/recibo preservados, conflictHold; sem outro CREATE | 1/1/1/1/3/2 |
++| C12 | SIGSTOP real antes da checagem final; lease vence; outro processo faz ABANDON; SIGCONT | Retomada bloqueada; UNKNOWN; lease não elege substituto | 0/0/0/1/2/0 |
++| C13 | SIGSTOP após a última checagem e consumo da capacidade, antes da chamada; vence lease/ABANDON; SIGCONT | Efeito antigo ainda pode ocorrer; nenhum substituto; resposta válida tardia conclui | 1/1/1/1/3/1 |
++| C14 | Parar realmente PostgreSQL da aplicação antes da confirmação; simulador continua ativo | Zero transporte; READY intacta após retorno | 0/0/0/0/0/0 |
++| C15 | Parar realmente PostgreSQL após intenção e antes da revalidação | Zero transporte; após retorno, ABANDON/UNKNOWN | 0/0/0/1/2/0 |
++| C16 | Parar PostgreSQL após efeito; recibo preservado no atestador; prova não commita | Sem sucesso durável durante falha; retorno: ABANDON e mesma prova concluem | 1/1/1/1/3/1 |
++| C17 | SIGKILL depois da intenção e antes de transporte; boot de processo novo | Não recuperar capacidade; ABANDON/UNKNOWN, mesmo P=0 | 0/0/0/1/2/0 |
++| C18 | Reiniciar com READY sem confirmação | READY abandonado permanece ocupante; nenhum cancelamento/CREATE | 0/0/0/0/0/0 |
++| C19 | Gate RECOVERY_HOLD, ausente ou inválido antes do CONFIRM; subcasos separados | Confirmação negada; nenhuma capacidade | 0/0/0/0/0/0 |
++| C20 | Ativar hold/mudar época após intenção e antes de checagem final | Zero despacho; ABANDON/UNKNOWN; não liberar gate | 0/0/0/1/2/0 |
++| C21 | Backup do ledger em READY; criar externamente; quiescer, hold, restore real do backup; simulador intacto | READY antiga sob hold global; operação perdida documentada, sem CREATE novo | 1/1/1/0/0/0* |
++| C22 | Revogar sessão/membership depois da intenção e antes de checagem; worker fecha capacidade não consumida comprovadamente | Zero transporte; ADMIN de fixture registra NO_EFFECT, sem restaurar sessão | 0/0/0/1/2/1 |
++| C23 | ADMIN transfere owner após intenção e antes da checagem; fechamento seguro do worker antigo | Zero transporte; OWNER auditado, NO_EFFECT; novo owner não recebe capacidade antiga | 0/0/0/1/3/1 |
++| C24 | Rejeição terminal com tombstone persistente; harness tenta entrega tardia da mesma submissão | ERROR/REJECTED_FINAL; ambas entregas sem efeito | 1/2/0/1/2/1** |
++| C25 | HTTP 500 sintético sem efeito (a) e após efeito (b), sem prova terminal; corpos inválidos/200 sem ID são subcasos próprios | UNKNOWN nos dois perfis; status não libera CREATE | a: 1/1/0/1/2/1; b: 1/1/1/1/2/1 |
++| C26 | Calibração direta do simulador não idempotente: duas chamadas iguais, sem executor/ledger; restart do simulador e seu PostgreSQL | Dois pedidos conservados; demonstrar ausência de deduplicação externa | 0/2/2/0/0/0** |
++| C27 | Depois de C06, novo CONFIRM explícito, mesma tentativa/bytes, nova operação; sucesso | Antiga definitivamente fechada; só a segunda invoca transporte | 1/1/1/2/4/2 |
++| C28 | Após C01, tentar anexar prova com outra organização/conta/hash/execução; subcasos separados | Negação sanitizada; recibo/bytes originais intactos; nenhuma evidência falsa | 1/1/1/1/2/1; audit_events +1 por tentativa |
++| C29 | C08; reiniciar realmente simulador e seu PostgreSQL, depois executor; testar isoladamente o classificador com observação vazia, sem gravar outra evidência | Contador mantém P=1; aplicação não consulta o oráculo nem libera CREATE; classificador retorna INCONCLUSIVE para vazio | 1/1/1/1/2/1 |
++
++\* C21 conta o ledger **restaurado**: a operação/evento CONFIRM posterior ao backup foi perdida. Antes do restore havia O=1 e E=1, V=0; o efeito externo permanece P=1. Manifesto do ensaio preserva ambos os conjuntos. A inspeção posterior não cria evidência/conclusão nova; o hold é externo e não entra em E.
++
++\** C24 tem uma chamada auxiliar do harness, além da única invocação do executor; C26 tem duas chamadas auxiliares e nenhuma do executor. Registrar separadamente os emissores, sem esconder chamadas em R. O tombstone de C24 precisa sobreviver ao restart; P continua zero após a entrega tardia. C26 prova o comportamento normal sem tombstone ou idempotência.
++
++C05/C07/C08/C11/C25 e a observação vazia C29 são injeções controladas, não quedas físicas de rede/servidor. C09/C12/C13/C14–C17/C21/C29 usam sinais/paradas/restauração reais identificados. Não usar sleeps como única prova da ordem: barreiras confirmam cada fronteira; para lease vencido, confirmar o vencimento no relógio PostgreSQL. C13 tem liberação determinística para produzir o efeito antigo e evidenciar a limitação, sem chamá-la de proteção remota.
++
++Cada caso também deve verificar snapshot/AAD/bytes, IDs estáveis, potentialEffect/safeClosedAt, revisões, original commandReceipt, eventos sequenciais, autoria e ausência de chamadas Tiny. Não criar evidência negativa a partir de contagem administrativa do simulador. C29 não implementa LOOKUP/reconciliação: apenas prova que uma observação vazia não é autorização de execução.
++
++### Critérios de aceite
++
++- Todos os casos C e B01–B24 passam no SHA efetivamente executado, com contagens verificáveis e nenhum teste crítico ignorado.
++- Uma execução incerta impede novo CREATE inclusive com mil replays e simulador não idempotente. Lease/finishedAt/ABANDON não fecham potentialEffect.
++- C01/C10/C16 comprovam que SUBMITTED depende de prova e commit; C06/C24 comprovam os mecanismos de fechamento/rejeição, não apenas booleanos.
++- C13 demonstra a janela residual: efeito antigo possível, segunda chamada bloqueada. Se a gestão exigir cancelamento absoluto após lease/revogação, essa alternativa não atende e precisa de novo desenho aprovado.
++- Regredir 7B.1, 7B.2, 7B.3, dados e Etapas 2–6; executar typecheck, lint, build, boundary e performance Node já existente. Preservar frontend/MockERPProvider/IndexedDB/autosave/entrada rápida por diff e regressões. Não atribuir a Node nova homologação de navegador.
++- Relatório por C, logs com SHA, artefatos de contagens dos dois armazenamentos e manifestos de processos/barreiras; dados exclusivamente sintéticos, sem payloads/credenciais comerciais.
++- Pages suspenso; nenhuma implantação. Produção, SLA, RPO/RTO, exactly-once e Tiny continuam fora do aceite.
++
++## 5. Arquivos previstos, apenas para futura implementação
++
++| Caminho previsto | Alteração mínima |
++|---|---|
++| `backend/submissions/lab/executor.ts` | CONFIRM inédito→capacidade local única→revalidação→uma chamada; não consumir fila/boot |
++| `backend/submissions/lab/transport.ts` | Protocolo sintético restrito, sem retry/redirect/destino arbitrário |
++| `backend/submissions/lab/evidence-policy.ts` | Validar observações, fechamento e provas antes da atestação existente |
++| `backend/submissions/lab/observer.ts` | Observação/ABANDON autenticados pelo ADMIN de fixture; nunca CREATE/reconciliação operacional |
++| `backend/submissions/repository.ts` | Método interno de revalidação transacional usando SQL existente; proteger fronteira de atestação |
++| `backend/tests/stage7b4c/{fixtures,worker,simulator,barriers}.mjs` | Dois bancos/processos independentes, falhas e contadores; DDL exclusivo de fixture do simulador |
++| `backend/tests/stage7b4c/postgresql-erp-ledger.ts` | Adapter idempotente da interface existente, apenas no laboratório |
++| `backend/tests/stage7b4c/execution.test.mjs` | Matriz C01–C29, sinais reais e manifestos |
++| `package.json` | Script `check:stage7b4c`; preservar scripts existentes |
++| `docs/etapa7B4C/{PROPOSTA,IMPLEMENTACAO,VERIFICACAO}.md` | Proposta aprovada, garantias, resultados/SHA e limitações, quando autorizados |
++| `docs/etapa7B4A/CONTRATOS-ETAPA-7B4A.md` | Cópia identificada do contrato aprovado, sem modificar seu conteúdo normativo |
++
++**Nenhuma migration nova do ledger é prevista nesta alternativa.** O simulador exige DDL próprio de bancos descartáveis, não migrations da aplicação. Não modificar `0003_submission_ledger.sql`, o schema/constraints/roles do ledger, canonicalizador, snapshots ou contratos legados. Se a implementação descobrir que precisa de claim persistente adicional, ator SYSTEM ou mudanças de grants, interromper e apresentar o diff/desenho para revisão; não introduzir silenciosamente migration ou poder novo.
++
++O workflow backend precisaria de um segundo serviço PostgreSQL, execução da suíte C e upload de logs/manifestos para automatizar o gate. A proibição vigente de editar workflows permanece: essa mudança só pode ocorrer com autorização específica. Como alternativa sem edição, validar C em ambiente isolado autorizado com logs completos, mantendo a CI existente para regressões e declarando que C não foi executada nela. Pages não é parte de nenhuma alternativa.
++
++## 6. Decisões para aprovação de produto
++
++1. Aprovar executor explícito e capacidade efêmera: perder ACK/processo pode deixar UNKNOWN indefinido mesmo sem efeito. Não implementar consumidor que retome intenção no boot.
++2. Aceitar a janela C13 e o bloqueio conservador; sem promessa de fencing externo/exactly-once. Exigir garantia mais forte implica proposta separada, não alterar `submission-ledger-v1` silenciosamente.
++3. Aprovar atestador ADMIN de fixture, atribuição explícita e produtor em detalhes cifrados, sem elevar privilégios do operador ou implementar SYSTEM.
++4. Aprovar dois PostgreSQL de teste e o adapter idempotente + simulador não idempotente separados, com consultas/controles apenas no harness.
++5. Escolher gate C automatizado por alteração limitada do workflow backend, ou execução isolada sem editar workflows. Recomendo automatização limitada; requer autorização expressa.
++6. Aprovar cópia versionada do contrato externo e a matriz C01–C29. Não há mudança normativa proposta; qualquer alteração exigirá destaque, revisão e nova aprovação.
++
++Não é necessário reabrir decisões de identidade, estados, snapshot, permissões comerciais, READY sem cancelamento, recuperação conservadora ou preservação do MVP. As escolhas acima completam somente a execução de laboratório.
++
++## 7. Texto proposto para autorização, ainda não aprovado
++
++> Autorizo exclusivamente a implementação da Etapa 7B.4C — Execução simulada, a partir da main `f246d1b1f002b9b9094dd5cc937eefd19bd90d5a`, conforme esta proposta e o contrato `submission-ledger-v1`, em branch local separada. Se a main tiver avançado, apresentar avaliação das alterações antes de implementar sobre outra base.
++>
++> Aprovo o executor explícito com capacidade única não recuperável por replay/boot, o bloqueio conservador de intenção incerta, a janela residual de execução antiga demonstrada em C13, o atestador ADMIN de fixture sem privilégios de CREATE, os dois PostgreSQL descartáveis de teste e os simuladores idempotente e não idempotente. Autorizo o DDL exclusivamente dos bancos sintéticos do simulador, os testes C01–C29 e as regressões pertinentes. Não autorizo nova migration do ledger nem mudança normativa silenciosa.
++>
++> Autorizo especificamente a edição local e limitada de `.github/workflows/backend.yml` para adicionar o segundo PostgreSQL de teste, a suíte C e seus artefatos, preservando os gates atuais e sem acrescentar deploy. Essa autorização não inclui o workflow Pages, nem sua reativação. Se essa edição não for aprovada, a implementação deverá manter o workflow intacto e apresentar execução isolada de C, identificando a limitação de CI.
++>
++> Autorizo a documentação técnica e a cópia identificada do contrato aprovado na branch local. Não autorizo publicar a branch, abrir PR, merge, auto-merge, alteração direta da main, deploy, reativação/publicação Pages, implantação de backend/PostgreSQL, comunicação real Tiny/Olist, recuperação automática ou início da 7B.4D/E/F ou 7C. A publicação para revisão dependerá de autorização separada. O aceite da 7B.4C dependerá da revisão do SHA, testes, contagens, artefatos e limitações.
++
++Este texto é uma proposta para a gestão. A autorização atual cobre somente esta preparação; nenhuma implementação ou edição de workflow foi realizada.
+diff --git a/docs/etapa7B4C/VERIFICACAO.md b/docs/etapa7B4C/VERIFICACAO.md
+new file mode 100644
+index 0000000..142ccf3
+--- /dev/null
++++ b/docs/etapa7B4C/VERIFICACAO.md
+@@ -0,0 +1,6 @@
++# Verificação 7B.4C
++
++Implementação local; relatório final de checks e SHAs será registrado após a
++execução local. Não há aceite dos testes PostgreSQL C01–C29 nesta etapa de trabalho.
++PG/Docker indisponíveis, sockets Unix EPERM e confirmação de PID via /proc limitada.
++CI remota não executada. Contagens da MATRIZ-C.md são expectativas.
+diff --git a/package.json b/package.json
+index 2f4170e..fb99da1 100644
+--- a/package.json
++++ b/package.json
+@@ -32,7 +32,10 @@
+     "check:backend-boundary": "node scripts/check-backend-boundary.mjs",
+     "check:stage7b3": "node --test backend/tests/stage7b3/*.test.mjs",
+     "check:stage7b3:performance": "node scripts/check-stage-7b3-performance.mjs",
+-    "check:stage7b4b": "node --test backend/tests/stage7b4b/*.test.mjs"
++    "check:stage7b4b": "node --test backend/tests/stage7b4b/*.test.mjs",
++    "check:stage7b4c:unit": "node --test backend/tests/stage7b4c/unit.test.mjs",
++    "check:stage7b4c:wire": "node --test backend/tests/stage7b4c/wire.test.mjs",
++    "check:stage7b4c": "node backend/tests/stage7b4c/preflight.mjs && npm run check:stage7b4c:unit && npm run check:stage7b4c:wire && node --test --test-concurrency=1 backend/tests/stage7b4c/execution.test.mjs"
+   },
+   "dependencies": {
+     "@base-ui/react": "^1.7.0",

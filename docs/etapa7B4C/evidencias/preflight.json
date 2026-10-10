@@ -1,0 +1,152 @@
+{
+  "sha": "1d9cea334a3ae2dbfc476f01bb00d535594370bd",
+  "status": "BLOCKED",
+  "reason": "REAL_POSTGRESQL_AND_APPROVED_INTERRUPTION_CONTROLS_UNAVAILABLE",
+  "cases": [
+    {
+      "id": "C01",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C02",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C03",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C04",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C05",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C06",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C07",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C08",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C09",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C10",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C11",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C12",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C13",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C14",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C15",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C16",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C17",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C18",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C19",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C20",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C21",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C22",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C23",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C24",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C25",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C26",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C27",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C28",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    },
+    {
+      "id": "C29",
+      "status": "NOT_EXECUTED",
+      "counts": null
+    }
+  ]
+}

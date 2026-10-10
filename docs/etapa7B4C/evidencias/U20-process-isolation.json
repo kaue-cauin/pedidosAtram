@@ -1,0 +1,23 @@
+{
+  "status": "PASSED",
+  "scope": "ENVIRONMENT_BOUNDARY_AND_EXIT_ONLY_NO_POSTGRESQL_OR_CREATE",
+  "log": [
+    {
+      "pid": 633,
+      "at": "2026-10-10T13:17:54.368Z",
+      "ready": true,
+      "privilegedEnvironmentPresent": false
+    },
+    {
+      "event": "SIGNAL_SENT",
+      "pid": 633,
+      "signal": "SIGKILL"
+    },
+    {
+      "event": "PROCESS_EXIT",
+      "pid": 633,
+      "code": null,
+      "signal": "SIGKILL"
+    }
+  ]
+}

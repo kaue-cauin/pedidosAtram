@@ -1,0 +1,13 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> atram-pedidos@0.4.0 check:stage7b3:performance
+> node scripts/check-stage-7b3-performance.mjs
+
+{
+  "result": "PASS",
+  "scenarios": 36,
+  "maxModelAndScheduleP95Ms": 0.14360599999963597,
+  "maxSearchP95Ms": 0.5845540000000256,
+  "allRecovered": true,
+  "browserUiMeasured": false
+}
