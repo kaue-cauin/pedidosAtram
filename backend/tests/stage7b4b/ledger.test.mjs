@@ -171,6 +171,11 @@ withFixture('B16 rollback and post-commit ACK loss recover by same command',asyn
  assert.equal((await f.db.client`SELECT count(*)::int n FROM submission_events WHERE action='ADMIT'`)[0].n,1);
 });
 withFixture('B17 actual process restart preserves snapshot, command, revision and uncertain hold',async f=>{
+ const ready=await f.admitted(),reader=await worker(f,{action:'read',principal:f.op,orderId:ready.orderId,submissionId:ready.input.submissionId});
+ const recovered=await reader.run();assert.equal(recovered.value.projection.submission.state,'READY');assert.equal(recovered.value.communications.length,0);
+ await reject(f.repo.archive(f.admin,{...f.decision(ready),expectedOrderRevision:1}),'OUTCOME_BLOCKED');
+ await reject(f.repo.admit(f.op,{...ready.input,commandId:id(),submissionId:id()}),'ORDER_OCCUPIED');
+ assert.equal((await f.repo.read(f.op,ready.orderId)).snapshot,recovered.value.snapshot);
  const a=await f.intended();await f.repo.abandon(f.admin,f.decision(a,2));
  for(let i=0;i<2;i++){const w=await worker(f,{action:'read',principal:f.op,orderId:a.orderId,submissionId:a.input.submissionId});const r=await w.run();assert.equal(r.value.projection.submission.state,'UNKNOWN');assert.equal(r.value.communications.length,1);assert.equal(r.value.projection.submission.ledgerRevision,3);assert.equal(r.value.events.length,4);}
 });

@@ -1,5 +1,7 @@
 # Baseline da preparação 7B.4B
 
+Registro histórico anterior à implementação. A autorização expressa posterior liberou a publicação na branch e o PR Draft #3. Os resultados PostgreSQL e da implementação são apresentados separadamente em VERIFICACAO.md; os parágrafos finais abaixo registram a situação no momento da preparação.
+
 Data: 2026-10-09. Código testado: main `0dc5404cd913f7ad35653e422dab5b5ebb884953`, sem alterações de implementação. Node v24.19.0. Dependências locais já instaladas no checkout anterior, reutilizadas por symlink; npm ci não foi repetido. Branch local: `feat/etapa-7b4b-ledger`.
 
 | Verificação executada | Exit code | Resultado |
