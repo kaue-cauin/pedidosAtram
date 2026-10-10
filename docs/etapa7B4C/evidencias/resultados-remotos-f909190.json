@@ -1,0 +1,2339 @@
+{
+  "executedSha": "f909190d04ec3a0f7db86aecb7754996f33e1104",
+  "runId": 38056376958,
+  "runUrl": "https://github.com/kaue-cauin/pedidosAtram/actions/runs/38056376958",
+  "conclusion": "success",
+  "jobId": 114225639223,
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Initialize containers",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Run actions/checkout@v6",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Run git rev-parse HEAD",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Run npm ci",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Run npm run check:stage7b2",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Run npm run check:stage7b3",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8
+    },
+    {
+      "name": "PostgreSQL 7B.4B B01–B24",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Run actions/upload-artifact@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10
+    },
+    {
+      "name": "PostgreSQL 7B.4C C01–C29 (two independent instances)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11
+    },
+    {
+      "name": "Run actions/upload-artifact@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Run npm run check:stage7b3:performance",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13
+    },
+    {
+      "name": "Run actions/upload-artifact@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14
+    },
+    {
+      "name": "Run npm run check:data",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15
+    },
+    {
+      "name": "Run npm run check:stage2",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 16
+    },
+    {
+      "name": "Run npm run check:stage3",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 17
+    },
+    {
+      "name": "Run npm run check:stage4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18
+    },
+    {
+      "name": "Run npm run check:stage5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19
+    },
+    {
+      "name": "Run npm run check:stage6",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 20
+    },
+    {
+      "name": "Run npm run check:stage7b1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 21
+    },
+    {
+      "name": "Run npm run typecheck",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 22
+    },
+    {
+      "name": "Run npm run lint",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 23
+    },
+    {
+      "name": "Run npm run build",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 24
+    },
+    {
+      "name": "Run npm run check:backend-boundary",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 25
+    },
+    {
+      "name": "Post Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 48
+    },
+    {
+      "name": "Post Run actions/checkout@v6",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 49
+    },
+    {
+      "name": "Stop containers",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 50
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 51
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11671597281,
+      "name": "etapa7b4c-postgresql",
+      "size_in_bytes": 96608,
+      "url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671597281",
+      "archive_download_url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671597281/zip",
+      "expired": false,
+      "created_at": "2026-10-10T13:40:23Z",
+      "expires_at": "2027-01-08T13:36:36Z",
+      "updated_at": "2026-10-10T13:40:23Z",
+      "digest": "sha256:72e8e6d613a2b4c8d40a04bb0632cf12919cc545e5d0fbe838249c8037a362de",
+      "workflow_run": {
+        "id": 38056376958,
+        "repository_id": 1407150375,
+        "head_repository_id": 1407150375,
+        "head_branch": "feat/etapa-7b4c-execucao-simulada",
+        "head_sha": "f909190d04ec3a0f7db86aecb7754996f33e1104"
+      }
+    },
+    {
+      "id": 11671267574,
+      "name": "etapa7b3-performance-node",
+      "size_in_bytes": 5071,
+      "url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671267574",
+      "archive_download_url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671267574/zip",
+      "expired": false,
+      "created_at": "2026-10-10T13:40:35Z",
+      "expires_at": "2027-01-08T13:36:36Z",
+      "updated_at": "2026-10-10T13:40:35Z",
+      "digest": "sha256:dce57c82db8f84586732832e49644ea0487abd7c919b68de9d1e8b4e40a163a3",
+      "workflow_run": {
+        "id": 38056376958,
+        "repository_id": 1407150375,
+        "head_repository_id": 1407150375,
+        "head_branch": "feat/etapa-7b4c-execucao-simulada",
+        "head_sha": "f909190d04ec3a0f7db86aecb7754996f33e1104"
+      }
+    },
+    {
+      "id": 11671187437,
+      "name": "etapa7b4b-postgresql",
+      "size_in_bytes": 1505,
+      "url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671187437",
+      "archive_download_url": "https://api.github.com/repos/kaue-cauin/pedidosAtram/actions/artifacts/11671187437/zip",
+      "expired": false,
+      "created_at": "2026-10-10T13:38:29Z",
+      "expires_at": "2027-01-08T13:36:36Z",
+      "updated_at": "2026-10-10T13:38:29Z",
+      "digest": "sha256:959311e2e0f0c9ce8544a8563016b77c21a78d98b97dd2aea9d0f979686d6341",
+      "workflow_run": {
+        "id": 38056376958,
+        "repository_id": 1407150375,
+        "head_repository_id": 1407150375,
+        "head_branch": "feat/etapa-7b4c-execucao-simulada",
+        "head_sha": "f909190d04ec3a0f7db86aecb7754996f33e1104"
+      }
+    }
+  ],
+  "preflight": {
+    "sha": "f909190d04ec3a0f7db86aecb7754996f33e1104",
+    "status": "READY",
+    "identifiers": [
+      "7695032695615074343",
+      "7695032699352457254"
+    ]
+  },
+  "units": {
+    "policy": 17,
+    "wire": 4,
+    "skipped": 0
+  },
+  "regressions": {
+    "7B.1": 19,
+    "7B.2": 16,
+    "7B.3": 24,
+    "B01-B24": 24,
+    "performanceNodeScenarios": 18,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "boundary": "PASS"
+  },
+  "caseManifests": [
+    {
+      "id": "C01-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4499,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "bdccc07651d5e504b395cfb68d12fa1d49c6b101889e180471c8cb0ff04b47e8"
+    },
+    {
+      "id": "C01-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4470,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "033995ff3a5533716e78297e30990eea7a4e76ccf5429bb1b2b2d560ffe6ae87"
+    },
+    {
+      "id": "C02-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4594,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4593,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "b3262b18c846cb60f8a65fbd76a8b3bf3bb5da4bd0dffbfd53c04ac046bdc253"
+    },
+    {
+      "id": "C02-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4530,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4529,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "ccd882ac3f1f6994279df8971281bb53a733770dc71e776c207e5d92b52c7cac"
+    },
+    {
+      "id": "C03-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4754,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4768,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4769,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "2040fb6f4a14403464e03ce02828ec7699f2a12d94a94e30b4cf7c1b631d1598"
+    },
+    {
+      "id": "C03-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4656,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4671,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4672,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "a665b478923bec59618cc569d5f5d6eded679eaeceba32fc6d3c6a2a5d85db89"
+    },
+    {
+      "id": "C04-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4837,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "b352cfd590f833f9081b0e0f23b9040852a19865dc71abcc829fcf44154fceda"
+    },
+    {
+      "id": "C04-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4809,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "143efb60809f3daa3f36b05d3026f86fd285f7ca172f2d1c3d405f86128b8ff5"
+    },
+    {
+      "id": "C05-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4936,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "bfbdbded7b27795e8e99aae9d5169565c3d5c7bbe5469769e8cffd783aac24e5"
+    },
+    {
+      "id": "C05-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4908,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "e20f10f62d978bc40df51fffe4c6ddff3edc1acc6c9242d94d5e56195db48498"
+    },
+    {
+      "id": "C06-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4992,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "79995990b284dcf69df702df436e83025d743e5797a1c7e96ec04bcdefc3dbba"
+    },
+    {
+      "id": "C06-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 4964,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "ffb93df49719d65ab87468ff3ef1db6d44da5c065e44f0463652fe81e08b42df"
+    },
+    {
+      "id": "C07-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5075,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "888eaa942ddb466309c3fba0537bf9a718eb0057cbf88143454597d7e804cf7d"
+    },
+    {
+      "id": "C07-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5033,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "5a0697df77d2702ca58c44ded56ac27361d16b5991f7eadcb4ff35020ca23cc7"
+    },
+    {
+      "id": "C08-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5135,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "85467da1c1cc289739344f3b1fec77c5bbaf811b2fc3cfbb64342aee50d20625"
+    },
+    {
+      "id": "C08-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5105,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "6e67d6cc681801d04044b0bbbff08f527f68b132447afff98ef49d1b43e8a455"
+    },
+    {
+      "id": "C09-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5247,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5247,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5261,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "4c12e7b8daa5b43e06b56cb3fc4736662fdc612b72b1f1547d300883f1c36138"
+    },
+    {
+      "id": "C09-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5164,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5164,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5178,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "30590d35f7b9dd49a6cab90b265bb981a93fb2774e8fc1e2c2314c7efebd3b71"
+    },
+    {
+      "id": "C10-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5380,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "0d477de78b402878b40594858d09ebc2f9a36867da1c90aef6a4c83e06c733ac"
+    },
+    {
+      "id": "C10-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5289,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "eb47ada93ca0e3fb23ef7f2a5207ea1308e1c9f01e016eb824f54914413b0786"
+    },
+    {
+      "id": "C11-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5481,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "be68bb53a84e45b1d6bd77693eb8b961e7063447eae3b9fb4a685921e2c7088c"
+    },
+    {
+      "id": "C11-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5452,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "1b1711d12cc8fd26d636a6f8226b53d1bb949c58ff734a1ecc61fb9d924c1306"
+    },
+    {
+      "id": "C12-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5538,
+          "signal": "SIGSTOP"
+        },
+        {
+          "event": "PROCESS_STOP_CONFIRMED",
+          "pid": 5538
+        },
+        {
+          "event": "LEASE_EXPIRATION_CONFIRMED",
+          "fixtureDurationInjectedMs": 100,
+          "clock": "POSTGRESQL_CLOCK_TIMESTAMP"
+        },
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5538,
+          "signal": "SIGCONT"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5538,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "2c159f5a58b1659cf99a2e630097f41ccc2d368661269401283112fb6f7103e2"
+    },
+    {
+      "id": "C12-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5510,
+          "signal": "SIGSTOP"
+        },
+        {
+          "event": "PROCESS_STOP_CONFIRMED",
+          "pid": 5510
+        },
+        {
+          "event": "LEASE_EXPIRATION_CONFIRMED",
+          "fixtureDurationInjectedMs": 100,
+          "clock": "POSTGRESQL_CLOCK_TIMESTAMP"
+        },
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5510,
+          "signal": "SIGCONT"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5510,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "4d2c02e2d6ed3bd3b0cb089700df9e36bd297ea748c3791bf409a5b008a35ac6"
+    },
+    {
+      "id": "C13-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5641,
+          "signal": "SIGSTOP"
+        },
+        {
+          "event": "PROCESS_STOP_CONFIRMED",
+          "pid": 5641
+        },
+        {
+          "event": "LEASE_EXPIRATION_CONFIRMED",
+          "fixtureDurationInjectedMs": 100,
+          "clock": "POSTGRESQL_CLOCK_TIMESTAMP"
+        },
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5641,
+          "signal": "SIGCONT"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5641,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "b74710539661c18a07db9dcd0a3b28353e06b67e4990da44a4d9966e1783d41b"
+    },
+    {
+      "id": "C13-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5610,
+          "signal": "SIGSTOP"
+        },
+        {
+          "event": "PROCESS_STOP_CONFIRMED",
+          "pid": 5610
+        },
+        {
+          "event": "LEASE_EXPIRATION_CONFIRMED",
+          "fixtureDurationInjectedMs": 100,
+          "clock": "POSTGRESQL_CLOCK_TIMESTAMP"
+        },
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 5610,
+          "signal": "SIGCONT"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5610,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "29b12bff86460fa5aa070cd2e9ea615e736cd3a5ea510f8dd4a059be07049f9d"
+    },
+    {
+      "id": "C14-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:14.344Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5991,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:15.553Z"
+        }
+      ],
+      "manifestSha256": "341329d39c68117b8239b151104c1c35575d384c5c8386ec628f4384c2840f98"
+    },
+    {
+      "id": "C14-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:12.387Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 5745,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:13.185Z"
+        }
+      ],
+      "manifestSha256": "c771fee7902254a2e06101edda8c6150557c5d998cebbcbf57f42791158ea83f"
+    },
+    {
+      "id": "C15-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:20.731Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 6392,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:21.313Z"
+        }
+      ],
+      "manifestSha256": "689f2a5da7526fa47cf5028ba942eb6aeec0bb2f7a7b20979fbefc52ce1df4f5"
+    },
+    {
+      "id": "C15-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:18.550Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 6140,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:18.887Z"
+        }
+      ],
+      "manifestSha256": "5c99cbfe2b63d928dcaa9a22f1f474c68142a7da895db262e31f912a74588b6a"
+    },
+    {
+      "id": "C16-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:27.587Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 6863,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:28.143Z"
+        }
+      ],
+      "manifestSha256": "b238b915fab72661ba87a7f8c04cb0e976bdad924a47e72ab96a01fac7113a36"
+    },
+    {
+      "id": "C16-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "app",
+          "containerId": "32d6848dfd36e8d837c6685b68d34220321b87ae4641b95ea9e3130a8b8a0c07",
+          "at": "2026-10-10T13:39:24.478Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 6617,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "app",
+          "at": "2026-10-10T13:39:25.364Z"
+        }
+      ],
+      "manifestSha256": "6815865d9b100b25291bffe12a55a52ceb812485124dd7eb0dfa9f6c720d0c32"
+    },
+    {
+      "id": "C17-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 7150,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7150,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7163,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "7d87d98517759b4e23e032a5e8283a945ef2195dca979da9f049f77c27ff837d"
+    },
+    {
+      "id": "C17-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 7109,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7109,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7122,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "73453dce155d73b5088bb143bcd093372bcb92f5d2a0be5af0313fdd89c476c6"
+    },
+    {
+      "id": "C18-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7266,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7275,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "0dd905956d384e625dad58d4e9470c1afae096379bb68536e48be0d0b346013a"
+    },
+    {
+      "id": "C18-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7191,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7200,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "67acd11b87a574e01fb9bb2d71c6de6d98ff4a728c8dff73f4fb60cddda6a262"
+    },
+    {
+      "id": "C19-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7351,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7363,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7402,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "8f960da320e5c9ab5773c8956b9618d58bc1f4fd6c90d31a832c12b69f5a8691"
+    },
+    {
+      "id": "C19-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7300,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7312,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7324,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "12dc51d78a928e81fc4a57cd80b19e8e786f96e68c0af67749fda149ee0247ef"
+    },
+    {
+      "id": "C20-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7506,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "ba0ec9b9eb09ceb9c3649ec869ce92696f469eb8267dcb153e07fb1a60d6dd69"
+    },
+    {
+      "id": "C20-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7445,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "73f64f75abcbf544f389939f643aed3fd0093f8b9ac50b3c2215cb26f5549dc2"
+    },
+    {
+      "id": "C20-normal-epoch-false",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7473,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "405e58719e9614517bb212e206a2040d1e1f2c8f0c0e7ec5443513c08ee840eb"
+    },
+    {
+      "id": "C20-normal-epoch-true",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7534,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "0294acdcf2cf76b760d908e62f6310d72f8e2c116a57e6f369570d60191d2c04"
+    },
+    {
+      "id": "C21-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 7642,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7642,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7634,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "QUIESCED_AND_EXTERNAL_HOLD"
+        },
+        {
+          "event": "LEDGER_RESTORED",
+          "before": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+          ]
+        }
+      ],
+      "manifestSha256": "0db62c14d21d9bbd2e0f65fa6091e946e861627f40e4b6a0f54748a1e1e6e7dd"
+    },
+    {
+      "id": "C21-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "SIGNAL_SENT",
+          "pid": 7608,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7608,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7600,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "QUIESCED_AND_EXTERNAL_HOLD"
+        },
+        {
+          "event": "LEDGER_RESTORED",
+          "before": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+          ]
+        }
+      ],
+      "manifestSha256": "147ec9ec627956c9c079ba263fc74fabc78d540a2dee8681128da788344b395e"
+    },
+    {
+      "id": "C22-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7772,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "c17c2e3f7ce422d2d4d9a7d652d0b9f841d6acc1a6ce1bb37aa0834bc8fdd05c"
+    },
+    {
+      "id": "C22-membership-false",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7743,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "e8bfcbb782870135b1ca6881801cb0cd20f11ba9a1ec331cdef9da93431b0508"
+    },
+    {
+      "id": "C22-membership-true",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7799,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "82e2addb372349a8c3f92d590728e60fbd72c7789319b4239142baa5722e30f4"
+    },
+    {
+      "id": "C22-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7674,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "d291ad0a9af1a07390e8b1910fd3a192b64576100eec95efb8c76bd452886005"
+    },
+    {
+      "id": "C23-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7900,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "57e6df158dcef94ab312c996740e8e9d9e833094b743e6b0ed95dee6d40e60ff"
+    },
+    {
+      "id": "C23-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          0,
+          0,
+          1,
+          3,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7848,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "be9d90da0a08554cf2d7fec5d51cc033de43a58e4e900c5e286b2ddc34b81c2c"
+    },
+    {
+      "id": "C24-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          2,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8170,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8162,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "sim",
+          "containerId": "aa33ed1706086565fe3a7f63b30580f5e0e1a6b4873990184cb7f533ab8abda0",
+          "at": "2026-10-10T13:39:58.222Z"
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "sim",
+          "at": "2026-10-10T13:39:58.620Z"
+        }
+      ],
+      "manifestSha256": "412fc55f36e18bc3e4c9b98c2c3e7d847965aab350c4b854c2e0b8bb26633326"
+    },
+    {
+      "id": "C24-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          2,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7930,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 7922,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "sim",
+          "containerId": "aa33ed1706086565fe3a7f63b30580f5e0e1a6b4873990184cb7f533ab8abda0",
+          "at": "2026-10-10T13:39:56.417Z"
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "sim",
+          "at": "2026-10-10T13:39:56.666Z"
+        }
+      ],
+      "manifestSha256": "e65b568fbb728a9099bf8f8174838bf1f799883de86fbfe6b395b479866e2110"
+    },
+    {
+      "id": "C25-200-no-id-false",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8510,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "9df95a6b63e2fe10396eb8bc3ac6e7a0cf0e0d08f39ce83e941c24827bc9a9c9"
+    },
+    {
+      "id": "C25-200-no-id-true",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8692,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "710d43912baf75aff9987b0c65de69e3403c04279e8fcc3bea30767a872d9db8"
+    },
+    {
+      "id": "C25-500-effect-false",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8450,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "1fa872b2f1060ab984e79c744dc86152636ceda0339baa09f63fde60ec2aa4f1"
+    },
+    {
+      "id": "C25-500-effect-true",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8612,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "392b848763d2aeb6e850aafee7614ef293444be02b844b855bd0816ddf999d92"
+    },
+    {
+      "id": "C25-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8582,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "bdf1a3a9fc41ef1e2e3f25090589c0cdebcbc22aea8e6e02e5452da842d8c4c9"
+    },
+    {
+      "id": "C25-invalid-false",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8481,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "811bfe0e3494d5002c2f76dd1c793ffa4b1f0a024d052232c5fa6e0e3e311336"
+    },
+    {
+      "id": "C25-invalid-true",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8641,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "1aa4136c97ebbba4082a3824aac16b1cab544476b1d8e6331a97f312f7467136"
+    },
+    {
+      "id": "C25-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          0,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8422,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "f365c3bb373669e081bc4b6e1e2605c1f1e4bcacf4b01ad424af558d29a39d86"
+    },
+    {
+      "id": "C26-idempotent-calibration",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          2,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [],
+      "manifestSha256": "5f63bf3b0c3e63b6955a304b2a01f915db08a5769d0cd4901e73eb03116ec125"
+    },
+    {
+      "id": "C26-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          0,
+          2,
+          2,
+          0,
+          0,
+          0
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8735,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "sim",
+          "containerId": "aa33ed1706086565fe3a7f63b30580f5e0e1a6b4873990184cb7f533ab8abda0",
+          "at": "2026-10-10T13:40:10.100Z"
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "sim",
+          "at": "2026-10-10T13:40:10.334Z"
+        }
+      ],
+      "manifestSha256": "1ec20c414529d7fe61d2ed14f3c893c8fa1e30126318fd414874c96c947141a2"
+    },
+    {
+      "id": "C27-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          2,
+          4,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9047,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9060,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "30cca0a8cef32c2990b0d133deff7c85df698edc5ab324ab7d1978c06ab5c838"
+    },
+    {
+      "id": "C27-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          2,
+          4,
+          2
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8984,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 8997,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "eb61bfd15d92c1a5e21e7d405fc04d2dc66476fa91537bdca7f8907d14704029"
+    },
+    {
+      "id": "C28-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [
+        {
+          "event": "PRETRANSACTION_REJECTIONS",
+          "auditDelta": 0
+        },
+        {
+          "event": "TRANSACTION_DENIALS",
+          "auditDelta": 5
+        }
+      ],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9138,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "e7c88a26e978f7fbb472ab483bcc33880964c5133f63844d6c70ddba75fbb76c"
+    },
+    {
+      "id": "C28-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [
+        {
+          "event": "PRETRANSACTION_REJECTIONS",
+          "auditDelta": 0
+        },
+        {
+          "event": "TRANSACTION_DENIALS",
+          "auditDelta": 5
+        }
+      ],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9109,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "9607a23750623aeb4da60310b5480472ebb033d92cddb011d6d21d42462c4c27"
+    },
+    {
+      "id": "C29-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9443,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9435,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "sim",
+          "containerId": "aa33ed1706086565fe3a7f63b30580f5e0e1a6b4873990184cb7f533ab8abda0",
+          "at": "2026-10-10T13:40:21.440Z"
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "sim",
+          "at": "2026-10-10T13:40:21.679Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9654,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "d7c844ef5506c8c58b3caaaf58ad38b961b7ed9380b04de1011a9be372ddcf15"
+    },
+    {
+      "id": "C29-non-idempotent",
+      "status": "PASSED",
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ]
+      ],
+      "denials": [],
+      "interruptions": [
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9167,
+          "code": 0,
+          "signal": null
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9159,
+          "code": null,
+          "signal": "SIGKILL"
+        },
+        {
+          "event": "DATABASE_STOPPED",
+          "kind": "sim",
+          "containerId": "aa33ed1706086565fe3a7f63b30580f5e0e1a6b4873990184cb7f533ab8abda0",
+          "at": "2026-10-10T13:40:18.681Z"
+        },
+        {
+          "event": "DATABASE_RESTARTED",
+          "kind": "sim",
+          "at": "2026-10-10T13:40:18.958Z"
+        },
+        {
+          "event": "PROCESS_EXIT",
+          "pid": 9413,
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "manifestSha256": "c261e62597c08a9fd479646137a78b0d5e91fea2eada988677ec09450c7a72c9"
+    }
+  ],
+  "scope": "Synthetic PostgreSQL laboratory; Node checks are not browser homologation."
+}

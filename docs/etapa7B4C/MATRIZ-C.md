@@ -1,4 +1,7 @@
-# Matriz implementada C01–C29 — expectativas, sem execução PostgreSQL local
+# Matriz implementada C01–C29 — expectativas e referência de execução
+
+A ausência de execução descrita abaixo refere-se ao laboratório local original.
+Resultados remotos medidos por SHA: [VERIFICACAO-REMOTA.md](VERIFICACAO-REMOTA.md).
 
 I/R/P/O/E/V = entrada CREATE do executor / recebimentos persistidos pelo simulador /
 pedidos criados / operações CREATE do ledger / delta de submission_events desde READY /

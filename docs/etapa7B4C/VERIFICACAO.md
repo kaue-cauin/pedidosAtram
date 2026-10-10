@@ -1,5 +1,9 @@
 # Evidências locais — Etapa 7B.4C
 
+Registro histórico da execução local, preservado. A publicação e a execução
+remota posteriores constam em [VERIFICACAO-REMOTA.md](VERIFICACAO-REMOTA.md).
+As expressões abaixo sobre pendências/publicação referem-se à entrega local.
+
 Implementação em branch local exclusiva `feat/etapa-7b4c-execucao-simulada`.
 Baseline: `f246d1b1f002b9b9094dd5cc937eefd19bd90d5a`. GitHub main foi conferida
 como `identical`, sem avanço. Código efetivamente executado: **`1d9cea334a3ae2dbfc476f01bb00d535594370bd`**,
