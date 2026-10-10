@@ -37,8 +37,6 @@ jobs:
       BACKEND_TEST_DATABASE_APPROVED: 'yes'
       SIM_TEST_DATABASE_URL: postgresql://sim_runner:synthetic_sim_ci_only@127.0.0.1:5433/atram_test_sim_ci
       LAB_POSTGRES_INTERRUPTION_APPROVED: 'yes'
-      APP_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
-      SIM_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres_sim.id }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -63,6 +61,9 @@ jobs:
           name: etapa7b4b-postgresql
           path: test-results/7b4b.log
       - name: PostgreSQL 7B.4C C01–C29 (two independent instances)
+        env:
+          APP_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          SIM_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres_sim.id }}
         run: |
           mkdir -p test-results/7b4c
           git rev-parse HEAD > test-results/7b4c/executed-sha.txt
