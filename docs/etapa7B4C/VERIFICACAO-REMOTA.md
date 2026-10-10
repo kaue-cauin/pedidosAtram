@@ -104,7 +104,7 @@ não estabelecem ausência de efeito e não autorizam substituição.
 
 7B.1: 19 PASS; 7B.2: 16 PASS (inclui migrations/SQL/auth/OAuth sintético);
 7B.3: 24 PASS (inclui PostgreSQL/cache/paginação); B01–B24: 24 PASS.
-Etapas 2–6 e check:data PASS; performance Node 7B.3: 18 cenários PASS.
+Etapas 2–6 e check:data PASS; performance Node 7B.3: 36 cenários PASS.
 Typecheck, lint, build e boundary PASS. Build offline: 121 checks/40 recursos,
 sem publicação. B08/B20 e B11/B12 conservaram proteção de snapshots/role
 restrita/isolation; B19 e C19–C21 exercitaram RECOVERY_HOLD; C18 conserva
@@ -120,6 +120,11 @@ job completo, manifestos originais e registro Pages. Índice legível:
 [resultados-remotos-f909190.json](evidencias/resultados-remotos-f909190.json);
 hashes em [manifesto-remoto-f909190.json](evidencias/manifesto-remoto-f909190.json).
 Os hashes ZIP baixados coincidem com os digest SHA-256 dos artefatos GitHub.
+
+A revisão do JSON/log de performance corrigiu a contagem documental: são
+36 cenários medidos (6 tamanhos × 6 perfis de rede), não os 18 anteriormente
+informados. Os relatórios originais sempre registraram 36; não houve alteração
+ou nova aprovação de testes por essa correção.
 
 ## Limites preservados
 

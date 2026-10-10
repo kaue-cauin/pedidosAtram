@@ -257,7 +257,7 @@
     "7B.2": 16,
     "7B.3": 24,
     "B01-B24": 24,
-    "performanceNodeScenarios": 18,
+    "performanceNodeScenarios": 36,
     "typecheck": "PASS",
     "lint": "PASS",
     "build": "PASS",

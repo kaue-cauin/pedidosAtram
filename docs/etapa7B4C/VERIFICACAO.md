@@ -37,7 +37,7 @@ horários e SHA-256 estão em `evidencias/local-checks.json` e nos arquivos L*.l
 | L12 | check:backend-boundary | PASS | Fronteira de fonte/build; não prova RBAC SQL nesta versão |
 
 Além disso: **17 testes U (U01–U14, U19–U21) PASS**, 9 testes unitários
-7B.3 PASS e performance 7B.3 Node PASS em 18 cenários. Modelos com coordinator
+7B.3 PASS e performance 7B.3 Node PASS em 36 cenários. Modelos com coordinator
 double/fake-indexeddb e timers sintéticos não constituem homologação de UI ou
 PostgreSQL real. O relatório Node anterior da 7B.3 foi preservado; o relatório
 novo está somente nas evidências desta etapa.
