@@ -1,6 +1,6 @@
 # Etapa 7B.4B — persistência durável de laboratório
 
-Contrato: `submission-ledger-v1`. Escopo autorizado em 09/10/2026: PostgreSQL, repositórios e testes sintéticos. PR Draft #3, sem integração real, executor, UI ou deploy. Os resultados e o SHA homologado constarão do relatório de verificação; este documento descreve a implementação, não substitui as evidências.
+Contrato: `submission-ledger-v1`. Escopo autorizado em 09/10/2026: PostgreSQL, repositórios e testes sintéticos. PR Draft #3, sem integração real, executor, UI ou deploy. Os resultados e o SHA revisado constam de [VERIFICACAO.md](VERIFICACAO.md); este documento descreve a implementação, não substitui as evidências. Aceite técnico permanece pendente da revisão.
 
 ## Fronteira e modelo
 
